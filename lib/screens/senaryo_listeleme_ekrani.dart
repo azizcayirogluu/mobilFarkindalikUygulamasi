@@ -1,0 +1,127 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'senaryo_bolum_listeleme_ekrani.dart';
+
+class SenaryoListelemeEkrani extends StatelessWidget {
+  const SenaryoListelemeEkrani({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.zemin,
+      appBar: AppBar(
+        title: const Text("SENARYOLAR", 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.yaziRengi)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('scenarios').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("Henüz bir senaryo eklenmemiş."));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+            physics: const BouncingScrollPhysics(),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              var doc = snapshot.data!.docs[index];
+              var data = doc.data() as Map<String, dynamic>;
+              return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildModernScenarioCard(BuildContext context, String baslik, String docId, int index) {
+    final List<Color> renkler = [
+      const Color(0xFF64B5F6), 
+      const Color(0xFF9575CD), 
+      const Color(0xFFFFB74D), 
+      const Color(0xFF4DB6AC)
+    ];
+    final Color anaRenk = renkler[index % renkler.length];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: anaRenk.withOpacity(0.12),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+        border: Border.all(color: anaRenk.withOpacity(0.15), width: 1.5),
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context, 
+          MaterialPageRoute(
+            builder: (c) => SenaryoBolumListelemeEkrani(docId: docId, kategoriBaslik: baslik)
+          )
+        ),
+        borderRadius: BorderRadius.circular(25),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          child: Row(
+            children: [
+              Container(
+                width: 65,
+                height: 65,
+                decoration: BoxDecoration(
+                  color: anaRenk.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(Icons.psychology_alt_rounded, color: anaRenk, size: 34),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      baslik.toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900, 
+                        fontSize: 18, 
+                        color: AppColors.yaziRengi,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Görevleri keşfetmek için dokun",
+                      style: TextStyle(
+                        color: Colors.grey.shade500, 
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Icon(Icons.arrow_forward_ios_rounded, color: anaRenk.withOpacity(0.4), size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "610579116609",
+    "project_id": "tubitak-akran-zorbaligi",
+    "storage_bucket": "tubitak-akran-zorbaligi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610579116609:android:4536b4cc1cc2ce6e844cc0",
+        "android_client_info": {
+          "package_name": "com.example.zorbalik_uygulamasi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPKt4kqHvzKLBuxsbpF4qd1NQTRd_XcWY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
