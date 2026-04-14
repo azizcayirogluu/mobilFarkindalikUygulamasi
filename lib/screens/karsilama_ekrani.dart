@@ -14,7 +14,6 @@ class HomePages extends StatelessWidget {
       backgroundColor: const Color(0xFFF0F7FF),
       body: Stack(
         children: [
-          // 1. ARKA PLAN DESENLERİ (Yumuşak ve Aydınlık)
           Positioned(
             top: -size.width * 0.2,
             right: -size.width * 0.2,

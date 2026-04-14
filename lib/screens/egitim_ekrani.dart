@@ -3,6 +3,8 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/senaryo_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_listeleme_ekrani.dart';
+import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class EgitimEkrani extends StatelessWidget {
   const EgitimEkrani({super.key});
@@ -10,83 +12,85 @@ class EgitimEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final double paddingValue = size.width * 0.05;
+    final double paddingValue = size.width * 0.06;
 
     return Scaffold(
-      backgroundColor: AppColors.zemin,
+      backgroundColor: const Color(0xFFF8FAFF),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverAppBar(
-            expandedHeight: 80.0,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppColors.zemin,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            centerTitle: true,
-            title: const Text(
-              "KEŞFET VE ÖĞREN",
-              style: TextStyle(
-                color: AppColors.yaziRengi,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
+          _buildSliverAppBar(),
           SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: paddingValue, vertical: 10),
+            padding: EdgeInsets.fromLTRB(paddingValue, 5, paddingValue, 20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                const Text(
-                  "Hangi görevle başlamak istersin? 🛡️",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-
-                _buildGamifiedCard(
+                _buildWelcomeHeader(),
+                const SizedBox(height: 25),
+                _egitimKartlari(
                   context,
-                  size: size,
                   title: "Senaryo Çöz",
-                  desc: "Gerçek hayat durumlarında doğru kararı ver.",
+                  desc: "Zor anlarda en doğru kararı sen ver, puanları topla!",
                   icon: Icons.psychology_rounded,
-                  colors: [const Color(0xFF9575CD), const Color(0xFF673AB7)],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   label: "GÖREV",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SenaryoListelemeEkrani())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
                   imagePath: "assets/scenarios.png",
+                  delay: 250.ms,
                 ),
 
-                _buildGamifiedCard(
+                _egitimKartlari(
                   context,
-                  size: size,
+                  title: "Siber Dedektif",
+                  desc: "Olayları incele, güvenli mi yoksa tehlikeli mi karar ver!",
+                  icon: Icons.search_rounded,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00C9FF), Color(0xFF92FE9D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  label: "OYUN",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SiberDedektifOyunu())),
+                  imagePath: "assets/detective.jpg",
+                  delay: 150.ms,
+                ),
+
+                _egitimKartlari(
+                  context,
                   title: "Hikaye Oku",
-                  desc: "Eğitici öykülerle dünyayı tanı.",
+                  desc: "Eğitici öykülerle zorbalığın kahramanı ol.",
                   icon: Icons.auto_stories_rounded,
-                  colors: [const Color(0xFFFFB74D), const Color(0xFFF57C00)],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF9966), Color(0xFFFF5E62)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   label: "BİLGİ",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HikayeListelemeEkrani())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HikayeListelemeEkrani())),
                   imagePath: "assets/history.jpg",
+                  delay: 350.ms,
                 ),
 
-                _buildGamifiedCard(
+                _egitimKartlari(
                   context,
-                  size: size,
                   title: "Video İzle",
-                  desc: "Akranlarından altın ipuçları al.",
+                  desc: "Eğlenceli videolarla en pratik ipuçlarını öğren.",
                   icon: Icons.play_circle_filled_rounded,
-                  colors: [const Color(0xFFE57373), const Color(0xFFD32F2F)],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00B4DB), Color(0xFF0083B0)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   label: "İZLE",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VideoListelemeEkrani())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
                   imagePath: "assets/videos.jpg",
+                  delay: 450.ms,
                 ),
 
-                const SizedBox(height: 100),
+                const SizedBox(height: 120),
               ]),
             ),
           ),
@@ -95,151 +99,143 @@ class EgitimEkrani extends StatelessWidget {
     );
   }
 
-  Widget _buildGamifiedCard(
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      expandedHeight: 80.0,
+      floating: true,
+      pinned: true,
+      backgroundColor: const Color(0xFFF8FAFF),
+      elevation: 0,
+      centerTitle: true,
+      title: const Text(
+        "KAHRAMANLIK AKADEMİSİ",
+        style: TextStyle(
+          color: AppColors.yaziRengi,
+          fontWeight: FontWeight.w900,
+          fontSize: 20,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeHeader() {
+    return Column(
+      children: [
+        const Text(
+          "Bugün Hangi Gücünü Geliştireceksin? 🛡️",
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.blueGrey,
+            fontWeight: FontWeight.w800,
+          ),
+          textAlign: TextAlign.center,
+        ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
+        const SizedBox(height: 8),
+        Container(
+          width: 20,
+          height: 4,
+          decoration: BoxDecoration(
+            color: AppColors.anaMavi.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ).animate().scaleX(duration: 800.ms),
+      ],
+    );
+  }
+
+  Widget _egitimKartlari(
       BuildContext context, {
-        required Size size,
         required String title,
         required String desc,
         required IconData icon,
-        required List<Color> colors,
+        required Gradient gradient,
         required String label,
         required VoidCallback onTap,
         required String imagePath,
+        required Duration delay,
       }) {
-    double cardHeight = size.height * 0.16;
-    if (cardHeight < 135) cardHeight = 135;
-    if (cardHeight > 165) cardHeight = 165;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      height: cardHeight,
+      margin: const EdgeInsets.only(bottom: 22),
+      constraints: const BoxConstraints(minHeight: 160),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: colors.last.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: (gradient as LinearGradient).colors.last.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: InkWell(
-          onTap: onTap,
-          child: Stack(
-            children: [
-              // 1. KATMAN: Ana Renk Gradyanı
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: colors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+        borderRadius: BorderRadius.circular(32),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                Positioned.fill(child: Container(decoration: BoxDecoration(gradient: gradient))),
+                Positioned(
+                  top: -20, right: -20,
+                  child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.1)),
+                ),
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.1,
+                    child: imagePath.contains("assets/") ? Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox(),) : const SizedBox(),
                   ),
                 ),
-              ),
-
-              // 2. KATMAN: Arka Plan Resmi (%25 Opaklık ve Harmanlama)
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.25,
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.cover,
-                    colorBlendMode: BlendMode.multiply,
-                  ),
+                Positioned(
+                  bottom: -15, right: -10,
+                  child: Icon(icon, size: 110, color: Colors.white.withOpacity(0.15)),
                 ),
-              ),
-
-              // 3. KATMAN: Okunabilirlik İçin Siyah Gradyan (Overlay)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black.withOpacity(0.5),
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.2),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                ),
-              ),
-
-              // 4. KATMAN: Dekoratif Büyük İkon
-              Positioned(
-                bottom: -20,
-                right: -10,
-                child: Icon(
-                  icon,
-                  size: cardHeight * 0.9,
-                  color: Colors.white.withOpacity(0.15),
-                ),
-              ),
-
-              // 5. KATMAN: İçerik (Yazılar ve Etiket)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.06),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-                      ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
+                Padding(
+                  padding: const EdgeInsets.all(25.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white30),
+                        ),
+                        child: Text(
+                          label,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: size.width > 600 ? 26 : 22,
-                        fontWeight: FontWeight.w900,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
+                      const SizedBox(height: 12),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      desc,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: size.width > 600 ? 14 : 13,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 6),
+                      Text(
+                        desc,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(delay: delay, duration: 600.ms).slideX(begin: 0.1, curve: Curves.easeOutBack);
   }
 }

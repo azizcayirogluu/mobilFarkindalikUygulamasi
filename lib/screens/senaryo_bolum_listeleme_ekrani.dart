@@ -29,66 +29,102 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       backgroundColor: AppColors.zemin,
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
-        builder: (context, userSnapshot) {
+        builder: (context, userProgressSnap) {
           List<String> tamamlananlar = [];
-          if (userSnapshot.hasData && userSnapshot.data!.exists) {
-            final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+          if (userProgressSnap.hasData && userProgressSnap.data!.exists) {
+            final userData = userProgressSnap.data!.data() as Map<String, dynamic>?;
             tamamlananlar = List<String>.from(userData?['tamamlanan_bolumler'] ?? []);
           }
 
-          int buKategoriBitenSayisi = tamamlananlar.where((id) => id.startsWith("${widget.docId}_")).length;
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+            builder: (context, userSnap) {
+              if (userSnap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              
+              String kullaniciYasGrubu = "6-12";
+              if (userSnap.hasData && userSnap.data!.exists) {
+                kullaniciYasGrubu = (userSnap.data!.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
+              }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCleanHeader(context, buKategoriBitenSayisi),
-              Expanded(
-                child: StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots(),
-                  builder: (context, scenarioSnapshot) {
-                    if (scenarioSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) {
-                      return const Center(child: Text("Görevler bulunamadı."));
-                    }
-                    
-                    var scenarioData = scenarioSnapshot.data!.data() as Map<String, dynamic>?;
-                    List bolumler = scenarioData?['bolumler'] ?? [];
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots(),
+                builder: (context, scenarioSnapshot) {
+                  if (scenarioSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                  if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) return const Center(child: Text("Görevler bulunamadı."));
+                  
+                  var scenarioData = scenarioSnapshot.data!.data() as Map<String, dynamic>?;
+                  List tumBolumler = scenarioData?['bolumler'] ?? [];
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(25, 20, 25, 100),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: bolumler.length,
-                      itemBuilder: (context, index) {
-                        String bId = "${widget.docId}_$index";
-                        bool bittiMi = tamamlananlar.contains(bId);
-                        bool acikMi = index == 0 || tamamlananlar.contains("${widget.docId}_${index - 1}");
-                        bool sonMu = index == bolumler.length - 1;
-                        bool suAnkiGorevMi = acikMi && !bittiMi;
+                  // --- YAŞ GRUBUNA GÖRE BÖLÜM FİLTRELEME ---
+                  // Sadece içinde kullanıcının yaş grubuna ait soru barındıran bölümleri göster
+                  List filtrelenmisBolumler = tumBolumler.where((bolum) {
+                    List sorular = bolum['sorular'] ?? [];
+                    return sorular.any((soru) => (soru['yasGrubu'] ?? "6-12") == kullaniciYasGrubu);
+                  }).toList();
 
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: Duration(milliseconds: 300 + (index * 100)),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) {
-                            return Opacity(
-                              opacity: value,
-                              child: Transform.translate(
-                                offset: Offset(0, 30 * (1 - value)),
-                                child: _buildMissionStep(bolumler[index], index, acikMi, bittiMi, sonMu, suAnkiGorevMi),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+                  int buKategoriBitenSayisi = tamamlananlar.where((id) => id.startsWith("${widget.docId}_")).length;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCleanHeader(context, buKategoriBitenSayisi),
+                      Expanded(
+                        child: filtrelenmisBolumler.isEmpty 
+                          ? _buildNoContentState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(25, 20, 25, 100),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: filtrelenmisBolumler.length,
+                              itemBuilder: (context, index) {
+                                // Not: Firebase'deki gerçek index'i bulmalıyız (tamamlananlar takibi için)
+                                int gercekIndex = tumBolumler.indexOf(filtrelenmisBolumler[index]);
+                                
+                                String bId = "${widget.docId}_$gercekIndex";
+                                bool bittiMi = tamamlananlar.contains(bId);
+                                
+                                // Kilit mantığı: Filtrelenmiş listede bir önceki bitti mi?
+                                bool acikMi = index == 0 || tamamlananlar.contains("${widget.docId}_${tumBolumler.indexOf(filtrelenmisBolumler[index-1])}");
+                                
+                                bool sonMu = index == filtrelenmisBolumler.length - 1;
+                                bool suAnkiGorevMi = acikMi && !bittiMi;
+
+                                return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0.0, end: 1.0),
+                                  duration: Duration(milliseconds: 300 + (index * 100)),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, value, child) {
+                                    return Opacity(
+                                      opacity: value,
+                                      child: Transform.translate(
+                                        offset: Offset(0, 30 * (1 - value)),
+                                        child: _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildNoContentState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 80, color: Colors.blueGrey.withOpacity(0.3)),
+          const SizedBox(height: 20),
+          const Text("Henüz sana uygun görevimiz yok.\nÇok yakında burada olacak! 🛡️", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:confetti/confetti.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 
 class SenaryoDetayEkrani extends StatefulWidget {
@@ -51,29 +52,55 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Future<void> _verileriYukle() async {
+    if (_currentUser == null) return;
+
     try {
+      // 1. Kullanıcının yaş grubunu al
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
+      String kullaniciYasGrubu = "6-12";
+      if (userDoc.exists) {
+        kullaniciYasGrubu = userDoc.data()?['yasGrubu'] ?? "6-12";
+      }
+
+      // 2. Senaryo verisini çek
       final doc = await FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).get();
       if (doc.exists && mounted) {
         final data = doc.data();
         final bolumler = data?['bolumler'] as List? ?? [];
 
         if (bolumler.isNotEmpty && widget.bolumIndex < bolumler.length) {
-          setState(() {
-            _sorular = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
-            for (var soru in _sorular) {
+          final tumSorular = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
+          
+          // --- YAŞ GRUBUNA GÖRE FİLTRELEME ---
+          final filtrelenmisSorular = [];
+          for (var soru in tumSorular) {
+            String soruYas = soru['yasGrubu'] ?? "6-12";
+            if (soruYas == kullaniciYasGrubu) {
+              if (soru['imageUrl'] != null && soru['imageUrl'].toString().isNotEmpty) {
+                precacheImage(CachedNetworkImageProvider(soru['imageUrl']), context);
+              }
               if (soru['secenekler'] != null) {
                 List seceneklerListesi = List.from(soru['secenekler']);
                 seceneklerListesi.shuffle();
                 soru['secenekler'] = seceneklerListesi;
               }
+              filtrelenmisSorular.add(soru);
             }
+          }
+
+          setState(() {
+            _sorular = filtrelenmisSorular;
             _isLoading = false;
           });
-          if (_sesAcik) _soruyuOku(_sorular[_currentIndex]['soru']);
+
+          if (_sorular.isNotEmpty && _sesAcik) {
+            _soruyuOku(_sorular[_currentIndex]['soru']);
+          }
         }
       }
     } catch (e) {
       debugPrint("Veri yükleme hatası: $e");
+      setState(() => _isLoading = false);
     }
   }
 
@@ -123,6 +150,24 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+    if (_sorular.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent, leading: const CloseButton(color: Colors.grey)),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.sentiment_dissatisfied_rounded, size: 80, color: Colors.blueGrey),
+              const SizedBox(height: 20),
+              const Text("Bu bölüm senin yaş grubun için\nhenüz hazır değil.", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              const SizedBox(height: 30),
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("GERİ DÖN"))
+            ],
+          ),
+        ),
+      );
+    }
+
     final size = MediaQuery.of(context).size;
     final soru = _sorular[_currentIndex];
 
@@ -145,7 +190,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
-                      if (soru['imageUrl'] != null) _buildHeroImage(soru['imageUrl'], size),
+                      if (soru['imageUrl'] != null && soru['imageUrl'].toString().isNotEmpty) _buildHeroImage(soru['imageUrl'], size),
                       const SizedBox(height: 20),
                       _buildQuestionCard(soru['soru'], size),
                       const SizedBox(height: 25),
@@ -250,9 +295,22 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       child: ClipRRect(
         borderRadius: BorderRadius.circular(25),
         child: CachedNetworkImage(
-          imageUrl: url, fit: BoxFit.cover,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-          errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+          imageUrl: url, 
+          fit: BoxFit.cover,
+          fadeInDuration: const Duration(milliseconds: 500),
+          placeholder: (context, url) => Container(
+            color: Colors.grey[50],
+            child: Center(
+              child: Icon(Icons.image_rounded, color: Colors.blue[100], size: 50)
+                  .animate(onPlay: (c) => c.repeat())
+                  .shimmer(duration: 1500.ms, color: Colors.white)
+                  .scale(duration: 1000.ms, begin: const Offset(0.8, 0.8), end: const Offset(1.1, 1.1)),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey[100],
+            child: const Icon(Icons.broken_image, color: Colors.grey),
+          ),
         ),
       ),
     );
@@ -335,7 +393,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     bool basarili = oran >= 60;
 
     if (basarili) {
-      await _bolumuTamamlaVeRozetKontrol();
+      await _bolumuTamamlaVeSenkronizeEt();
     }
 
     if (!mounted) return;
@@ -369,81 +427,73 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
-  Future<void> _bolumuTamamlaVeRozetKontrol() async {
+  Future<void> _bolumuTamamlaVeSenkronizeEt() async {
     if (_currentUser == null) return;
     final String uid = _currentUser!.uid;
     final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
 
     try {
-      debugPrint("DEBUG: Rozet kontrolü tetiklendi.");
-
-      // 1. Kullanıcı Verisini Çek
       final userSnap = await progressRef.get();
       Map<String, dynamic> userData = userSnap.exists ? (userSnap.data() as Map<String, dynamic>) : {};
 
-      int mevcutPuan = userData['toplam_puan'] ?? 0;
       List bitti = List.from(userData['tamamlanan_bolumler'] ?? []);
+      List bilinenDedektifSorulari = List.from(userData['bilinen_dedektif_sorulari'] ?? []);
+      List okunanHikayeler = List.from(userData['okunan_hikayeler'] ?? []);
       List mevcutRozetler = List.from(userData['rozetler'] ?? []);
+      
       String buBolumId = "${widget.docId}_${widget.bolumIndex}";
 
-      // 2. İlerlemeyi Kaydet (Eğer yeni bitiyorsa)
       if (!bitti.contains(buBolumId)) {
-        mevcutPuan += 100;
         bitti.add(buBolumId);
-
-        await progressRef.set({
-          'uid': uid,
-          'tamamlanan_bolumler': bitti,
-          'toplam_puan': mevcutPuan,
-          'sonGuncelleme': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-        debugPrint("DEBUG: Puan başarıyla güncellendi: $mevcutPuan");
       }
 
-      // 3. Rozetleri Çek (Timeout ekleyerek takılmayı önle)
-      debugPrint("DEBUG: Badges koleksiyonu çekiliyor...");
-      final badgesSnap = await FirebaseFirestore.instance
-          .collection('badges')
-          .get()
-          .timeout(const Duration(seconds: 10));
+      // Puan Hesaplama
+      int senaryoSayisi = bitti.where((id) => !id.toString().contains("siber_dedektif") && !id.toString().contains("ayak_izi_temizligi")).length;
+      int senaryoPuani = senaryoSayisi * 100;
+      int dedektifPuani = bilinenDedektifSorulari.length * 20;
+      int hikayePuani = okunanHikayeler.length * 10;
+      int yeniToplamPuan = senaryoPuani + dedektifPuani + hikayePuani;
 
+      // Rozet Kontrolü
+      final badgesSnap = await FirebaseFirestore.instance.collection('badges').get();
       List<String> yeniKazanilanlar = [];
       int benzersizSenaryoSayisi = bitti.map((id) => id.toString().split('_').first).toSet().length;
 
       for (var doc in badgesSnap.docs) {
         if (mevcutRozetler.contains(doc.id)) continue;
-
         final bData = doc.data();
         final String tip = bData['kriter_tipi']?.toString() ?? "";
         final dynamic rawHedef = bData['hedef_deger'];
-
         int hedef = 9999;
         if (rawHedef is num) hedef = rawHedef.toInt();
         else if (rawHedef is String) hedef = int.tryParse(rawHedef) ?? 9999;
 
         bool kazandiMi = false;
-        if (tip == "puan" && mevcutPuan >= hedef) kazandiMi = true;
+        if (tip == "puan" && yeniToplamPuan >= hedef) kazandiMi = true;
         else if (tip == "senaryo_sayisi" && (bitti.length >= hedef || benzersizSenaryoSayisi >= hedef)) kazandiMi = true;
 
-        if (kazandiMi) {
-          debugPrint("DEBUG: ROZET ŞARTLARI TUTTU -> ${doc.id}");
-          yeniKazanilanlar.add(doc.id);
-        }
+        if (kazandiMi) yeniKazanilanlar.add(doc.id);
       }
 
-      // 4. Rozetleri Kaydet
+      // Güncelleme
+      Map<String, dynamic> updateData = {
+        'tamamlanan_bolumler': bitti,
+        'toplam_puan': yeniToplamPuan,
+        'sonGuncelleme': FieldValue.serverTimestamp(),
+      };
+
       if (yeniKazanilanlar.isNotEmpty) {
-        await progressRef.update({
-          'rozetler': FieldValue.arrayUnion(yeniKazanilanlar)
-        });
-        debugPrint("DEBUG: Yeni rozetler yazıldı.");
-        if (mounted) _yeniRozetBildirimi(yeniKazanilanlar.length);
-      } else {
-        debugPrint("DEBUG: Şartlar sağlanmadığı için rozet eklenmedi.");
+        updateData['rozetler'] = FieldValue.arrayUnion(yeniKazanilanlar);
+      }
+
+      await progressRef.set(updateData, SetOptions(merge: true));
+      
+      if (yeniKazanilanlar.isNotEmpty && mounted) {
+        _yeniRozetBildirimi(yeniKazanilanlar.length);
       }
 
     } catch (e) {
-      debugPrint("DEBUG: HATA OLUŞTU -> $e");
+      debugPrint("Senkronizasyon hatası: $e");
     }
   }
 

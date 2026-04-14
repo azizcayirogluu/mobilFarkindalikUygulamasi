@@ -163,7 +163,6 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  // --- SORU EDİTÖRÜ---
   void _showChapterEditor(String docId, int bIndex, List currentBolumler) {
     Map<String, dynamic> chapter = Map<String, dynamic>.from(currentBolumler[bIndex]);
     List sorular = List.from(chapter['sorular'] ?? []);
@@ -174,20 +173,21 @@ class _ScenarioManagerState extends State<ScenarioManager> {
       builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              backgroundColor: AppColors.zemin,
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               child: Container(
-                width: MediaQuery.of(context).size.width * 0.8,
+                width: MediaQuery.of(context).size.width * 0.85,
                 height: MediaQuery.of(context).size.height * 0.9,
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   children: [
                     _buildEditorHeader(chapter['bolumAdi']),
                     const SizedBox(height: 24),
-                    _buildChapterTitleField(chapter, (v) => chapter['bolumAdi'] = v),
+                    _buildChapterTitleField(chapter, (v) => setDialogState(() => chapter['bolumAdi'] = v)),
                     const SizedBox(height: 24),
                     Expanded(
                       child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
                         itemCount: sorular.length,
                         itemBuilder: (c, sIndex) => _buildSoruCard(sIndex, sorular[sIndex], () {
                           setDialogState(() => sorular.removeAt(sIndex));
@@ -204,84 +204,169 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildSoruCard(int index, Map soru, VoidCallback onDelete, StateSetter setState) {
+  Widget _buildSoruCard(int index, Map soru, VoidCallback onDelete, StateSetter setDialogState) {
+    String soruYasGrubu = soru['yasGrubu'] ?? "6-12";
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 25),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: AppColors.anaMavi.withOpacity(0.1), width: 2),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.anaMavi.withOpacity(0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(23)),
+            ),
+            child: Row(
+              children: [
+                _badge("SORU ${index + 1}", AppColors.anaMavi),
+                const Spacer(),
+                IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent), onPressed: onDelete),
+              ],
+            ),
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    children: [
+                      _buildImagePreviewInSoru(soru['imageUrl']),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        initialValue: soru['imageUrl'],
+                        decoration: _inputDecoration("Görsel URL", Icons.link_rounded),
+                        style: const TextStyle(fontSize: 12),
+                        onChanged: (v) => setDialogState(() => soru['imageUrl'] = v),
+                      ),
+                      const SizedBox(height: 15),
+                      DropdownButtonFormField<String>(
+                        value: soruYasGrubu,
+                        decoration: _inputDecoration("Soru Yaş Grubu", Icons.people_outline_rounded),
+                        items: ["6-12", "13-18"].map((v) => DropdownMenuItem(value: v, child: Text(v == "6-12" ? "6-12 Yaş" : "13-18 Yaş", style: const TextStyle(fontSize: 12)))).toList(),
+                        onChanged: (v) => setDialogState(() {
+                          soru['yasGrubu'] = v;
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 25),
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        initialValue: soru['soru'],
+                        maxLines: 3,
+                        decoration: _inputDecoration("Soru Metni", Icons.help_outline_rounded),
+                        onChanged: (v) => soru['soru'] = v,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text("SEÇENEKLER VE DÖNÜTLER (Feedback)", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.blueGrey)),
+                      const SizedBox(height: 15),
+                      ...List.generate((soru['secenekler'] as List).length, (optIndex) {
+                        var opt = soru['secenekler'][optIndex];
+                        return _buildOptionRow(opt, soru, setDialogState, optIndex);
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePreviewInSoru(String? url) {
+    return Container(
+      height: 140,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: (url != null && url.isNotEmpty)
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_rounded, size: 40, color: Colors.grey))))
+          : const Center(child: Icon(Icons.image_search_rounded, size: 40, color: Colors.grey)),
+    );
+  }
+
+  Widget _buildOptionRow(Map opt, Map soru, StateSetter setState, int index) {
+    bool isTrue = opt['dogru'] == true;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isTrue ? Colors.green.withOpacity(0.03) : Colors.red.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: isTrue ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
           Row(
             children: [
-              _badge("Soru ${index + 1}", AppColors.anaMavi),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent), onPressed: onDelete),
+              Radio<bool>(
+                value: true,
+                groupValue: opt['dogru'],
+                activeColor: Colors.green,
+                onChanged: (v) => setState(() {
+                  for (var o in soru['secenekler']) { o['dogru'] = false; }
+                  opt['dogru'] = true;
+                }),
+              ),
+              Expanded(
+                child: _smallField(opt, 'metin', "Seçenek metni...", isTrue ? Colors.green : Colors.red),
+              ),
             ],
           ),
-          const SizedBox(height: 15),
-          TextFormField(
-            initialValue: soru['soru'],
-            decoration: _inputDecoration("Soru Cümlesi", Icons.help_outline_rounded),
-            onChanged: (v) => soru['soru'] = v,
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 48),
+            child: _smallField(opt, 'feedback', "Feedback: Bu şık seçilirse ne densin?", Colors.blueGrey),
           ),
-          const SizedBox(height: 20),
-          const Text("Seçenekler ve Dönütler", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-          const SizedBox(height: 10),
-          ...List.generate(soru['secenekler'].length, (optIndex) {
-            var opt = soru['secenekler'][optIndex];
-            return _buildOptionRow(opt, soru, setState);
-          }),
         ],
       ),
     );
   }
 
-  Widget _buildOptionRow(Map opt, Map soru, StateSetter setState) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Radio<bool>(
-            value: true,
-            groupValue: opt['dogru'],
-            activeColor: AppColors.basariYesili,
-            onChanged: (v) => setState(() {
-              for (var o in soru['secenekler']) { o['dogru'] = false; }
-              opt['dogru'] = true;
-            }),
-          ),
-          Expanded(flex: 2, child: _smallField(opt, 'metin', "Seçenek...")),
-          const SizedBox(width: 10),
-          Expanded(flex: 3, child: _smallField(opt, 'feedback', "Seçilirse verilecek mesaj...")),
-        ],
-      ),
-    );
-  }
-
-  // --- UI YARDIMCILAR ---
   InputDecoration _inputDecoration(String label, IconData icon) => InputDecoration(
     labelText: label,
+    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
     prefixIcon: Icon(icon, color: AppColors.anaMavi),
     filled: true,
-    fillColor: AppColors.zemin.withOpacity(0.5),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+    fillColor: Colors.grey.shade50,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.anaMavi, width: 2)),
   );
 
-  Widget _smallField(Map opt, String key, String hint) {
+  Widget _smallField(Map opt, String key, String hint, Color color) {
     return TextFormField(
       initialValue: opt[key],
-      style: const TextStyle(fontSize: 13),
+      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color.withOpacity(0.8)),
       decoration: InputDecoration(
         hintText: hint,
         isDense: true,
-        contentPadding: const EdgeInsets.all(12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color.withOpacity(0.5))),
       ),
       onChanged: (v) => opt[key] = v,
     );
@@ -291,7 +376,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
     );
   }
 
@@ -301,6 +386,15 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
     border: Border.all(color: Colors.white),
   );
+
+  Widget _buildLeadingIcon(String? colorHex) {
+    Color color = Color(int.parse(colorHex ?? "0xFF9575CD"));
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      child: Icon(Icons.psychology_rounded, color: color, size: 28),
+    );
+  }
 
   Widget _miniActionBtn(IconData icon, Color color, VoidCallback onTap) {
     return IconButton(
@@ -324,7 +418,6 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  // --- CRUD İŞLEMLERİ ---
   void _addNewChapter(String docId, List currentBolumler) async {
     currentBolumler.add({'bolumAdi': 'Yeni Bölüm', 'sorular': []});
     await _firestore.collection('scenarios').doc(docId).update({'bolumler': currentBolumler});
@@ -380,6 +473,8 @@ class _ScenarioManagerState extends State<ScenarioManager> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.all(18)),
               onPressed: () => setState(() => sorular.add({
                 'soru': 'Soru Metni?',
+                'imageUrl': '',
+                'yasGrubu': '6-12', // Varsayılan değer
                 'secenekler': [
                   {'metin': 'Seçenek 1', 'dogru': true, 'feedback': 'Bravo!'},
                   {'metin': 'Seçenek 2', 'dogru': false, 'feedback': 'Tekrar dene.'},
@@ -408,15 +503,6 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildLeadingIcon(String? colorHex) {
-    Color color = Color(int.parse(colorHex ?? "0xFF9575CD"));
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-      child: Icon(Icons.psychology_rounded, color: color, size: 28),
-    );
-  }
-
   Widget _buildMainActions(String docId, Map data) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -434,37 +520,55 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     final titleController = TextEditingController(text: existingData?['baslik']);
     final subtitleController = TextEditingController(text: existingData?['altBaslik']);
     final colorController = TextEditingController(text: existingData?['renk'] ?? "0xFF9575CD");
+    String selectedYasGrubu = existingData?['yasGrubu'] ?? "6-12";
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(docId == null ? "Yeni Senaryo Kartı" : "Senaryoyu Düzenle"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Senaryo Başlığı")),
-            const SizedBox(height: 10),
-            TextField(controller: subtitleController, decoration: const InputDecoration(labelText: "Kısa Açıklama")),
-            const SizedBox(height: 10),
-            TextField(controller: colorController, decoration: const InputDecoration(labelText: "Renk Hex (Örn: 0xFF4A90E2)")),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(docId == null ? "Yeni Senaryo Kartı" : "Senaryoyu Düzenle"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: titleController, decoration: const InputDecoration(labelText: "Senaryo Başlığı")),
+              const SizedBox(height: 10),
+              TextField(controller: subtitleController, decoration: const InputDecoration(labelText: "Kısa Açıklama")),
+              const SizedBox(height: 10),
+              TextField(controller: colorController, decoration: const InputDecoration(labelText: "Renk Hex (Örn: 0xFF4A90E2)")),
+              const SizedBox(height: 20),
+              const Align(alignment: Alignment.centerLeft, child: Text("Hedef Yaş Grubu", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey))),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: selectedYasGrubu,
+                decoration: _inputDecoration("Yaş Grubu", Icons.child_care_rounded),
+                items: ["6-12", "13-18"].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value == "6-12" ? "6 - 12 Yaş (Çocuk)" : "13 - 18 Yaş (Genç)"),
+                  );
+                }).toList(),
+                onChanged: (newValue) => setDialogState(() => selectedYasGrubu = newValue!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("İptal")),
+            ElevatedButton(onPressed: () async {
+              final data = {
+                'baslik': titleController.text,
+                'altBaslik': subtitleController.text,
+                'renk': colorController.text,
+                'ikon': 'psychology',
+                'yasGrubu': selectedYasGrubu,
+                if (docId == null) 'bolumler': [],
+              };
+              if (docId == null) await _firestore.collection('scenarios').add(data);
+              else await _firestore.collection('scenarios').doc(docId).update(data);
+              Navigator.pop(context);
+            }, child: const Text("Kaydet")),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("İptal")),
-          ElevatedButton(onPressed: () async {
-            final data = {
-              'baslik': titleController.text,
-              'altBaslik': subtitleController.text,
-              'renk': colorController.text,
-              'ikon': 'psychology',
-              if (docId == null) 'bolumler': [],
-            };
-            if (docId == null) await _firestore.collection('scenarios').add(data);
-            else await _firestore.collection('scenarios').doc(docId).update(data);
-            Navigator.pop(context);
-          }, child: const Text("Kaydet")),
-        ],
       ),
     );
   }

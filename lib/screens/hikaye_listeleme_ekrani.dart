@@ -63,6 +63,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (c) => HikayeDetayEkrani(
+              feedbackMessage: data['feedbackMessage'] ?? "",
               baslik: data['baslik'] ?? "Eğitici Öykü",
               gorselYolu: data['gorselYolu'] ?? "assets/books.png",
               temaRengi: anaRenk,

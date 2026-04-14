@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
@@ -9,6 +10,7 @@ import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
@@ -21,7 +23,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-
   @override
   void initState() {
     super.initState();
@@ -40,7 +41,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _setUserStatus(true);
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       _setUserStatus(false);
     }
   }
@@ -49,10 +51,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'isOnline': isOnline,
-          'sonGorulme': FieldValue.serverTimestamp(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+              'isOnline': isOnline,
+              'sonGorulme': FieldValue.serverTimestamp(),
+            });
       } catch (e) {
         debugPrint("Durum güncellenemedi: $e");
       }
@@ -69,20 +74,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, authSnapshot) {
           if (authSnapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           if (authSnapshot.hasData && authSnapshot.data != null) {
             final String uid = authSnapshot.data!.uid;
 
             return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .snapshots(),
               builder: (context, firestoreSnapshot) {
-                if (firestoreSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                if (firestoreSnapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
                 }
 
-                if (!firestoreSnapshot.hasData || !firestoreSnapshot.data!.exists) {
+                if (!firestoreSnapshot.hasData ||
+                    !firestoreSnapshot.data!.exists) {
                   Future.microtask(() async {
                     await _setUserStatus(false);
                     await FirebaseAuth.instance.signOut();

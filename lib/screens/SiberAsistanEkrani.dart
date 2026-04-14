@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_animate/flutter_animate.dart';
 
 class SiberAsistanEkrani extends StatefulWidget {
   const SiberAsistanEkrani({super.key});
@@ -38,7 +37,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     const Color(0xFF42A5F5), // Mavi
   ];
 
-  final String _apiKey = "AIzaSyAdZNBH2ppWqLEhp_ZmtQfpJ3dLHjJnMdU";
+  final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
 
   @override
   void initState() {
@@ -69,8 +68,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
             _mesajlar = List<Map<String, String>>.from(
               (data['sohbet_gecmisi'] as List).map((item) => Map<String, String>.from(item))
             );
-            
-            _history = _mesajlar.map((m) => {
+
+            _history = _mesajlar.map<Map<String, dynamic>>((m) => {
               "role": m["rol"] == "kullanici" ? "user" : "model",
               "parts": [{"text": m["metin"]}]
             }).toList();
@@ -100,7 +99,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     }
   }
 
-  // GÜNCELLEME: Mesajları usersProgress/uid içindeki 'sohbet_gecmisi' listesine ekliyoruz
   Future<void> _mesajlariKaydet() async {
     if (_currentUser == null) return;
     try {
@@ -117,10 +115,16 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Future<void> _mesajGonder(String metin) async {
-    if (metin.trim().isEmpty || _yukleniyor) return;
+    if (metin.trim().isEmpty || _yukleniyor || _apiKey.isEmpty) return;
+
+    final Map<String, dynamic> yeniMesajGecmisi = {
+      "role": "user",
+      "parts": [{"text": metin}]
+    };
+
     setState(() {
       _mesajlar.add({"rol": "kullanici", "metin": metin});
-      _history.add({"role": "user", "parts": [{"text": metin}]});
+      _history.add(yeniMesajGecmisi);
       _yukleniyor = true;
     });
 
@@ -142,13 +146,18 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String botCevabi = data['candidates'][0]['content']['parts'][0]['text'];
+        
+        final Map<String, dynamic> botHistoryItem = {
+          "role": "model",
+          "parts": [{"text": botCevabi}]
+        };
+
         setState(() {
           _mesajlar.add({"rol": "bot", "metin": botCevabi});
-          _history.add({"role": "model", "parts": [{"text": botCevabi}]});
+          _history.add(botHistoryItem);
           _yukleniyor = false;
         });
 
-        // Tüm mesaj listesini tek seferde update ediyoruz (field olarak)
         _mesajlariKaydet();
         _sesliOku(botCevabi);
       }
@@ -156,11 +165,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     _scrollToBottom();
   }
 
-  // --- Tasarım Kodları (Dokunulmadı) ---
   void _scrollToBottom() {
-    Future.delayed(300.ms, () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: 500.ms, curve: Curves.easeOut);
+        _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
       }
     });
   }
@@ -330,7 +338,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   void _sohbetiTemizle() async {
     if (_currentUser == null) return;
     try {
-      // Field'ı siliyoruz
       await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).update({
         'sohbet_gecmisi': FieldValue.delete(),
       });
@@ -341,7 +348,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
   void _ilkMesaj() {
     String m = "Selam $_kullaniciAdi! 🤖 Ben senin Siber Dostunum. Bugün siber dünyada harika bir maceraya hazır mısın? ✨";
-    setState(() { _mesajlar.add({"rol": "bot", "metin": m}); _history.add({"role": "model", "parts": [{"text": m}]}); });
+    setState(() { 
+      _mesajlar.add({"rol": "bot", "metin": m}); 
+      _history.add({"role": "model", "parts": [{"text": m}]}); 
+    });
     _sesliOku(m);
     _mesajlariKaydet();
   }

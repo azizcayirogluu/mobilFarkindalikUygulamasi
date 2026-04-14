@@ -87,6 +87,7 @@ class _StoryManagerState extends State<StoryManager> {
 
   // --- HİKAYE KARTLARI ---
   Widget _buildStoryCard(String docId, Map<String, dynamic> data) {
+    Color cardColor = _parseColor(data['temaRengi']);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -103,13 +104,15 @@ class _StoryManagerState extends State<StoryManager> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.uyariTuruncusu.withOpacity(0.1),
+                    color: cardColor.withOpacity(0.1),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: data['gorselYolu'] != null && data['gorselYolu'].toString().isNotEmpty
                       ? ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: Image.network(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40)),
+                    child: data['gorselYolu'].toString().startsWith('http') 
+                      ? Image.network(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40))
+                      : Image.asset(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40)),
                   )
                       : const Icon(Icons.auto_stories_rounded, size: 50, color: AppColors.uyariTuruncusu),
                 ),
@@ -136,7 +139,7 @@ class _StoryManagerState extends State<StoryManager> {
                   Text(data['baslik'] ?? "İsimsiz",
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.yaziRengi)),
                   const SizedBox(height: 8),
-                  Text(data['altBaslik'] ?? "Özet bulunmuyor...",
+                  Text(data['feedbackMessage'] ?? "Geri bildirim mesajı bulunmuyor...",
                       maxLines: 2, overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4)),
                   const Spacer(),
@@ -156,11 +159,24 @@ class _StoryManagerState extends State<StoryManager> {
       ),
     );
   }
+
+  Color _parseColor(String? hexColor) {
+    if (hexColor == null || hexColor.isEmpty) return AppColors.uyariTuruncusu;
+    try {
+      String cleanHex = hexColor.replaceAll('#', '').replaceAll('0x', '');
+      if (cleanHex.length == 6) cleanHex = 'FF$cleanHex';
+      return Color(int.parse('0x$cleanHex'));
+    } catch (e) {
+      return AppColors.uyariTuruncusu;
+    }
+  }
+
   void _showStoryDialog({String? docId, Map<String, dynamic>? existingData}) {
     final tC = TextEditingController(text: existingData?['baslik']);
-    final sC = TextEditingController(text: existingData?['altBaslik']);
-    final iC = TextEditingController(text: existingData?['gorselYolu']);
     final mC = TextEditingController(text: existingData?['hikayeMetni']);
+    final iC = TextEditingController(text: existingData?['gorselYolu']);
+    final rC = TextEditingController(text: existingData?['temaRengi'] ?? '0xFFFFB74D');
+    final fC = TextEditingController(text: existingData?['feedbackMessage']);
 
     showDialog(
       context: context,
@@ -185,9 +201,11 @@ class _StoryManagerState extends State<StoryManager> {
                         children: [
                           _buildField(tC, "Hikaye Başlığı", Icons.title_rounded),
                           const SizedBox(height: 15),
-                          _buildField(sC, "Kısa Özet / Alt Başlık", Icons.short_text_rounded),
+                          _buildField(iC, "Görsel Yolu (Asset veya URL)", Icons.image_search_rounded),
                           const SizedBox(height: 15),
-                          _buildField(iC, "Kapak Görseli URL", Icons.image_search_rounded),
+                          _buildField(rC, "Tema Rengi (Hex Örn: 0xFF2196F3)", Icons.palette_rounded),
+                          const SizedBox(height: 15),
+                          _buildField(fC, "Geri Bildirim Mesajı", Icons.feedback_rounded),
                           const SizedBox(height: 20),
                           _buildImagePreview(iC),
                         ],
@@ -202,7 +220,7 @@ class _StoryManagerState extends State<StoryManager> {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildDialogActions(docId, tC, sC, iC, mC),
+              _buildDialogActions(docId, tC, mC, iC, rC, fC),
             ],
           ),
         ),
@@ -304,7 +322,7 @@ class _StoryManagerState extends State<StoryManager> {
   }
 
   // --- CRUD İŞLEMLERİ ---
-  Widget _buildDialogActions(String? docId, TextEditingController t, TextEditingController s, TextEditingController i, TextEditingController m) {
+  Widget _buildDialogActions(String? docId, TextEditingController t, TextEditingController m, TextEditingController i, TextEditingController r, TextEditingController f) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -313,7 +331,13 @@ class _StoryManagerState extends State<StoryManager> {
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.uyariTuruncusu, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20)),
           onPressed: () async {
-            final data = {'baslik': t.text, 'altBaslik': s.text, 'gorselYolu': i.text, 'hikayeMetni': m.text, 'renk': '0xFFFFB74D', 'ikon': 'auto_stories'};
+            final data = {
+              'baslik': t.text, 
+              'hikayeMetni': m.text, 
+              'gorselYolu': i.text, 
+              'temaRengi': r.text, 
+              'feedbackMessage': f.text
+            };
             if (docId == null) await _firestore.collection('stories').add(data);
             else await _firestore.collection('stories').doc(docId).update(data);
             Navigator.pop(context);
@@ -339,7 +363,12 @@ class _StoryManagerState extends State<StoryManager> {
             height: 150, width: double.infinity,
             decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300, style: BorderStyle.none)),
             child: iC.text.isNotEmpty
-                ? ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Görsel Yüklenemedi"))))
+                ? ClipRRect(
+                  borderRadius: BorderRadius.circular(15), 
+                  child: iC.text.startsWith('http') 
+                    ? Image.network(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Görsel Yüklenemedi")))
+                    : Image.asset(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Asset Bulunamadı")))
+                  )
                 : const Center(child: Icon(Icons.image_outlined, color: Colors.grey, size: 40)),
           );
         }

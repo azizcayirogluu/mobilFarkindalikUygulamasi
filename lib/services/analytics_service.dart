@@ -33,8 +33,6 @@ class AnalyticsService {
     }
   }
 
-  /// Uygulamada geçirilen süreyi (dakika) kullanıcı profiline ekler.
-  /// Admin panelindeki 'Toplam Eğitim Süresi' grafiğini bu veri besler.
   Future<void> sureEkle(String uid, int dakika) async {
     try {
       await _db.collection('usersProgress').doc(uid).set({
@@ -49,8 +47,6 @@ class AnalyticsService {
     }
   }
 
-  /// Kullanıcının karakter eğilimlerini (Empati, Cesaret, Dikkat vb.) günceller.
-  /// Bu veriler Admin Panelindeki 'Karakter Gelişim Analizi' bar grafiklerini besler.
   Future<void> karakterPuaniEkle(String uid, String tip, int puan) async {
     try {
       await _db.collection('usersProgress').doc(uid).set({

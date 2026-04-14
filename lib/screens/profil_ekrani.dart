@@ -5,6 +5,9 @@ import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/admin_home.dart';
+import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
+import 'guvenlik_rehberi_ekrani.dart';
+import 'hakkinda_ekrani.dart';
 
 class ProfilEkrani extends StatefulWidget {
   final String kullaniciAdi;
@@ -45,7 +48,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
 
   Future<void> _hesabiSil() async {
     if (_currentUser == null) return;
-    
+
     bool? onay = await _onayDiyalogu(
         "Hesabı Kalıcı Sil",
         "Tüm başarın ve rozetlerin silinecek. Bu işlem geri alınamaz! 😢",
@@ -62,7 +65,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             .doc(uid)
             .collection('messages')
             .get();
-        
+
         WriteBatch batch = FirebaseFirestore.instance.batch();
         for (var doc in messages.docs) {
           batch.delete(doc.reference);
@@ -73,7 +76,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         await FirebaseFirestore.instance.collection('usersProgress').doc(uid).delete();
 
         await _currentUser!.delete();
-        
+
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
             context,
@@ -119,7 +122,6 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     if (_currentUser == null) return const Scaffold(body: Center(child: Text("Giriş yapmalısın.")));
@@ -159,8 +161,11 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                     }
                   }
 
-                  double ilerleme = toplamBolumSayisi > 0
-                      ? (tamamlananlar.length / toplamBolumSayisi).clamp(0.0, 1.0)
+                  // Siber Dedektif ve Ayak İzi oyunlarını da hedefe dahil et
+                  int toplamHedef = toplamBolumSayisi + 2; 
+
+                  double ilerleme = toplamHedef > 0
+                      ? (tamamlananlar.length / toplamHedef).clamp(0.0, 1.0)
                       : 0.0;
 
                   int seviye = (tamamlananlar.length ~/ 3) + 1;
@@ -361,12 +366,30 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         ),
         child: Column(
           children: [
-            if (isAdmin) _buildSettingsTile(Icons.admin_panel_settings_rounded, "Yönetim Paneli", size, color: Colors.deepPurple, onTap: () {
+            if (isAdmin) _buildSettingsTile(Icons.admin_panel_settings_rounded, "Yönetici Paneli", size, color: Colors.deepPurple, onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHome()));
             }),
-            _buildSettingsTile(Icons.notifications_active_rounded, "Bildirimleri Yönet", size, isSwitch: true),
-            _buildSettingsTile(Icons.shield_rounded, "Güvenlik Rehberim", size),
-            _buildSettingsTile(Icons.info_rounded, "Uygulama Hakkında", size, isLast: true),
+            // SİBER İMDAT BUTONU (Kritik ve Kırmızı)
+            _buildSettingsTile(
+                Icons.sos_rounded, 
+                "Siber İmdat & Destek", 
+                size, 
+                color: Colors.redAccent, 
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani()))
+            ),
+            _buildSettingsTile(Icons.notifications_active_rounded, "Bildirim Gönderebilir Miyiz ?", size, isSwitch: true),
+            _buildSettingsTile(
+                Icons.shield_rounded,
+                "Güvenlik Rehberim",
+                size,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuvenlikRehberiEkrani()))
+            ),
+            _buildSettingsTile(
+                Icons.info_rounded,
+                "Uygulama Hakkında",
+                size,
+                onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_) => const HakkindaEkrani()) ),
+            ),
           ],
         ),
       ),

@@ -54,6 +54,8 @@ class _KayitEkraniState extends State<KayitEkrani> {
         'kullaniciAdi': kullaniciAdi,
         'yasGrubu': seciliGrup,
         'isAdmin': false,
+        'isOnline': true,
+        'sonGorulme': FieldValue.serverTimestamp(),
         'kayitTarihi': FieldValue.serverTimestamp(),
       });
 
@@ -131,7 +133,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
       child: Column(
         children: [
           Image.asset(
-            'assets/elEleKarsilama.png',
+            'assets/elEleKarsilama2.png',
             height: 140,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => const Icon(Icons.handshake_rounded, size: 80, color: AppColors.anaMavi),
