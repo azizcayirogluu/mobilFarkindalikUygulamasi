@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -31,7 +32,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
   late String _currentTitle;
 
   bool _isOnline = true;
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription; // İnternet değişim dinleyicisi
 
   @override
   void initState() {
@@ -41,21 +42,33 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
 
     _controller = YoutubePlayerController(
       initialVideoId: _currentId,
-      flags: const YoutubePlayerFlags(autoPlay: true, mute: false, hideControls: false),
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        mute: false,
+        hideControls: false,
+        disableDragSeek: false,
+        loop: false,
+        isLive: false,
+        forceHD: false,
+        enableCaption: true,
+      ),
     );
 
-    _checkInitialConnection();
+    _checkInitialConnection(); // İlk açılışta interneti kontrol et
 
+    // Kullanıcının interneti kesildiğinde veya geldiğinde anlık dinleme yap
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
       _updateConnectionStatus(result);
     });
   }
 
+  // İlk bağlantı kontrolü için asenkron metod
   Future<void> _checkInitialConnection() async {
     List<ConnectivityResult> result = await Connectivity().checkConnectivity();
     _updateConnectionStatus(result);
   }
 
+  // İnternet durumuna göre oynatıcıyı duraklatır veya devam ettirir
   void _updateConnectionStatus(List<ConnectivityResult> result) {
     if (!mounted) return;
     setState(() {
@@ -71,12 +84,16 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
 
   @override
   void dispose() {
-    _connectivitySubscription.cancel();
+    _connectivitySubscription.cancel(); // Bellek sızıntısını önlemek için stream kapatılır
     _controller.dispose();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    if (!kIsWeb) {
+      // Sayfadan çıkarken ekran yönünü portre moduna geri döndürür
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     super.dispose();
   }
 
+  // Liste üzerinden başka bir videoya geçiş yapmayı sağlar
   void _videoDegistir(String id, String baslik) {
     if (!_isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,27 +105,43 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
       _currentId = id;
       _currentTitle = baslik;
     });
-    _controller.load(id);
+    _controller.load(id); // Yeni videoyu oynatıcıya yükler
   }
 
   @override
   Widget build(BuildContext context) {
-    final onerilenler = widget.tumVideolarJson.where((v) => v['youtubeId'] != _currentId).toList();
+    // Mevcut izlenen videoyu önerilenler listesinden hariç tutar
+    final onerilenler = widget.tumVideolarJson.where((v) {
+      var id = v['youtubeId'];
+      return id != null && id != _currentId;
+    }).toList();
 
+    // YoutubePlayerBuilder, tam ekrana geçiş ve çıkışlardaki UI değişimlerini yönetir
     return YoutubePlayerBuilder(
-      onEnterFullScreen: () => SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight
-      ]),
-      onExitFullScreen: () => SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+      onEnterFullScreen: () {
+        if (!kIsWeb) {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight
+          ]);
+        }
+      },
+      onExitFullScreen: () {
+        if (!kIsWeb) {
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        }
+      },
       player: YoutubePlayer(
         controller: _controller,
         progressIndicatorColor: AppColors.accentMavi,
+        showVideoProgressIndicator: true,
+        // VİDEO BİTTİĞİNDE ANALİTİK VERİ GÖNDERİMİ
         onEnded: (metadata) {
           final user = FirebaseAuth.instance.currentUser;
           if (user != null) {
             int dakika = (metadata.duration.inMinutes > 0) ? metadata.duration.inMinutes : 1;
-            AnalyticsService().sureEkle(user.uid, dakika);
+            AnalyticsService().sureEkle(user.uid, dakika); // İzleme süresini veritabanına ekler
           }
+          // Video bittiğinde otomatik olarak sıradaki videoya geçer
           if (onerilenler.isNotEmpty) {
             _videoDegistir(onerilenler[0]['youtubeId'], onerilenler[0]['baslik']);
           }
@@ -130,8 +163,12 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
           ),
           body: Column(
             children: [
+              // İnternet yoksa hata arayüzünü gösterir
               Container(
                 width: double.infinity,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
                 decoration: const BoxDecoration(color: Colors.black),
                 child: _isOnline ? player : _buildNoInternet(),
               ),
@@ -161,6 +198,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                 ),
               ),
 
+              // Önerilen Videolar Listesi
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -176,7 +214,11 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
     );
   }
 
+  // Video Kartı: YouTube küçük resmi (Thumbnail) ve video bilgilerini içerir
   Widget _buildVideoKarti(dynamic video) {
+    String? yId = video['youtubeId']?.toString();
+    if (yId == null) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -185,7 +227,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
       ),
       child: InkWell(
-        onTap: () => _videoDegistir(video['youtubeId'], video['baslik']),
+        onTap: () => _videoDegistir(yId, video['baslik'] ?? "İsimsiz Video"),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -194,7 +236,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: Image.network(
-                  "https://img.youtube.com/vi/${video['youtubeId']}/mqdefault.jpg",
+                  "https://img.youtube.com/vi/$yId/mqdefault.jpg", // YouTube'dan anlık thumbnail çeker
                   width: 110, height: 70, fit: BoxFit.cover,
                   errorBuilder: (c, e, s) => Container(width: 110, height: 70, color: Colors.grey.shade200, child: const Icon(Icons.broken_image)),
                 ),
@@ -204,7 +246,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(video['baslik'],
+                    Text(video['baslik'] ?? "İsimsiz Video",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.yaziRengi),
                         maxLines: 2, overflow: TextOverflow.ellipsis),
                     const Text("İzlemek için dokun", style: TextStyle(fontSize: 11, color: Colors.grey)),
@@ -219,6 +261,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
     );
   }
 
+  // İnternet kesildiğinde gösterilen placeholder bileşeni
   Widget _buildNoInternet() {
     return Container(
       height: 200, color: Colors.black87,

@@ -10,7 +10,7 @@ class SiberImdatEkrani extends StatefulWidget {
 }
 
 class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
-  // Güvenlik Kontrol Listesi Verileri
+  // Kullanıcının kriz anında yapması gerekenleri takip edebileceği yerel yapı
   final List<Map<String, dynamic>> _kontrolListesi = [
     {"baslik": "Ekran görüntüsü (kanıt) aldım", "tamamlandi": false},
     {"baslik": "Zorbalık yapanı hemen engelledim", "tamamlandi": false},
@@ -18,11 +18,12 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     {"baslik": "Siber Asistan ile durumu paylaştım", "tamamlandi": false},
   ];
 
+  // Cihazın varsayılan telefon uygulamasını başlatır
   Future<void> _ara(String num) async => await launchUrl(Uri.parse("tel:$num"));
 
+  // Google Haritalar'ı harici uygulamada açarak en yakın yardım noktalarını aratır
   Future<void> _haritaGit(String yer) async {
-    // URL yapısını düzelttim
-    final url = "https://www.google.com/maps/search/${Uri.encodeComponent(yer)}";
+    final url = "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(yer)}";
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
@@ -48,7 +49,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
                   const SizedBox(height: 30),
                   _buildSectionTitle("GÜVENLİ ADIMLAR"),
                   const SizedBox(height: 15),
-                  _buildChecklistSection(), // Kontrol Listesi Buraya Geldi
+                  _buildChecklistSection(),
                   const SizedBox(height: 40),
                   _buildLegalFooter(),
                 ],
@@ -60,6 +61,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     );
   }
 
+  // SliverAppBar: Sayfa kaydırıldığında başlığın yukarıda sabit kalmasını sağlayan appBar
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 180,
@@ -97,6 +99,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     );
   }
 
+  // Acil durum butonları
   Widget _buildPanicCapsule(String num, String label, Color color, IconData icon) {
     return GestureDetector(
       onTap: () => _ara(num),
@@ -156,6 +159,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     );
   }
 
+  // Kullanıcının psikolojik olarak sakinleşmesini sağlayan ve somut adımları gösteren alan
   Widget _buildChecklistSection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -194,6 +198,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1);
   }
 
+  //Tıklandığında 'tamamlandı' durumunu değiştirir ve UI'ı günceller
   Widget _buildCheckItem(int index) {
     bool isDone = _kontrolListesi[index]["tamamlandi"];
     return GestureDetector(
@@ -228,7 +233,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: isDone ? Colors.green.shade700 : Colors.blueGrey.shade800,
-                  decoration: isDone ? TextDecoration.lineThrough : null,
+                  decoration: isDone ? TextDecoration.lineThrough : null, // Tamamlanınca yazının üstünü çizer
                 ),
               ),
             ),

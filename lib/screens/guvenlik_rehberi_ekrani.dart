@@ -10,11 +10,12 @@ class GuvenlikRehberiEkrani extends StatefulWidget {
 
 class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
   final ScrollController _scrollController = ScrollController();
-  double _scrollProgress = 0;
+  double _scrollProgress = 0; // Sayfanın ne kadarının okunduğunu takip eden değişken
 
   @override
   void initState() {
     super.initState();
+    // Kaydırma hareketini dinleyerek ilerleme çubuğunu güncelleme
     _scrollController.addListener(() {
       setState(() {
         _scrollProgress = (_scrollController.offset / _scrollController.position.maxScrollExtent).clamp(0, 1);
@@ -28,7 +29,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       backgroundColor: const Color(0xFFF0F5FF),
       body: Stack(
         children: [
-          // Arka Plan Süslemesi
           Positioned(
             top: -100,
             right: -100,
@@ -45,8 +45,10 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      _buildInfoBanner(),
+                      _buildInfoBanner(), // Üstteki yıldızlı bilgilendirme alanı
                       const SizedBox(height: 30),
+
+                      // Görev Kartları: Farklı renk ve gecikme süreleriyle dinamik içerik
                       _buildMissionCard(
                         title: "Bedenim Benim Kalem!",
                         subtitle: "Fiziksel Sınırlar",
@@ -91,7 +93,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             ],
           ),
 
-          // Üstteki İlerleme Çubuğu
           Positioned(
             top: MediaQuery.of(context).padding.top + 56,
             left: 0,
@@ -108,6 +109,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
+  // Modern ve sabit (pinned) uygulama başlığı
   Widget _buildModernAppBar() {
     return SliverAppBar(
       expandedHeight: 120,
@@ -123,6 +125,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
+  // Gradyanlı ve parıldama animasyonlu duyuru bandı
   Widget _buildInfoBanner() {
     return Container(
       padding: const EdgeInsets.all(25),
@@ -150,6 +153,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
+  // İçeriği düzenli ve görsel olarak zengin sunan görev kartı bileşeni
   Widget _buildMissionCard({
     required String title,
     required String subtitle,
@@ -173,7 +177,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         child: IntrinsicHeight(
           child: Row(
             children: [
-              Container(width: 8, color: color), // Yan renk şeridi
+              Container(width: 8, color: color),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -194,6 +198,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                         ],
                       ),
                       const SizedBox(height: 15),
+                      // Ana açıklama metni
                       Text(desc, style: TextStyle(color: Colors.blueGrey.shade800, fontSize: 14, height: 1.5, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 15),
                       Container(
@@ -215,6 +220,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
           ),
         ),
       ),
-    ).animate(delay: delay.ms).fadeIn().slideX(begin: 0.1, curve: Curves.easeOutBack);
+    ).animate(delay: delay.ms).fadeIn().slideX(begin: 0.1, curve: Curves.easeOutBack); // Sayfaya girişteki kayma animasyonu
   }
 }

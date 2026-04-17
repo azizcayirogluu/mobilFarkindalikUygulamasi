@@ -11,6 +11,7 @@ class EgitimEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ekran boyutuna göre dinamik padding hesapla
     final size = MediaQuery.of(context).size;
     final double paddingValue = size.width * 0.06;
 
@@ -26,6 +27,8 @@ class EgitimEkrani extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildWelcomeHeader(),
                 const SizedBox(height: 25),
+
+                // Eğitim modüllerini temsil eden animasyonlu kartlar
                 _egitimKartlari(
                   context,
                   title: "Senaryo Çöz",
@@ -99,6 +102,7 @@ class EgitimEkrani extends StatelessWidget {
     );
   }
 
+  // Kaydırıldığında küçülen veya sabitlenen esnek başlık çubuğu
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 80.0,
@@ -161,6 +165,7 @@ class EgitimEkrani extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
+          // Gradyanın son rengine göre gölge oluşturarak derinlik algısı sağlar
           BoxShadow(
             color: (gradient as LinearGradient).colors.last.withOpacity(0.3),
             blurRadius: 20,
@@ -176,21 +181,30 @@ class EgitimEkrani extends StatelessWidget {
             onTap: onTap,
             child: Stack(
               children: [
+                // Arka plan gradyanı
                 Positioned.fill(child: Container(decoration: BoxDecoration(gradient: gradient))),
+
+                // Sağ üstteki dekoratif halka efekti
                 Positioned(
                   top: -20, right: -20,
                   child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.1)),
                 ),
+
+                // Hafifçe görünen arka plan görseli
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.1,
                     child: imagePath.contains("assets/") ? Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox(),) : const SizedBox(),
                   ),
                 ),
+
+                // Sağ alttaki büyük transparan ikon dekorasyonu
                 Positioned(
                   bottom: -15, right: -10,
                   child: Icon(icon, size: 110, color: Colors.white.withOpacity(0.15)),
                 ),
+
+                // Kart içeriği: Etiket, Başlık ve Açıklama
                 Padding(
                   padding: const EdgeInsets.all(25.0),
                   child: Column(

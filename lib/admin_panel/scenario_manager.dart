@@ -10,6 +10,7 @@ class ScenarioManager extends StatefulWidget {
 }
 
 class _ScenarioManagerState extends State<ScenarioManager> {
+  // Firestore bağlantısı başlatılıyor
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -24,6 +25,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
             _buildHeader(),
             const SizedBox(height: 30),
             Expanded(
+              // Senaryoları Firestore'dan anlık (real-time) çeken yapı
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('scenarios').snapshots(),
                 builder: (context, snapshot) {
@@ -37,21 +39,23 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                       final data = docs[index].data() as Map<String, dynamic>;
                       final docId = docs[index].id;
                       final bolumler = (data['bolumler'] as List? ?? []);
+                      final String scenarioYasGrubu = data['yasGrubu'] ?? "6-12";
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 24),
                         decoration: _cardDecoration(),
                         child: Theme(
                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          // Her senaryoyu genişleyebilir bir kart (ExpansionTile) içinde gösterir
                           child: ExpansionTile(
                             tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             leading: _buildLeadingIcon(data['renk']),
                             title: Text(data['baslik'] ?? "İsimsiz Senaryo",
                                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-                            subtitle: _buildScenarioSubtitle(bolumler.length, data['altBaslik']),
-                            trailing: _buildMainActions(docId, data),
+                            subtitle: _buildScenarioSubtitle(bolumler.length, data['altBaslik'], scenarioYasGrubu),
+                            trailing: _buildMainActions(docId, data), // Düzenle/Sil butonları
                             children: [
-                              _buildChapterContainer(docId, bolumler),
+                              _buildChapterContainer(docId, bolumler, scenarioYasGrubu),
                             ],
                           ),
                         ),
@@ -81,7 +85,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: () => _showScenarioDialog(),
+          onPressed: () => _showScenarioDialog(), // Yeni senaryo oluşturma penceresini açar
           icon: const Icon(Icons.add_to_photos_rounded),
           label: const Text("YENİ SENARYO OLUŞTUR"),
           style: ElevatedButton.styleFrom(
@@ -97,12 +101,15 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildScenarioSubtitle(int chapterCount, String? subtitle) {
+  // Senaryo kartındaki küçük bilgi etiketleri (Bölüm sayısı, Yaş grubu)
+  Widget _buildScenarioSubtitle(int chapterCount, String? subtitle, String yasGrubu) {
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
       child: Row(
         children: [
           _badge("${chapterCount} Bölüm", AppColors.anaMavi),
+          const SizedBox(width: 8),
+          _badge(yasGrubu == "6-12" ? "Çocuk" : "Genç", Colors.orange),
           const SizedBox(width: 10),
           Expanded(child: Text(subtitle ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13))),
@@ -111,7 +118,8 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildChapterContainer(String docId, List bolumler) {
+  // ExpansionTile açıldığında görünen "BÖLÜMLER" listesi kapsayıcısı
+  Widget _buildChapterContainer(String docId, List bolumler, String scenarioYasGrubu) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -125,16 +133,17 @@ class _ScenarioManagerState extends State<ScenarioManager> {
           const Text("BÖLÜMLER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.blueGrey, letterSpacing: 1.2)),
           const SizedBox(height: 15),
           ...List.generate(bolumler.length, (bIndex) {
-            return _buildChapterItem(docId, bIndex, bolumler);
+            return _buildChapterItem(docId, bIndex, bolumler, scenarioYasGrubu);
           }),
           const SizedBox(height: 15),
-          _addNewChapterBtn(docId, bolumler),
+          _addNewChapterBtn(docId, bolumler), // Listeye yeni bir boş bölüm ekler
         ],
       ),
     );
   }
 
-  Widget _buildChapterItem(String docId, int bIndex, List currentBolumler) {
+  // Senaryo içindeki her bir bölüm satırı
+  Widget _buildChapterItem(String docId, int bIndex, List currentBolumler, String scenarioYasGrubu) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -150,12 +159,23 @@ class _ScenarioManagerState extends State<ScenarioManager> {
         ),
         title: Text(currentBolumler[bIndex]['bolumAdi'] ?? 'Başlıksız Bölüm',
             style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("${(currentBolumler[bIndex]['sorular'] as List? ?? []).length} Soru Yayında"),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("${(currentBolumler[bIndex]['sorular'] as List? ?? []).length} Soru Yayında"),
+            if (currentBolumler[bIndex]['bolumAmaci'] != null)
+              Text("Amacı: ${currentBolumler[bIndex]['bolumAmaci']}",
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.blueGrey)),
+          ],
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _miniActionBtn(Icons.edit_note_rounded, Colors.blue, () => _showChapterEditor(docId, bIndex, currentBolumler)),
+            // Bölüm düzenleme penceresini açan buton
+            _miniActionBtn(Icons.edit_note_rounded, Colors.blue, () => _showChapterEditor(docId, bIndex, currentBolumler, scenarioYasGrubu)),
             const SizedBox(width: 8),
+            // Bölümü silen buton
             _miniActionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteChapter(docId, bIndex, currentBolumler)),
           ],
         ),
@@ -163,7 +183,8 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  void _showChapterEditor(String docId, int bIndex, List currentBolumler) {
+  // Bölüm içindeki soruları, başlığı ve amacı düzenlemeye yarayan tam ekran Dialog
+  void _showChapterEditor(String docId, int bIndex, List currentBolumler, String scenarioYasGrubu) {
     Map<String, dynamic> chapter = Map<String, dynamic>.from(currentBolumler[bIndex]);
     List sorular = List.from(chapter['sorular'] ?? []);
 
@@ -183,18 +204,27 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                   children: [
                     _buildEditorHeader(chapter['bolumAdi']),
                     const SizedBox(height: 24),
-                    _buildChapterTitleField(chapter, (v) => setDialogState(() => chapter['bolumAdi'] = v)),
+                    // Bölüm başlığı ve amacını düzenleyen inputlar
+                    Row(
+                      children: [
+                        Expanded(child: _buildChapterTitleField(chapter, (v) => setDialogState(() => chapter['bolumAdi'] = v))),
+                        const SizedBox(width: 15),
+                        Expanded(child: _buildChapterAimField(chapter, (v) => setDialogState(() => chapter['bolumAmaci'] = v))),
+                      ],
+                    ),
                     const SizedBox(height: 24),
+                    // Bölüme ait soruların listelendiği alan
                     Expanded(
                       child: ListView.builder(
                         physics: const BouncingScrollPhysics(),
                         itemCount: sorular.length,
-                        itemBuilder: (c, sIndex) => _buildSoruCard(sIndex, sorular[sIndex], () {
+                        itemBuilder: (c, sIndex) => _buildSoruCard(sIndex, sorular[sIndex], scenarioYasGrubu, () {
                           setDialogState(() => sorular.removeAt(sIndex));
                         }, setDialogState),
                       ),
                     ),
-                    _buildEditorFooter(docId, chapter, sorular, currentBolumler, bIndex),
+                    // "Yeni Soru Ekle" ve "Kaydet" butonlarının bulunduğu alt kısım
+                    _buildEditorFooter(docId, chapter, sorular, currentBolumler, bIndex, scenarioYasGrubu, setDialogState),
                   ],
                 ),
               ),
@@ -204,8 +234,20 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildSoruCard(int index, Map soru, VoidCallback onDelete, StateSetter setDialogState) {
-    String soruYasGrubu = soru['yasGrubu'] ?? "6-12";
+  // Her bir sorunun görsel, metin ve şıklarını içeren kart yapısı
+  Widget _buildSoruCard(int index, Map soru, String scenarioYasGrubu, VoidCallback onDelete, StateSetter setDialogState) {
+    // YAŞ GRUBU KONTROLÜ: 13-18 yaşta en az 3, 6-12 yaşta tam 2 seçenek olmasını sağlar
+    List secenekler = List.from(soru['secenekler'] ?? []);
+    if (scenarioYasGrubu == "13-18" && secenekler.length < 3) {
+      secenekler.add({'metin': '3. Seçenek', 'dogru': false, 'feedback': 'Yeni bir bakış açısı...'});
+      soru['secenekler'] = secenekler;
+    } else if (scenarioYasGrubu == "6-12" && secenekler.length > 2) {
+      secenekler = secenekler.sublist(0, 2);
+      bool hasTrue = secenekler.any((o) => o['dogru'] == true);
+      if (!hasTrue) secenekler[0]['dogru'] = true;
+      soru['secenekler'] = secenekler;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
       decoration: BoxDecoration(
@@ -217,6 +259,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Soru başlığı ve silme butonu
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -226,17 +269,20 @@ class _ScenarioManagerState extends State<ScenarioManager> {
             child: Row(
               children: [
                 _badge("SORU ${index + 1}", AppColors.anaMavi),
+                const SizedBox(width: 8),
+                _badge(scenarioYasGrubu, Colors.grey),
                 const Spacer(),
                 IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent), onPressed: onDelete),
               ],
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Sol taraf: Görsel önizleme ve URL girişi
                 Expanded(
                   flex: 3,
                   child: Column(
@@ -249,19 +295,11 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                         style: const TextStyle(fontSize: 12),
                         onChanged: (v) => setDialogState(() => soru['imageUrl'] = v),
                       ),
-                      const SizedBox(height: 15),
-                      DropdownButtonFormField<String>(
-                        value: soruYasGrubu,
-                        decoration: _inputDecoration("Soru Yaş Grubu", Icons.people_outline_rounded),
-                        items: ["6-12", "13-18"].map((v) => DropdownMenuItem(value: v, child: Text(v == "6-12" ? "6-12 Yaş" : "13-18 Yaş", style: const TextStyle(fontSize: 12)))).toList(),
-                        onChanged: (v) => setDialogState(() {
-                          soru['yasGrubu'] = v;
-                        }),
-                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 25),
+                // Sağ taraf: Soru metni ve seçenekler
                 Expanded(
                   flex: 7,
                   child: Column(
@@ -274,8 +312,10 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                         onChanged: (v) => soru['soru'] = v,
                       ),
                       const SizedBox(height: 20),
-                      const Text("SEÇENEKLER VE DÖNÜTLER (Feedback)", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.blueGrey)),
+                      Text("SEÇENEKLER VE DÖNÜTLER (${scenarioYasGrubu == '6-12' ? '2 Şık Zorunlu' : '3 Şık Zorunlu'})",
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.blueGrey)),
                       const SizedBox(height: 15),
+                      // Mevcut seçenekleri dinamik olarak listeler
                       ...List.generate((soru['secenekler'] as List).length, (optIndex) {
                         var opt = soru['secenekler'][optIndex];
                         return _buildOptionRow(opt, soru, setDialogState, optIndex);
@@ -291,6 +331,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Soru görselini internetten çeker, hata verirse ikon gösterir
   Widget _buildImagePreviewInSoru(String? url) {
     return Container(
       height: 140,
@@ -302,12 +343,13 @@ class _ScenarioManagerState extends State<ScenarioManager> {
       ),
       child: (url != null && url.isNotEmpty)
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_rounded, size: 40, color: Colors.grey))))
+          borderRadius: BorderRadius.circular(15),
+          child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_rounded, size: 40, color: Colors.grey))))
           : const Center(child: Icon(Icons.image_search_rounded, size: 40, color: Colors.grey)),
     );
   }
 
+  // Seçenek metni, Doğru mu? kontrolü ve geri bildirim (feedback) alanı
   Widget _buildOptionRow(Map opt, Map soru, StateSetter setState, int index) {
     bool isTrue = opt['dogru'] == true;
     return Container(
@@ -322,6 +364,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
         children: [
           Row(
             children: [
+              // Doğru şıkkı seçmeye yarayan Radio butonu
               Radio<bool>(
                 value: true,
                 groupValue: opt['dogru'],
@@ -339,6 +382,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 48),
+            // Kullanıcı bu şıkkı seçtiğinde göreceği mesaj (feedback)
             child: _smallField(opt, 'feedback', "Feedback: Bu şık seçilirse ne densin?", Colors.blueGrey),
           ),
         ],
@@ -346,6 +390,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Genel input tasarımı
   InputDecoration _inputDecoration(String label, IconData icon) => InputDecoration(
     labelText: label,
     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -357,6 +402,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.anaMavi, width: 2)),
   );
 
+  // Şıklar ve feedbackler için kullanılan daha küçük text alanları
   Widget _smallField(Map opt, String key, String hint, Color color) {
     return TextFormField(
       initialValue: opt[key],
@@ -372,6 +418,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Küçük bilgi etiketleri (UI Helper)
   Widget _badge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -380,6 +427,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Senaryo kartı gölge ve kenarlık tasarımı
   BoxDecoration _cardDecoration() => BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(20),
@@ -387,6 +435,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     border: Border.all(color: Colors.white),
   );
 
+  // Senaryonun renk koduna göre ikon kutusu oluşturur
   Widget _buildLeadingIcon(String? colorHex) {
     Color color = Color(int.parse(colorHex ?? "0xFF9575CD"));
     return Container(
@@ -396,6 +445,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Küçük butonlar (Düzenle, Sil) için tasarım
   Widget _miniActionBtn(IconData icon, Color color, VoidCallback onTap) {
     return IconButton(
       onPressed: onTap,
@@ -404,6 +454,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Senaryo altına yeni boş bir bölüm ekleyen buton tasarımı
   Widget _addNewChapterBtn(String docId, List currentBolumler) {
     return OutlinedButton.icon(
       onPressed: () => _addNewChapter(docId, currentBolumler),
@@ -418,11 +469,13 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Firestore'daki senaryo dokümanına yeni bir bölüm objesi ekler
   void _addNewChapter(String docId, List currentBolumler) async {
-    currentBolumler.add({'bolumAdi': 'Yeni Bölüm', 'sorular': []});
+    currentBolumler.add({'bolumAdi': 'Yeni Bölüm', 'bolumAmaci': '', 'sorular': []});
     await _firestore.collection('scenarios').doc(docId).update({'bolumler': currentBolumler});
   }
 
+  // Belirli bir bölümü silmeden önce onay isteyen pencere
   void _deleteChapter(String docId, int bIndex, List currentBolumler) {
     showDialog(context: context, builder: (c) => AlertDialog(
       title: const Text("Bölümü Sil"),
@@ -439,6 +492,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     ));
   }
 
+  // Bölüm editörünün üst kısmı
   Widget _buildEditorHeader(String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -455,6 +509,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Bölüm başlığını değiştiren text alanı
   Widget _buildChapterTitleField(Map chapter, Function(String) onChanged) {
     return TextFormField(
       initialValue: chapter['bolumAdi'],
@@ -463,7 +518,17 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
-  Widget _buildEditorFooter(String docId, Map chapter, List sorular, List currentBolumler, int bIndex) {
+  // Bölüm amacını değiştiren text alanı
+  Widget _buildChapterAimField(Map chapter, Function(String) onChanged) {
+    return TextFormField(
+      initialValue: chapter['bolumAmaci'],
+      decoration: _inputDecoration("Bölümün Amacı / Misyonu", Icons.track_changes_rounded),
+      onChanged: onChanged,
+    );
+  }
+
+  // Editörün altındaki Soru Ekle ve Kaydet butonlarının mantığı
+  Widget _buildEditorFooter(String docId, Map chapter, List sorular, List currentBolumler, int bIndex, String scenarioYasGrubu, StateSetter setDialogState) {
     return Container(
       padding: const EdgeInsets.only(top: 24),
       child: Row(
@@ -471,15 +536,22 @@ class _ScenarioManagerState extends State<ScenarioManager> {
           Expanded(
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.all(18)),
-              onPressed: () => setState(() => sorular.add({
-                'soru': 'Soru Metni?',
-                'imageUrl': '',
-                'yasGrubu': '6-12', // Varsayılan değer
-                'secenekler': [
-                  {'metin': 'Seçenek 1', 'dogru': true, 'feedback': 'Bravo!'},
-                  {'metin': 'Seçenek 2', 'dogru': false, 'feedback': 'Tekrar dene.'},
-                ]
-              })),
+              onPressed: () {
+                // Yeni soru eklerken yaş grubuna göre otomatik şık sayısı belirler
+                setDialogState(() => sorular.add({
+                  'soru': 'Soru Metni?',
+                  'imageUrl': '',
+                  'yasGrubu': scenarioYasGrubu,
+                  'secenekler': scenarioYasGrubu == "6-12" ? [
+                    {'metin': 'Seçenek 1', 'dogru': true, 'feedback': 'Bravo!'},
+                    {'metin': 'Seçenek 2', 'dogru': false, 'feedback': 'Tekrar dene.'},
+                  ] : [
+                    {'metin': 'Seçenek 1', 'dogru': true, 'feedback': 'Harika!'},
+                    {'metin': 'Seçenek 2', 'dogru': false, 'feedback': 'Tekrar düşün.'},
+                    {'metin': 'Seçenek 3', 'dogru': false, 'feedback': 'Geliştirilmeli.'},
+                  ]
+                }));
+              },
               icon: const Icon(Icons.add_circle),
               label: const Text("YENİ SORU EKLE"),
             ),
@@ -489,6 +561,10 @@ class _ScenarioManagerState extends State<ScenarioManager> {
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, foregroundColor: Colors.white, padding: const EdgeInsets.all(18)),
               onPressed: () async {
+                // YAPILAN TÜM DEĞİŞİKLİKLERİ FİRESTORE'A YAZAR
+                for (var s in sorular) {
+                  s['yasGrubu'] = scenarioYasGrubu;
+                }
                 chapter['sorular'] = sorular;
                 currentBolumler[bIndex] = chapter;
                 await _firestore.collection('scenarios').doc(docId).update({'bolumler': currentBolumler});
@@ -503,6 +579,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Senaryo kartının yanındaki ayarlar ve silme butonları
   Widget _buildMainActions(String docId, Map data) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -516,6 +593,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Yeni senaryo oluşturma veya mevcut senaryo başlık/yaş grubu ayarlarını değiştirme penceresi
   void _showScenarioDialog({String? docId, Map<String, dynamic>? existingData}) {
     final titleController = TextEditingController(text: existingData?['baslik']);
     final subtitleController = TextEditingController(text: existingData?['altBaslik']);
@@ -527,7 +605,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(docId == null ? "Yeni Senaryo Kartı" : "Senaryoyu Düzenle"),
+          title: Text(docId == null ? "Yeni Senaryo Kartı" : "Senaryo Ayarları"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -537,8 +615,9 @@ class _ScenarioManagerState extends State<ScenarioManager> {
               const SizedBox(height: 10),
               TextField(controller: colorController, decoration: const InputDecoration(labelText: "Renk Hex (Örn: 0xFF4A90E2)")),
               const SizedBox(height: 20),
-              const Align(alignment: Alignment.centerLeft, child: Text("Hedef Yaş Grubu", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey))),
+              const Align(alignment: Alignment.centerLeft, child: Text("Hedef Yaş Grubu (Tüm Soruları Etkiler)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey))),
               const SizedBox(height: 10),
+              // Yaş grubu seçimi (Şık sayısını belirleyen kritik ayar)
               DropdownButtonFormField<String>(
                 value: selectedYasGrubu,
                 decoration: _inputDecoration("Yaş Grubu", Icons.child_care_rounded),
@@ -561,10 +640,10 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                 'renk': colorController.text,
                 'ikon': 'psychology',
                 'yasGrubu': selectedYasGrubu,
-                if (docId == null) 'bolumler': [],
+                if (docId == null) 'bolumler': [], // Yeni ise boş bölümler listesi oluştur
               };
-              if (docId == null) await _firestore.collection('scenarios').add(data);
-              else await _firestore.collection('scenarios').doc(docId).update(data);
+              if (docId == null) await _firestore.collection('scenarios').add(data); // Yeni kayıt
+              else await _firestore.collection('scenarios').doc(docId).update(data); // Mevcut güncelleme
               Navigator.pop(context);
             }, child: const Text("Kaydet")),
           ],
@@ -573,6 +652,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  // Senaryoyu tamamen Firestore'dan silen fonksiyon
   void _deleteScenario(String docId) {
     showDialog(context: context, builder: (c) => AlertDialog(
       title: const Text("Senaryoyu Sil"),

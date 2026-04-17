@@ -23,6 +23,7 @@ class AnaSayfa extends StatefulWidget {
 }
 
 class _AnaSayfaState extends State<AnaSayfa> {
+  // Karışık içeriklerin tutulduğu liste
   List<Map<String, dynamic>> _kesifHavuzu = [];
   bool _isLoading = true;
   int _toplamBolum = 0;
@@ -32,9 +33,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
   @override
   void initState() {
     super.initState();
-    _initData();
+    _initData(); // Ekran açıldığında verileri başlat
   }
 
+  // Firestore'dan gelen hex renk kodlarını Flutter Color nesnesine dönüştürür
   Color _hexToColor(String? hexString) {
     if (hexString == null || hexString.isEmpty) return AppColors.anaMavi;
     try {
@@ -48,6 +50,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     }
   }
 
+  // İçerik tipine göre uygun Material ikonunu döndürür
   IconData _getIcon(String? iconName) {
     switch (iconName) {
       case 'psychology':
@@ -73,6 +76,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     }
   }
 
+  // Kullanıcının ilerleme yüzdesine göre motivasyon mesajı oluşturur
   String _ilerlemeMesaji(double ilerleme) {
     int yuzde = (ilerleme * 100).toInt();
     if (yuzde == 0) return "Maceraya atılmaya hazır mısın? İlk görevini seç!";
@@ -88,6 +92,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     return "Tebrikler Kahraman! Tüm görevleri başarıyla tamamladın! 🎉";
   }
 
+  // Senaryo, Hikaye ve Video koleksiyonlarından verileri çekip harmanlar
   Future<void> _initData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -98,8 +103,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
       List<Map<String, dynamic>> videoListesi = [];
       int toplam = 0;
 
+      // 1. Senaryoları Çek: Bölüm sayılarını toplayarak ilerleme hesaplaması için saklar
       final sSnap = await FirebaseFirestore.instance
           .collection('scenarios')
+          .limit(10)
           .get();
       for (var d in sSnap.docs) {
         final data = d.data();
@@ -116,6 +123,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         });
       }
 
+      // 2. Hikayeleri Çek
       final hSnap = await FirebaseFirestore.instance
           .collection('stories')
           .limit(5)
@@ -133,6 +141,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         });
       }
 
+      // 3. Videoları Çek
       final vSnap = await FirebaseFirestore.instance
           .collection('videos')
           .limit(5)
@@ -150,11 +159,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
         });
       }
 
+      // Verileri karıştırıp "Senin İçin Önerilenler" havuzunu oluşturur
       List<Map<String, dynamic>> finalHavuz = [];
       senaryoListesi.shuffle();
       hikayeListesi.shuffle();
       videoListesi.shuffle();
 
+      // Her tipten en az bir tane eklemeye çalışır
       if (senaryoListesi.isNotEmpty) finalHavuz.add(senaryoListesi.removeAt(0));
       if (hikayeListesi.isNotEmpty) finalHavuz.add(hikayeListesi.removeAt(0));
       if (videoListesi.isNotEmpty) finalHavuz.add(videoListesi.removeAt(0));
@@ -166,8 +177,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
       ];
       kalanlar.shuffle();
 
-      if (kalanlar.isNotEmpty && finalHavuz.length < 4) {
-        finalHavuz.add(kalanlar.first);
+      int maxOneri = 4;
+      while (kalanlar.isNotEmpty && finalHavuz.length < maxOneri) {
+        finalHavuz.add(kalanlar.removeAt(0));
       }
 
       finalHavuz.shuffle();
@@ -210,6 +222,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
           SafeArea(
             child: StreamBuilder<DocumentSnapshot>(
+              // Kullanıcının puan ve tamamlanan bölümlerini anlık ceker
               stream: FirebaseFirestore.instance
                   .collection('usersProgress')
                   .doc(uid)
@@ -247,22 +260,22 @@ class _AnaSayfaState extends State<AnaSayfa> {
                       ),
                       _isLoading
                           ? const SliverFillRemaining(
-                              child: Center(child: CircularProgressIndicator()),
-                            )
+                        child: Center(child: CircularProgressIndicator()),
+                      )
                           : SliverPadding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: paddingValue,
-                              ),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (c, i) => _buildModernContentCard(
-                                    _kesifHavuzu[i],
-                                    size,
-                                  ),
-                                  childCount: _kesifHavuzu.length,
-                                ),
-                              ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: paddingValue,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                                (c, i) => _buildModernContentCard(
+                              _kesifHavuzu[i],
+                              size,
                             ),
+                            childCount: _kesifHavuzu.length,
+                          ),
+                        ),
+                      ),
                       const SliverToBoxAdapter(child: SizedBox(height: 120)),
                     ],
                   ),
@@ -348,6 +361,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
+  // Kullanıcının gelişim durumunu gösteren kart
   Widget _buildProgressCard(List tamamlananlar, int puan, Size size) {
     double ilerleme = _toplamBolum > 0
         ? (tamamlananlar.length / _toplamBolum).clamp(0.0, 1.0)
@@ -474,6 +488,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     ],
                   ),
                   const SizedBox(height: 18),
+                  // Özel ilerleme çubuğu (Progress Bar)
                   Stack(
                     children: [
                       Container(
@@ -533,6 +548,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
+  // Önerilen her bir içerik için modern liste elemanı
   Widget _buildModernContentCard(Map<String, dynamic> item, Size size) {
     final Color color = item['renk'];
 
@@ -550,7 +566,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         ],
       ),
       child: InkWell(
-        onTap: () => _route(item),
+        onTap: () => _route(item), // Tıklanan içeriğin türüne göre yönlendirme yap
         borderRadius: BorderRadius.circular(35),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(35),
@@ -596,7 +612,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              item['tip'],
+                              item['tip'], // SENARYO, HİKAYE veya VİDEO etiketi
                               style: TextStyle(
                                 color: color,
                                 fontWeight: FontWeight.w900,
@@ -683,6 +699,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
+  // Tıklanan içeriğin tipine göre ilgili detay ekranına yönlendirme yapar
   void _route(Map item) {
     final data = item['data'];
     switch (item['tip']) {

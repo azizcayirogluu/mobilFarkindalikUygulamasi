@@ -3,12 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AnalyticsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Kullanıcının toplam puanını ve son işlem tarihini günceller.
-  /// 'SetOptions(merge: true)' sayesinde doküman veya alan yoksa otomatik oluşturulur.
+  //Kullanıcının toplam puanını ve son işlem tarihini güncelle
+  // 'SetOptions(merge: true)' sayesinde doküman veya alan yoksa otomatik oluştur
   Future<void> aktiviteGuncelle(String uid, int eklenenPuan) async {
     try {
+      // Veri yoksa oluşturur, varsa sadece belirtilen alanları güncelle
       await _db.collection('usersProgress').doc(uid).set({
+        // ATOMİK ARTIŞ: Veriyi çekip 1 ekleyip tekrar göndermek yerine,
+        // sunucu tarafında güvenli bir şekilde artış yapılmasını sağlar.
         'toplam_puan': FieldValue.increment(eklenenPuan),
+        // SERVER TIMESTAMP: Cihazın saati yerine Firebase sunucusunun güncel saatini kullan
         'sonGuncelleme': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       print("Başarı: Puan ve aktivite güncellendi.");
@@ -22,6 +26,7 @@ class AnalyticsService {
   Future<void> hataKaydet(String uid) async {
     try {
       await _db.collection('usersProgress').doc(uid).set({
+        // 'istatistikler' Map'i içindeki spesifik bir alanı günceller.
         'istatistikler': {
           'hatali_cevaplar': FieldValue.increment(1),
         },
@@ -33,6 +38,7 @@ class AnalyticsService {
     }
   }
 
+  // Kullanıcının uygulama veya video başında geçirdiği süreyi dakika cinsinden biriktirir.
   Future<void> sureEkle(String uid, int dakika) async {
     try {
       await _db.collection('usersProgress').doc(uid).set({
@@ -47,6 +53,7 @@ class AnalyticsService {
     }
   }
 
+  // Örneğin: 'nazik', 'kararlı' veya 'yardımsever' gibi farklı kategorilerde puan biriktirir.
   Future<void> karakterPuaniEkle(String uid, String tip, int puan) async {
     try {
       await _db.collection('usersProgress').doc(uid).set({

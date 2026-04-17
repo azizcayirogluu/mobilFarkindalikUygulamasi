@@ -26,18 +26,19 @@ class HikayeDetayEkrani extends StatefulWidget {
 }
 
 class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
-  final FlutterTts flutterTts = FlutterTts();
-  bool isReading = false;
+  final FlutterTts flutterTts = FlutterTts(); // Metni seslendirmek için TTS nesnesi
+  bool isReading = false; // Seslendirme durumunu takip eder
   final User? _currentUser = FirebaseAuth.instance.currentUser;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
-    flutterTts.stop();
+    flutterTts.stop(); // Ekrandan çıkıldığında sesi durdur
     _scrollController.dispose();
     super.dispose();
   }
 
+  // Hikaye bitirildiğinde Firebase üzerinde puan ekleme ve ilerleme kaydetme
   Future<void> _hikayeyiBitir() async {
     if (_currentUser == null) return;
 
@@ -45,8 +46,9 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
     final docRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
 
     try {
-      await AnalyticsService().sureEkle(uid, 2);
+      await AnalyticsService().sureEkle(uid, 2); // Analitik servisine veri gönderimi
 
+      // Firestore Transaction kullanarak güvenli puan ve liste güncellemesi
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         DocumentSnapshot snapshot = await transaction.get(docRef);
 
@@ -61,6 +63,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
           var data = snapshot.data() as Map<String, dynamic>;
           List okunanlar = data['okunan_hikayeler'] as List? ?? [];
 
+          // Eğer hikaye daha önce okunmadıysa puan ekle
           if (!okunanlar.contains(widget.baslik)) {
             int mevcutPuan = data['toplam_puan'] ?? 0;
             transaction.update(docRef, {
@@ -73,13 +76,14 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
       });
 
       if (mounted) {
-        _showSuccessDialog();
+        _showSuccessDialog(); // Başarı mesajını gösterir
       }
     } catch (e) {
       debugPrint("Hata: $e");
     }
   }
 
+  // Hikaye tamamlandığında açılan tebrik penceresi
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -105,8 +109,8 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
               ),
               onPressed: () {
-                Navigator.pop(context); // Dialogu kapat
-                Navigator.pop(context); // Ekrana dön
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               child: const Text("DEVAM ET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
@@ -116,6 +120,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
     );
   }
 
+  // Hikaye metnini Türkçe seslendirme fonksiyonu
   Future<void> _seslendir() async {
     if (isReading) {
       await flutterTts.stop();
@@ -185,6 +190,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
               ),
             ),
           ),
+          // Hikaye içeriği ve Kahraman Notu bölümü
           SliverToBoxAdapter(
             child: Container(
               transform: Matrix4.translationValues(0, -30, 0),
@@ -215,11 +221,11 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                       height: 1.9,
                       color: Colors.blueGrey.shade900,
                       fontWeight: FontWeight.w500,
-                      fontFamily: 'Roboto', // Varsa daha okunaklı bir font
+                      fontFamily: 'Roboto',
                     ),
                   ).animate().fade(delay: 300.ms).slideY(begin: 0.1),
                   const SizedBox(height: 50),
-                  _buildFeedbackCard(),
+                  _buildFeedbackCard(), // Hikayeden çıkarılacak dersin özeti
                   const SizedBox(height: 120),
                 ],
               ),
@@ -227,6 +233,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
           ),
         ],
       ),
+      // Alt kısımda sabit duran "Tamamladım" butonu
       bottomSheet: Container(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
         decoration: BoxDecoration(
@@ -258,6 +265,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
     );
   }
 
+  // Hikayenin ana fikrini vurgulayan özel kart tasarımı
   Widget _buildFeedbackCard() {
     return Container(
       padding: const EdgeInsets.all(25),

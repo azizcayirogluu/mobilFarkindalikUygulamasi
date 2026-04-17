@@ -10,6 +10,7 @@ class StoryManager extends StatefulWidget {
 }
 
 class _StoryManagerState extends State<StoryManager> {
+  // Firestore veritabanı bağlantısı için kullanılan ana referans
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -27,6 +28,7 @@ class _StoryManagerState extends State<StoryManager> {
             const SizedBox(height: 25),
 
             Expanded(
+              // StreamBuilder: 'stories' koleksiyonundaki verileri canlı olarak dinler, veri değişirse ekranı anında yeniler
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('stories').snapshots(),
                 builder: (context, snapshot) {
@@ -35,6 +37,7 @@ class _StoryManagerState extends State<StoryManager> {
 
                   if (docs.isEmpty) return _buildEmptyState();
 
+                  // Verileri 3 sütunlu bir Grid (Izgara) yapısında ekrana dizer
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
@@ -70,7 +73,7 @@ class _StoryManagerState extends State<StoryManager> {
               style: TextStyle(color: Colors.blueGrey)),
         ]),
         ElevatedButton.icon(
-          onPressed: () => _showStoryDialog(),
+          onPressed: () => _showStoryDialog(), // Yeni kayıt için dialoğu boş parametreyle açar
           icon: const Icon(Icons.add_to_photos_rounded),
           label: const Text("YENİ HİKAYE EKLE"),
           style: ElevatedButton.styleFrom(
@@ -87,6 +90,7 @@ class _StoryManagerState extends State<StoryManager> {
 
   // --- HİKAYE KARTLARI ---
   Widget _buildStoryCard(String docId, Map<String, dynamic> data) {
+    // Veritabanındaki Hex formatındaki rengi Flutter'ın anlayacağı Color tipine çevirir
     Color cardColor = _parseColor(data['temaRengi']);
     return Container(
       decoration: BoxDecoration(
@@ -107,12 +111,13 @@ class _StoryManagerState extends State<StoryManager> {
                     color: cardColor.withOpacity(0.1),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
+                  // Görselin web adresi mi (http) yoksa uygulama içi dosya mı (asset) olduğunu kontrol eder
                   child: data['gorselYolu'] != null && data['gorselYolu'].toString().isNotEmpty
                       ? ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: data['gorselYolu'].toString().startsWith('http') 
-                      ? Image.network(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40))
-                      : Image.asset(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40)),
+                    child: data['gorselYolu'].toString().startsWith('http')
+                        ? Image.network(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40))
+                        : Image.asset(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40)),
                   )
                       : const Icon(Icons.auto_stories_rounded, size: 50, color: AppColors.uyariTuruncusu),
                 ),
@@ -120,6 +125,7 @@ class _StoryManagerState extends State<StoryManager> {
                   top: 15, right: 15,
                   child: Row(
                     children: [
+                      // Düzenle butonu: Mevcut verileri dialogun içine gönderir
                       _miniActionBtn(Icons.edit_rounded, Colors.blue, () => _showStoryDialog(docId: docId, existingData: data)),
                       const SizedBox(width: 8),
                       _miniActionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteStory(docId)),
@@ -160,6 +166,7 @@ class _StoryManagerState extends State<StoryManager> {
     );
   }
 
+  // Güvenli Hex renk dönüşümü yapar
   Color _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return AppColors.uyariTuruncusu;
     try {
@@ -171,7 +178,9 @@ class _StoryManagerState extends State<StoryManager> {
     }
   }
 
+  // Hem ekleme hem de güncelleme için kullanılan ortak Dialog fonksiyonu
   void _showStoryDialog({String? docId, Map<String, dynamic>? existingData}) {
+    // Eğer data varsa içini doldurur, yoksa boş (null) bırakır
     final tC = TextEditingController(text: existingData?['baslik']);
     final mC = TextEditingController(text: existingData?['hikayeMetni']);
     final iC = TextEditingController(text: existingData?['gorselYolu']);
@@ -207,14 +216,14 @@ class _StoryManagerState extends State<StoryManager> {
                           const SizedBox(height: 15),
                           _buildField(fC, "Geri Bildirim Mesajı", Icons.feedback_rounded),
                           const SizedBox(height: 20),
-                          _buildImagePreview(iC),
+                          _buildImagePreview(iC), // Yazılan linkteki görseli anlık gösterir
                         ],
                       ),
                     ),
                     const SizedBox(width: 30),
                     Expanded(
                       flex: 3,
-                      child: _buildRichTextField(mC),
+                      child: _buildRichTextField(mC), // Hikaye içeriği için geniş alan
                     ),
                   ],
                 ),
@@ -271,6 +280,7 @@ class _StoryManagerState extends State<StoryManager> {
     );
   }
 
+  // Firestore üzerindeki doküman sayısını gerçek zamanlı sayar
   Widget _miniStatCard(String title, String collection, IconData icon, Color color, {bool isReadStat = false}) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection(collection).snapshots(),
@@ -321,7 +331,6 @@ class _StoryManagerState extends State<StoryManager> {
     );
   }
 
-  // --- CRUD İŞLEMLERİ ---
   Widget _buildDialogActions(String? docId, TextEditingController t, TextEditingController m, TextEditingController i, TextEditingController r, TextEditingController f) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -332,12 +341,13 @@ class _StoryManagerState extends State<StoryManager> {
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.uyariTuruncusu, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20)),
           onPressed: () async {
             final data = {
-              'baslik': t.text, 
-              'hikayeMetni': m.text, 
-              'gorselYolu': i.text, 
-              'temaRengi': r.text, 
+              'baslik': t.text,
+              'hikayeMetni': m.text,
+              'gorselYolu': i.text,
+              'temaRengi': r.text,
               'feedbackMessage': f.text
             };
+            // Eğer docId varsa veriyi UPDATE eder, yoksa yeni doküman ADD eder
             if (docId == null) await _firestore.collection('stories').add(data);
             else await _firestore.collection('stories').doc(docId).update(data);
             Navigator.pop(context);
@@ -355,6 +365,7 @@ class _StoryManagerState extends State<StoryManager> {
     ]);
   }
 
+  // Controller'ı dinleyerek URL kutusuna bir şey yazıldığında anında önizleme oluşturur
   Widget _buildImagePreview(TextEditingController iC) {
     return ValueListenableBuilder(
         valueListenable: iC,
@@ -364,17 +375,18 @@ class _StoryManagerState extends State<StoryManager> {
             decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300, style: BorderStyle.none)),
             child: iC.text.isNotEmpty
                 ? ClipRRect(
-                  borderRadius: BorderRadius.circular(15), 
-                  child: iC.text.startsWith('http') 
+                borderRadius: BorderRadius.circular(15),
+                child: iC.text.startsWith('http')
                     ? Image.network(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Görsel Yüklenemedi")))
                     : Image.asset(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Asset Bulunamadı")))
-                  )
+            )
                 : const Center(child: Icon(Icons.image_outlined, color: Colors.grey, size: 40)),
           );
         }
     );
   }
 
+  // Firestore'daki dokümanı ID üzerinden siler
   void _deleteStory(String id) {
     showDialog(context: context, builder: (c) => AlertDialog(
       title: const Text("Hikayeyi Sil"),

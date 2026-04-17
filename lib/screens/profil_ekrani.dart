@@ -25,9 +25,10 @@ class ProfilEkrani extends StatefulWidget {
 
 class _ProfilEkraniState extends State<ProfilEkrani> {
   bool bildirimlerAcik = true;
-  bool _isDeleting = false;
+  bool _isDeleting = false; // Hesap silme durumunu kontrol et
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
+  // Mevcut oturumu güvenli bir şekilde kapatır
   Future<void> _cikisYap() async {
     bool? onay = await _onayDiyalogu(
         "Oturumu Kapat",
@@ -46,6 +47,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     }
   }
 
+  // Kullanıcının tüm verilerini (mesajlar, ilerleme, profil) Firebase'den siler
   Future<void> _hesabiSil() async {
     if (_currentUser == null) return;
 
@@ -60,6 +62,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       try {
         final String uid = _currentUser!.uid;
 
+        // Alt koleksiyon olan mesajları temizler
         final messages = await FirebaseFirestore.instance
             .collection('usersProgress')
             .doc(uid)
@@ -72,9 +75,9 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         }
         await batch.commit();
 
+        // Ana dökümanları ve auth kaydını siler
         await FirebaseFirestore.instance.collection('users').doc(uid).delete();
         await FirebaseFirestore.instance.collection('usersProgress').doc(uid).delete();
-
         await _currentUser!.delete();
 
         if (!mounted) return;
@@ -96,6 +99,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     }
   }
 
+  // Kritik işlemler öncesi kullanıcıdan onay alan kart
   Future<bool?> _onayDiyalogu(String baslik, String icerik, String butonMetni, Color renk) {
     return showDialog<bool>(
       context: context,
@@ -122,6 +126,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     if (_currentUser == null) return const Scaffold(body: Center(child: Text("Giriş yapmalısın.")));
@@ -134,6 +139,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       body: _isDeleting
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<DocumentSnapshot>(
+        // Kullanıcının puan, rozet ve bölüm ilerlemesini anlık takip eder
         stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
@@ -144,58 +150,62 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           int toplamPuan = progressData['toplam_puan'] ?? 0;
 
           return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
-            builder: (context, userSnap) {
-              bool isAdmin = false;
-              if (userSnap.hasData && userSnap.data!.exists) {
-                isAdmin = (userSnap.data!.data() as Map<String, dynamic>)['isAdmin'] ?? false;
-              }
+            // Kullanıcının admin yetkisini kontrol eder
+              future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+              builder: (context, userSnap) {
+                bool isAdmin = false;
+                if (userSnap.hasData && userSnap.data!.exists) {
+                  isAdmin = (userSnap.data!.data() as Map<String, dynamic>)['isAdmin'] ?? false;
+                }
 
-              return FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance.collection('scenarios').get(),
-                builder: (context, scenarioSnap) {
-                  int toplamBolumSayisi = 0;
-                  if (scenarioSnap.hasData) {
-                    for (var doc in scenarioSnap.data!.docs) {
-                      toplamBolumSayisi += ((doc.data() as Map)['bolumler'] as List? ?? []).length;
+                return FutureBuilder<QuerySnapshot>(
+                  // İlerleme yüzdesini hesaplamak için toplam senaryo sayısını çeker
+                  future: FirebaseFirestore.instance.collection('scenarios').get(),
+                  builder: (context, scenarioSnap) {
+                    int toplamBolumSayisi = 0;
+                    if (scenarioSnap.hasData) {
+                      for (var doc in scenarioSnap.data!.docs) {
+                        toplamBolumSayisi += ((doc.data() as Map)['bolumler'] as List? ?? []).length;
+                      }
                     }
-                  }
 
-                  // Siber Dedektif ve Ayak İzi oyunlarını da hedefe dahil et
-                  int toplamHedef = toplamBolumSayisi + 2; 
+                    // Toplam hedef: bölümler + ek görevler
+                    int toplamHedef = toplamBolumSayisi + 2;
 
-                  double ilerleme = toplamHedef > 0
-                      ? (tamamlananlar.length / toplamHedef).clamp(0.0, 1.0)
-                      : 0.0;
+                    double ilerleme = toplamHedef > 0
+                        ? (tamamlananlar.length / toplamHedef).clamp(0.0, 1.0)
+                        : 0.0;
 
-                  int seviye = (tamamlananlar.length ~/ 3) + 1;
+                    // Her 3 bölümde bir seviye atlama mantığı
+                    int seviye = (tamamlananlar.length ~/ 3) + 1;
 
-                  return SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: [
-                        _buildHeader(seviye, size),
-                        const SizedBox(height: 60),
-                        _buildProfileInfo(ekrandaGozukenIsim, ilerleme, size),
-                        const SizedBox(height: 40),
-                        _buildStatsGrid(tamamlananlar.length, rozetler.length, toplamPuan, size),
-                        const SizedBox(height: 40),
-                        _buildSettingsList(size, isAdmin),
-                        const SizedBox(height: 40),
-                        _buildDangerZone(size),
-                        const SizedBox(height: 120),
-                      ],
-                    ),
-                  );
-                },
-              );
-            }
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          _buildHeader(seviye, size),
+                          const SizedBox(height: 60),
+                          _buildProfileInfo(ekrandaGozukenIsim, ilerleme, size),
+                          const SizedBox(height: 40),
+                          _buildStatsGrid(tamamlananlar.length, rozetler.length, toplamPuan, size),
+                          const SizedBox(height: 40),
+                          _buildSettingsList(size, isAdmin),
+                          const SizedBox(height: 40),
+                          _buildDangerZone(size),
+                          const SizedBox(height: 120),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }
           );
         },
       ),
     );
   }
 
+  // Dalgalı üst alan ve seviye etiketini içeren tasarım
   Widget _buildHeader(int seviye, Size size) {
     double headerHeight = size.height * 0.22;
     if (headerHeight < 180) headerHeight = 180;
@@ -254,6 +264,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // İlerleme durumuna göre dinamik rütbe belirleyen ve progress bar gösteren alan
   Widget _buildProfileInfo(String isim, double ilerleme, Size size) {
     String rutbe() {
       if (ilerleme <= 0.2) return "Çaylak Koruyucu 🛡️";
@@ -313,6 +324,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // Görev, Rozet ve Puan verilerini yan yana kartlar halinde sunar
   Widget _buildStatsGrid(int bolumSayisi, int rozetSayisi, int puan, Size size) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -355,6 +367,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // Ayarlar listesini ve admin ise özel yetki butonunu oluşturur
   Widget _buildSettingsList(Size size, bool isAdmin) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -369,12 +382,11 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             if (isAdmin) _buildSettingsTile(Icons.admin_panel_settings_rounded, "Yönetici Paneli", size, color: Colors.deepPurple, onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHome()));
             }),
-            // SİBER İMDAT BUTONU (Kritik ve Kırmızı)
             _buildSettingsTile(
-                Icons.sos_rounded, 
-                "Siber İmdat & Destek", 
-                size, 
-                color: Colors.redAccent, 
+                Icons.sos_rounded,
+                "Siber İmdat & Destek",
+                size,
+                color: Colors.redAccent,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani()))
             ),
             _buildSettingsTile(Icons.notifications_active_rounded, "Bildirim Gönderebilir Miyiz ?", size, isSwitch: true),
@@ -385,10 +397,10 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuvenlikRehberiEkrani()))
             ),
             _buildSettingsTile(
-                Icons.info_rounded,
-                "Uygulama Hakkında",
-                size,
-                onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_) => const HakkindaEkrani()) ),
+              Icons.info_rounded,
+              "Uygulama Hakkında",
+              size,
+              onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_) => const HakkindaEkrani()) ),
             ),
           ],
         ),
@@ -396,6 +408,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // Tekrarlanan ayar satırları için ortak şablon
   Widget _buildSettingsTile(IconData icon, String title, Size size, {bool isSwitch = false, bool isLast = false, Color? color, VoidCallback? onTap}) {
     return Column(
       children: [
@@ -421,6 +434,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // Oturumu kapatma ve hesap silme gibi geri dönülemez işlemlerin bulunduğu alan
   Widget _buildDangerZone(Size size) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -440,6 +454,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
+  // Geniş, gölgeli ve gradyanlı aksiyon butonu tasarımı
   Widget _buildActionButton(String text, Color color, IconData icon, VoidCallback onTap, Size size) {
     return Container(
       width: double.infinity,

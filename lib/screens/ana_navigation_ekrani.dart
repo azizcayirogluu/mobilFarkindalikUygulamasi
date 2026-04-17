@@ -16,16 +16,17 @@ class AnaNavigation extends StatefulWidget {
 }
 
 class _AnaNavigationState extends State<AnaNavigation> {
-  int _secilenIndeks = 0;
-  bool _baloncukGorunsun = false;
+  int _secilenIndeks = 0; // Aktif olan sekme indeksini tutar
+  bool _baloncukGorunsun = false; // Siber Dost mesaj baloncuğunun görünürlük durumu
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
-    _karsilamaMesajiGoster();
+    _karsilamaMesajiGoster(); // Sayfa açıldıktan kısa süre sonra karşılama mesajını tetikle
   }
 
+  // Siber Dost animasyonlu baloncuğunu belirli süre aralıklarıyla gösterip gizler
   void _karsilamaMesajiGoster() {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _baloncukGorunsun = true);
@@ -35,6 +36,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
     });
   }
 
+  // Alt menüden veya diğer sayfalardan gelen sekme değiştirme isteğini yönetir
   void _sekmeDegistir(int yeniIndeks) {
     if (_secilenIndeks != yeniIndeks) {
       setState(() => _secilenIndeks = yeniIndeks);
@@ -43,18 +45,18 @@ class _AnaNavigationState extends State<AnaNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    // Kullanıcı oturum açmamışsa yükleme göstergesi döner
     if (_currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // DÜZELTME: Artık kullaniciAdi sadece görüntüleme amaçlı. 
-    // Alt sayfalar veriyi currentUser.uid üzerinden çekecek.
     final String aktifIsim = _currentUser!.displayName ?? "Kahraman";
 
     return Scaffold(
-      extendBody: true,
+      extendBody: true, // Alt menünün arkasındaki içeriğin devam etmesini sağlar
       backgroundColor: const Color(0xFFF8FAFC),
       body: IndexedStack(
+        // Sayfaların durumunu koruyarak sadece aktif olanı gösterir
         index: _secilenIndeks,
         children: [
           AnaSayfa(
@@ -71,11 +73,12 @@ class _AnaNavigationState extends State<AnaNavigation> {
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildSiberDostFAB(aktifIsim),
-      bottomNavigationBar: _buildGlassFloatingBar(),
+      floatingActionButton: _buildSiberDostFAB(aktifIsim), // Ortadaki özel asistan butonu
+      bottomNavigationBar: _buildGlassFloatingBar(), // Buzlu cam efektli navigasyon çubuğu
     );
   }
 
+  // Siber Asistan'a (AI) yönlendiren ve mesaj baloncuğu içeren özel buton yapısı
   Widget _buildSiberDostFAB(String isim) {
     return Padding(
       padding: const EdgeInsets.only(top: 20),
@@ -110,6 +113,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
             ),
           ),
           const SizedBox(height: 12),
+          // Ana FAB Butonu
           GestureDetector(
             onTap: () {
               setState(() => _baloncukGorunsun = false);
@@ -134,6 +138,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
     );
   }
 
+  // Glassmorphism (Buzlu Cam) efektli özel tasarlanmış navigasyon barı
   Widget _buildGlassFloatingBar() {
     return Container(
       height: 90,
@@ -141,6 +146,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(35),
         child: BackdropFilter(
+          // Arka planı bulanıklaştırarak buzlu cam etkisi verir
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
             decoration: BoxDecoration(
@@ -153,7 +159,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
               children: [
                 _buildNavItem(Icons.grid_view_rounded, "Ana Sayfa", 0),
                 _buildNavItem(Icons.local_library_rounded, "Eğitim", 1),
-                const SizedBox(width: 60),
+                const SizedBox(width: 60), // FAB (Siber Dost) için bırakılan boşluk
                 _buildNavItem(Icons.workspace_premium_rounded, "Rozetler", 2),
                 _buildNavItem(Icons.face_retouching_natural_rounded, "Profil", 3),
               ],
@@ -164,6 +170,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
     );
   }
 
+  // Navigasyon barındaki her bir butonu oluşturan yardımcı widget
   Widget _buildNavItem(IconData icon, String label, int index) {
     bool aktifMi = _secilenIndeks == index;
     return GestureDetector(
@@ -172,6 +179,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Aktif butonda büyüme (Scale) animasyonu
           AnimatedScale(
             duration: const Duration(milliseconds: 300),
             scale: aktifMi ? 1.2 : 1.0,
@@ -189,6 +197,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
               ),
             ),
           ),
+          // Sadece aktif butonda görünen metin etiketi
           AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
             opacity: aktifMi ? 1.0 : 0.0,

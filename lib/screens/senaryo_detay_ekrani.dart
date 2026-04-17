@@ -70,15 +70,17 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
         if (bolumler.isNotEmpty && widget.bolumIndex < bolumler.length) {
           final tumSorular = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
-          
-          // --- YAŞ GRUBUNA GÖRE FİLTRELEME ---
+
+          // YAŞ GRUBUNA GÖRE FİLTRELE
           final filtrelenmisSorular = [];
           for (var soru in tumSorular) {
             String soruYas = soru['yasGrubu'] ?? "6-12";
             if (soruYas == kullaniciYasGrubu) {
+              // Performans için resimleri önceden belleğe al
               if (soru['imageUrl'] != null && soru['imageUrl'].toString().isNotEmpty) {
                 precacheImage(CachedNetworkImageProvider(soru['imageUrl']), context);
               }
+              // Seçenekleri karıştırarak her seferinde farklı sırada gelmesini sağlar
               if (soru['secenekler'] != null) {
                 List seceneklerListesi = List.from(soru['secenekler']);
                 seceneklerListesi.shuffle();
@@ -93,6 +95,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             _isLoading = false;
           });
 
+          // Eğer ses açık seçildiyse ilk soruyu otomatik okur
           if (_sorular.isNotEmpty && _sesAcik) {
             _soruyuOku(_sorular[_currentIndex]['soru']);
           }
@@ -104,6 +107,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     }
   }
 
+  // Soruyu sesli olarak seslendirir
   Future<void> _soruyuOku(String metin) async {
     if (_sesAcik && metin.isNotEmpty) {
       await _flutterTts.stop();
@@ -111,6 +115,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     }
   }
 
+  // Kullanıcının verdiği cevabı kontrol eder, doğruysa konfeti patlatır
   void _cevapKontrol(int index, Map secenek) {
     if (_cevapVerildiMi) return;
     setState(() {
@@ -125,6 +130,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (mounted) _sonraki();
       });
     } else {
+      // Yanlış cevapta hata analitiği kaydı tutar ve geri bildirim (feedback) gösterir
       if (_currentUser != null) {
         AnalyticsService().hataKaydet(_currentUser!.uid);
       }
@@ -132,6 +138,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     }
   }
 
+  // Bir sonraki soruya geçer veya senaryo bittiyse sonuç ekranını açar
   void _sonraki() {
     _flutterTts.stop();
     if (_currentIndex < _sorular.length - 1) {
@@ -150,6 +157,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+    // Yaş grubuna uygun soru bulunamazsa kullanıcıyı uyarır
     if (_sorular.isEmpty) {
       return Scaffold(
         appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent, leading: const CloseButton(color: Colors.grey)),
@@ -171,6 +179,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     final size = MediaQuery.of(context).size;
     final soru = _sorular[_currentIndex];
 
+    // İlerleme çubuğu değerini hesaplar
     double val = (_cevapVerildiMi && _currentIndex == _sorular.length - 1)
         ? 1.0
         : (_currentIndex / _sorular.length);
@@ -295,7 +304,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       child: ClipRRect(
         borderRadius: BorderRadius.circular(25),
         child: CachedNetworkImage(
-          imageUrl: url, 
+          imageUrl: url,
           fit: BoxFit.cover,
           fadeInDuration: const Duration(milliseconds: 500),
           placeholder: (context, url) => Container(
@@ -361,6 +370,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
+  // Yanlış cevap verildiğinde açılan pencere
   void _showFeedback(String mesaj) {
     if (_sesAcik) _flutterTts.speak(mesaj);
     showModalBottomSheet(
@@ -388,6 +398,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
+  // Bölüm sonunda başarı oranını hesaplayan ve verileri senkronize eden fonksiyon
   void _sonucGoster() async {
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
@@ -427,6 +438,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
+  // Puan hesaplar, tamamlanan bölümleri günceller ve yeni rozet kazanılıp kazanılmadığını kontrol eder
   Future<void> _bolumuTamamlaVeSenkronizeEt() async {
     if (_currentUser == null) return;
     final String uid = _currentUser!.uid;
@@ -440,21 +452,21 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       List bilinenDedektifSorulari = List.from(userData['bilinen_dedektif_sorulari'] ?? []);
       List okunanHikayeler = List.from(userData['okunan_hikayeler'] ?? []);
       List mevcutRozetler = List.from(userData['rozetler'] ?? []);
-      
+
       String buBolumId = "${widget.docId}_${widget.bolumIndex}";
 
       if (!bitti.contains(buBolumId)) {
         bitti.add(buBolumId);
       }
 
-      // Puan Hesaplama
+      // Dinamik Puan Hesaplama Mantığı
       int senaryoSayisi = bitti.where((id) => !id.toString().contains("siber_dedektif") && !id.toString().contains("ayak_izi_temizligi")).length;
       int senaryoPuani = senaryoSayisi * 100;
       int dedektifPuani = bilinenDedektifSorulari.length * 20;
       int hikayePuani = okunanHikayeler.length * 10;
       int yeniToplamPuan = senaryoPuani + dedektifPuani + hikayePuani;
 
-      // Rozet Kontrolü
+      // Rozet Kazanma Kontrolü: Puan veya tamamlanan senaryo sayısına göre
       final badgesSnap = await FirebaseFirestore.instance.collection('badges').get();
       List<String> yeniKazanilanlar = [];
       int benzersizSenaryoSayisi = bitti.map((id) => id.toString().split('_').first).toSet().length;
@@ -475,7 +487,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (kazandiMi) yeniKazanilanlar.add(doc.id);
       }
 
-      // Güncelleme
+      // Firestore Veri Güncelleme
       Map<String, dynamic> updateData = {
         'tamamlanan_bolumler': bitti,
         'toplam_puan': yeniToplamPuan,
@@ -487,7 +499,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       }
 
       await progressRef.set(updateData, SetOptions(merge: true));
-      
+
       if (yeniKazanilanlar.isNotEmpty && mounted) {
         _yeniRozetBildirimi(yeniKazanilanlar.length);
       }
@@ -508,6 +520,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
+  // Yeni rozet kazanıldığında ekranın altında çıkan bilgilendirme mesajı
   void _yeniRozetBildirimi(int adet) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -520,9 +533,9 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   @override
-  void dispose() { 
-    _confettiController.dispose(); 
-    _flutterTts.stop(); 
-    super.dispose(); 
+  void dispose() {
+    _confettiController.dispose();
+    _flutterTts.stop();
+    super.dispose();
   }
 }

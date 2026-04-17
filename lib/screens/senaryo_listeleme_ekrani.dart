@@ -22,7 +22,8 @@ class SenaryoListelemeEkrani extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('scenarios').snapshots(),
+        // Performans için limit ekledik. Çok fazla senaryo varsa sayfalama (pagination) düşünülebilir.
+        stream: FirebaseFirestore.instance.collection('scenarios').limit(20).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -69,7 +70,7 @@ class SenaryoListelemeEkrani extends StatelessWidget {
         ],
         border: Border.all(color: anaRenk.withOpacity(0.15), width: 1.5),
       ),
-      child: InkWell(
+      child: InkWell( //tıklanabilirlik katan metot
         onTap: () => Navigator.push(
           context, 
           MaterialPageRoute(

@@ -9,30 +9,39 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FB),
+
+      // Sayfa kaydırma icin
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
+
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _header(),
             const SizedBox(height: 24),
-            _summaryGrid(),
+
+            _summaryGrid(), // Üst istatistik kartları
             const SizedBox(height: 24),
 
+            // Alt layout → sol analiz + sağ aksiyon
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // SOL TARAF → analizler
                 Expanded(
                   flex: 3,
                   child: Column(
                     children: [
-                      _card(_systemAnalysis()),
+                      _card(_systemAnalysis()), // içerik analizi
                       const SizedBox(height: 20),
-                      _card(_userMetrics()),
+                      _card(_userMetrics()),   // kullanıcı istatistikleri
                     ],
                   ),
                 ),
+
                 const SizedBox(width: 20),
+
+                // SAĞ TARAF → aksiyon merkezi
                 Expanded(
                   flex: 2,
                   child: _actionCenter(context),
@@ -45,10 +54,10 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ---------------- HEADER ----------------
   Widget _header() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
       children: [
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,6 +72,7 @@ class DashboardPage extends StatelessWidget {
                 style: TextStyle(color: Colors.grey)),
           ],
         ),
+
         _statusChip(),
       ],
     );
@@ -71,10 +81,12 @@ class DashboardPage extends StatelessWidget {
   Widget _statusChip() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+
       decoration: BoxDecoration(
         color: Colors.green.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
       ),
+
       child: const Row(
         children: [
           Icon(Icons.circle, size: 10, color: Colors.green),
@@ -85,7 +97,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ---------------- SUMMARY ----------------
   Widget _summaryGrid() {
     return Row(
       children: [
@@ -103,7 +114,9 @@ class DashboardPage extends StatelessWidget {
   Widget _statCard(String title, String col, IconData icon, Color color) {
     return Expanded(
       child: StreamBuilder<QuerySnapshot>(
+        // Firestore’dan anlık veri dinler
         stream: FirebaseFirestore.instance.collection(col).snapshots(),
+
         builder: (context, snapshot) {
           final count =
           snapshot.hasData ? snapshot.data!.docs.length : 0;
@@ -120,6 +133,7 @@ class DashboardPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: color.withOpacity(0.2)),
             ),
+
             child: Row(
               children: [
                 Container(
@@ -130,7 +144,10 @@ class DashboardPage extends StatelessWidget {
                   ),
                   child: Icon(icon, color: Colors.white),
                 ),
+
                 const SizedBox(width: 12),
+
+                // Sayı + başlık
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -151,7 +168,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ---------------- SYSTEM ANALYSIS ----------------
   Widget _systemAnalysis() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,15 +177,20 @@ class DashboardPage extends StatelessWidget {
         const SizedBox(height: 20),
 
         StreamBuilder<QuerySnapshot>(
+          // Senaryoları dinler
           stream: FirebaseFirestore.instance.collection('scenarios').snapshots(),
+
           builder: (context, snapshot) {
             int senaryo = 0;
             int soru = 0;
 
             if (snapshot.hasData) {
               senaryo = snapshot.data!.docs.length;
+
+              // Her senaryonun içindeki bölümleri ve soruları sayar
               for (var doc in snapshot.data!.docs) {
                 final bolumler = (doc.data() as Map)['bolumler'] ?? [];
+
                 for (var b in bolumler) {
                   soru += (b['sorular'] as List?)?.length ?? 0;
                 }
@@ -189,7 +210,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ---------------- USER METRICS ----------------
   Widget _userMetrics() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,13 +219,17 @@ class DashboardPage extends StatelessWidget {
         const SizedBox(height: 20),
 
         StreamBuilder<QuerySnapshot>(
+          // users collection dinlenir
           stream: FirebaseFirestore.instance.collection('users').snapshots(),
+
           builder: (context, snapshot) {
             int total = 0;
             int online = 0;
 
             if (snapshot.hasData) {
               total = snapshot.data!.docs.length;
+
+              // isOnline true olanları sayar
               online = snapshot.data!.docs
                   .where((e) => (e.data() as Map)['isOnline'] == true)
                   .length;
@@ -228,12 +252,14 @@ class DashboardPage extends StatelessWidget {
   Widget _actionCenter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
+
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -242,6 +268,7 @@ class DashboardPage extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold)),
+
           const SizedBox(height: 20),
 
           ElevatedButton.icon(
@@ -250,8 +277,10 @@ class DashboardPage extends StatelessWidget {
               foregroundColor: Colors.black,
               minimumSize: const Size(double.infinity, 50),
             ),
+
             icon: const Icon(Icons.download),
             label: const Text("Rapor Oluştur"),
+
             onPressed: () async {
               await ReportService().sistemRaporuOlustur();
             },
@@ -261,15 +290,18 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // ---------------- COMPONENTS ----------------
+
+  // Küçük istatistik kutusu
   Widget _miniBox(String label, int value, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
+
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(14),
         ),
+
         child: Column(
           children: [
             Text("$value",
@@ -289,14 +321,18 @@ class DashboardPage extends StatelessWidget {
       children: [
         Row(
           children: [
+            // Online ise yeşil nokta gösterir
             if (isOnline)
               Container(
                 width: 10,
                 height: 10,
                 margin: const EdgeInsets.only(right: 8),
+
                 decoration: BoxDecoration(
                   color: Colors.green,
                   shape: BoxShape.circle,
+
+                  // Glow efekti
                   boxShadow: [
                     BoxShadow(
                       color: Colors.green.withOpacity(0.6),
@@ -317,18 +353,22 @@ class DashboardPage extends StatelessWidget {
             ),
           ],
         ),
+
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(color: Colors.grey)),
       ],
     );
   }
 
+  // Kart wrapper (her şeyi kutuya alır)
   Widget _card(Widget child) {
     return Container(
       padding: const EdgeInsets.all(20),
+
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+
         boxShadow: [
           BoxShadow(
             blurRadius: 12,
@@ -336,6 +376,7 @@ class DashboardPage extends StatelessWidget {
           )
         ],
       ),
+
       child: child,
     );
   }

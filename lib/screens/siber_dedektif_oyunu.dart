@@ -22,7 +22,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   int _puan = 0;
   bool _oyunBitti = false;
   bool _isLoading = true;
-  bool _isProcessing = false;
+  bool _isProcessing = false; // Aynı anda birden fazla tıklamayı engelle
   List<String> _bilinenSoruIds = [];
 
   @override
@@ -35,16 +35,19 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   Future<void> _verileriYukle() async {
     if (_currentUser == null) return;
     try {
+      // 1. Kullanıcının daha önce bildiği soruların ID'lerini çek (Tekrar sormamak için)
       final userDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).get();
       if (userDoc.exists) {
         _bilinenSoruIds = List<String>.from(userDoc.data()?['bilinen_dedektif_sorulari'] ?? []);
       }
 
+      // 2. Tüm dedektif sorularını getir
       final snap = await FirebaseFirestore.instance.collection('detective_questions').get();
-      
+
       List<Map<String, dynamic>> guvenliListesi = [];
       List<Map<String, dynamic>> tehlikeliListesi = [];
 
+      // Soruları durumlarına göre kategorize et (Henüz bilinmeyenleri listeye ekle)
       for (var doc in snap.docs) {
         if (!_bilinenSoruIds.contains(doc.id)) {
           final data = doc.data();
@@ -65,11 +68,12 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         }
       }
 
+      // 3. Algoritma: Dengeli bir soru seti oluştur (Örn: 2 Güvenli, 3 Tehlikeli)
       guvenliListesi.shuffle();
       tehlikeliListesi.shuffle();
 
       List<Map<String, dynamic>> finalSet = [];
-      int hedefGuvenli = 2 + Random().nextInt(2); 
+      int hedefGuvenli = 2 + Random().nextInt(2);
       int hedefTehlikeli = 5 - hedefGuvenli;
 
       for (int i = 0; i < hedefGuvenli && guvenliListesi.isNotEmpty; i++) {
@@ -79,20 +83,22 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         finalSet.add(tehlikeliListesi.removeAt(0));
       }
 
+      // Eğer yeterli soru yoksa kalan havuzdan tamamla
       List<Map<String, dynamic>> kalanlar = [...guvenliListesi, ...tehlikeliListesi];
       kalanlar.shuffle();
       while (finalSet.length < 5 && kalanlar.isNotEmpty) {
         finalSet.add(kalanlar.removeAt(0));
       }
 
-      finalSet.shuffle();
+      finalSet.shuffle(); // Karışık sırada sun
 
       setState(() {
         _soruHavuzu = finalSet;
+        // Eğer havuz boşsa (tüm sorular bilinmişse) sıfırla ve baştan başla
         if (_soruHavuzu.isEmpty && _bilinenSoruIds.isNotEmpty) {
-           _bilinenSoruIds.clear(); 
-           _verileriYukle(); 
-           return;
+          _bilinenSoruIds.clear();
+          _verileriYukle();
+          return;
         }
         _isLoading = false;
       });
@@ -102,6 +108,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     }
   }
 
+  // Veritabanından gelen String ikon ismini IconData'ya çevirir
   IconData _getIconFromName(String name) {
     switch (name) {
       case 'vpn_key': return Icons.vpn_key_rounded;
@@ -115,12 +122,14 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     }
   }
 
+  // HEX'i Color objesine çevirir
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll("#", "");
     if (hexColor.length == 6) hexColor = "FF$hexColor";
     return Color(int.parse("0x$hexColor"));
   }
 
+  // Kullanıcının cevabına göre puanlama yap
   void _kararVer(String karar) {
     if (_isProcessing || _oyunBitti || _soruHavuzu.isEmpty) return;
 
@@ -131,28 +140,30 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
     if (dogruMu) {
       _puan += 20;
-      _bilinenSoruIds.add(mevcutSoru["id"]);
+      _bilinenSoruIds.add(mevcutSoru["id"]); // Doğru bildiği ID'yi listeye ekle
       _confettiController.play();
       _showFeedback(true, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
     } else {
       _showFeedback(false, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
     }
 
+    // Kısa bir bekleme sonrası sonraki soruya geç veya bitir
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          if (_currentIndex < _soruHavuzu.length - 1 && _currentIndex < 4) { 
+          if (_currentIndex < _soruHavuzu.length - 1 && _currentIndex < 4) {
             _currentIndex++;
           } else {
             _oyunBitti = true;
-            _ilerlemeyiTamamlaVeSenkronizeEt();
+            _ilerlemeyiTamamlaVeSenkronizeEt(); // Verileri Firestore'a kaydet
           }
         });
       }
     });
   }
 
+  // Kullanıcıya kararı sonrası SnackBar ile bilgi verir
   void _showFeedback(bool isCorrect, String msg, IconData icon) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -172,6 +183,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
+  // Puanları ve ilerlemeyi veritabanına aktarır
   Future<void> _ilerlemeyiTamamlaVeSenkronizeEt() async {
     if (_currentUser == null) return;
     try {
@@ -186,8 +198,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         tamamlananlar.add("siber_dedektif");
       }
 
+      // Tüm uygulama genelindeki toplam puanı yeniden hesaplar
       int senaryoSayisi = tamamlananlar.where((id) => !id.toString().contains("siber_dedektif") && !id.toString().contains("ayak_izi_temizligi")).length;
-      
+
       int senaryoPuani = senaryoSayisi * 100;
       int hikayePuani = okunanHikayeler.length * 10;
       int dedektifPuani = _bilinenSoruIds.length * 20;
@@ -233,26 +246,27 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
           )
         ],
       ),
-      body: _isLoading 
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _soruHavuzu.isEmpty 
-              ? _buildEmptyState()
-              : Stack(
-                  children: [
-                    if (!_oyunBitti) _buildGameArea() else _buildResultArea(),
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: ConfettiWidget(
-                        confettiController: _confettiController,
-                        blastDirectionality: BlastDirectionality.explosive,
-                        colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.pink],
-                      ),
-                    ),
-                  ],
-                ),
+          : _soruHavuzu.isEmpty
+          ? _buildEmptyState()
+          : Stack(
+        children: [
+          if (!_oyunBitti) _buildGameArea() else _buildResultArea(),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.pink],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
+  // Sorular bittiğinde gösterilen boş ekran
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -267,9 +281,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             const Text("Harika bir iş çıkardın dedektif! Şimdilik tüm ipuçlarını değerlendirdin. Yeni görevler gelene kadar akademiyi gezmeye ne dersin?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
             const SizedBox(height: 40),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-              onPressed: () => Navigator.pop(context), 
-              child: const Text("AKADEMİYE DÖN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("AKADEMİYE DÖN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
             )
           ],
         ),
@@ -277,6 +291,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
+  //sürükle-bırak mekanizmasının ve kartın bulunduğu alan
   Widget _buildGameArea() {
     final soru = _soruHavuzu[_currentIndex];
     return Column(
@@ -307,6 +322,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
           ),
         ),
         const Spacer(),
+        // Sürükle-Bırak Mantığı: Sola sürüklenince Tehlikeli, sağa sürüklenince Güvenli tetiklenir
         Draggable(
           feedback: _buildCard(soru, opacity: 0.8),
           childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
@@ -331,6 +347,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
+  // Sorunun metnini içeren kart tasarımı
   Widget _buildCard(Map<String, dynamic> soru, {double opacity = 1.0}) {
     return Container(
       width: MediaQuery.of(context).size.width * 0.82,
@@ -368,6 +385,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
+  // Alt kısımdaki "Güvenli/Tehlikeli" butonları
   Widget _actionButton(String label, Color color, IconData icon) {
     return Column(
       children: [
@@ -376,9 +394,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
             ),
             child: Icon(icon, color: Colors.white, size: 35),
           ),
@@ -389,6 +407,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
+  // Oyun bittiğinde toplam puanı gösteren sonuç ekranı
   Widget _buildResultArea() {
     return Center(
       child: Padding(
@@ -404,11 +423,11 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             const SizedBox(height: 45),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.anaMavi,
-                minimumSize: const Size(double.infinity, 65),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                elevation: 8,
-                shadowColor: AppColors.anaMavi.withOpacity(0.5)
+                  backgroundColor: AppColors.anaMavi,
+                  minimumSize: const Size(double.infinity, 65),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  elevation: 8,
+                  shadowColor: AppColors.anaMavi.withOpacity(0.5)
               ),
               onPressed: () => Navigator.pop(context),
               child: const Text("DEVAM ET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),

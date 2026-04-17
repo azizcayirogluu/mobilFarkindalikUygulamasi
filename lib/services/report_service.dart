@@ -7,16 +7,19 @@ import 'package:intl/intl.dart';
 class ReportService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  //Tüm veritabanı verilerini toplayıp PDF raporu oluşturur ve yazdırma ekranını aç.
   Future<void> sistemRaporuOlustur() async {
     final pdf = pw.Document();
 
     try {
+      //Firestore'daki ilgili tüm koleksiyonlardan ham veriler çek
       final progressSnap = await _db.collection('usersProgress').get();
       final usersSnap = await _db.collection('users').get();
       final storiesSnap = await _db.collection('stories').get();
       final scenariosSnap = await _db.collection('scenarios').get();
       final videosSnap = await _db.collection('videos').get();
 
+      // SAYAÇLAR: Raporun istatistik bölümünde kullanılacak toplam değerlerin tutulduğu değişkenler.
       int toplamHata = 0;
       int toplamSure = 0;
       int toplamPuan = 0;
@@ -25,6 +28,7 @@ class ReportService {
       int toplamDikkat = 0;
       int toplamYardim = 0;
 
+      // VERİ İŞLEME DÖNGÜSÜ: Her kullanıcının ilerleme verisi tek tek analiz edilir.
       for (var doc in progressSnap.docs) {
         final data = doc.data();
         final stats = data['istatistikler'] ?? {};
@@ -35,11 +39,13 @@ class ReportService {
         toplamPuan += (data['toplam_puan'] as int? ?? 0);
         toplamOkunanHikaye += (data['okunan_hikayeler'] as List? ?? []).length;
 
+        // Karar yapısı altındaki puanlar (empati, dikkat vb.) toplama eklenir.
         toplamEmpati += (karar['empati'] as int? ?? 0);
         toplamDikkat += (karar['dikkat'] as int? ?? 0);
         toplamYardim += (karar['yardim'] as int? ?? 0);
       }
 
+      // SENARYO ANALİZİ: Mevcut senaryolardaki toplam soru sayısı hesaplanır.
       int toplamSoruSayisi = 0;
       for (var doc in scenariosSnap.docs) {
         final bolumler = (doc.data()['bolumler'] as List? ?? []);
@@ -48,13 +54,15 @@ class ReportService {
         }
       }
 
+      // Ortalama hesaplama için kullanıcı sayısı alınır (Sıfıra bölünme hatası engellenir).
       int userCount = usersSnap.docs.isNotEmpty ? usersSnap.docs.length : 1;
 
+      // PDF SAYFA OLUŞTURMA: Çok sayfalı (MultiPage) yapı ile içerik sığmadığında otomatik yeni sayfaya geçer.
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(32),
-          header: (pw.Context context) => _buildHeader(),
+          header: (pw.Context context) => _buildHeader(), // Her sayfanın üst başlığı
           build: (pw.Context context) {
             return [
               _buildSectionTitle("1. SISTEM GENEL ENVANTERI"),
@@ -83,16 +91,17 @@ class ReportService {
               pw.Divider(color: PdfColors.grey400),
               pw.Align(
                 alignment: pw.Alignment.center,
-            child: pw.Text(
-            "Zorbalik Farkindalik Platformu - Güncel Veritabani Analiz Ciktisi: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}",
-            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-            ),
+                child: pw.Text(
+                    "Zorbalik Farkindalik Platformu - Güncel Veritabani Analiz Ciktisi: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}",
+                    style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+              ),
             ];
           },
           footer: (pw.Context context) => _buildFooter(context),
         ),
       );
 
+      //Oluşturulan PDF'i cihaza sunar.
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdf.save(),
         name: 'sistem_analizi_raporu_${DateFormat('dd_MM_yyyy_HH_mm').format(DateTime.now())}.pdf',
@@ -102,6 +111,7 @@ class ReportService {
     }
   }
 
+  // Tasarım ve logo (varsa) kısmını yöneten widget.
   pw.Widget _buildHeader() {
     return pw.Container(
       decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.blue900, width: 2))),
@@ -130,6 +140,7 @@ class ReportService {
     );
   }
 
+  //Sistemdeki toplam içerik miktarını listeleyen tablo.
   pw.Widget _buildInventoryTable(users, scenarios, stories, videos, soruCount) {
     return pw.Table.fromTextArray(
       headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
@@ -145,7 +156,9 @@ class ReportService {
     );
   }
 
+  //Tüm kullanıcıların bireysel performans verilerini birleştirir.
   pw.Widget _buildUserDetailTable(QuerySnapshot usersSnap, QuerySnapshot progressSnap) {
+    // Performans için ilerleme verilerini UID üzerinden eşleşecek şekilde bir haritaya (Map) dönüştürür.
     Map<String, dynamic> progressMap = {
       for (var doc in progressSnap.docs) doc.id: doc.data()
     };
@@ -162,6 +175,7 @@ class ReportService {
     );
   }
 
+  //Tek bir kullanıcının bilgilerini tablo satırı formatına getirir.
   List<String> _generateUserRow(DocumentSnapshot userDoc, dynamic progressData) {
     final userData = userDoc.data() as Map<String, dynamic>;
 
@@ -175,6 +189,7 @@ class ReportService {
 
     String sonHareketStr = "Bilinmiyor";
 
+    //Son görülme zamanını okunabilir formata sokar.
     if (isOnline) {
       sonHareketStr = "Aktif (Simdi)";
     } else if (rawLastSeen != null) {
@@ -202,6 +217,7 @@ class ReportService {
     ];
   }
 
+  //Stilize edilmiş veri kutucuğu tasarımı.
   pw.Widget _pdfStatBox(String label, String value) {
     return pw.Container(
       margin: const pw.EdgeInsets.all(5),
@@ -220,6 +236,7 @@ class ReportService {
     );
   }
 
+  //Grafiksel ilerleme çubuğu çizimi.
   pw.Widget _pdfProgressBar(String label, double val) {
     final double clampedVal = val.clamp(0.0, 1.0);
     return pw.Padding(
@@ -242,7 +259,7 @@ class ReportService {
             child: pw.Align(
               alignment: pw.Alignment.centerLeft,
               child: pw.Container(
-                width: 480.0 * clampedVal,
+                width: 480.0 * clampedVal, // Sayfa genişliğine göre orantılanmış genişlik.
                 height: 6,
                 decoration: pw.BoxDecoration(color: PdfColors.blue700, borderRadius: pw.BorderRadius.circular(3)),
               ),

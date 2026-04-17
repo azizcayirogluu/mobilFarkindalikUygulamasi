@@ -12,14 +12,17 @@ class GirisEkrani extends StatefulWidget {
 }
 
 class _GirisEkraniState extends State<GirisEkrani> {
+  // Kullanıcıdan alınan metin girişlerini kontrol eden controller'lar
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
   bool _isLoading = false;
 
+  // Firebase üzerinden giriş işlemlerini yöneten ana fonksiyon
   void _girisYap() async {
     final kullaniciAdi = _usernameController.text.trim().toLowerCase();
     final pin = _pinController.text.trim();
 
+    // Boş alan kontrolü
     if (kullaniciAdi.isEmpty || pin.isEmpty) {
       _mesajGoster(
         "Lütfen kullanıcı adını ve PIN kodunu yaz canım! 😊",
@@ -31,21 +34,26 @@ class _GirisEkraniState extends State<GirisEkrani> {
     setState(() => _isLoading = true);
 
     try {
+      // Uygulama yapısına özel: Kullanıcı adını gizli bir e-posta formatına dönüştürür
       final String fakeEmail = "$kullaniciAdi@zorbalik.app";
 
+      // Firebase Authentication ile kimlik doğrulama
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: fakeEmail, password: pin);
 
+      // Başarılı girişte kullanıcı adını profil ismi olarak günceller
       await userCredential.user!.updateDisplayName(kullaniciAdi);
 
       if (!mounted) return;
 
+      // Giriş yapıldıktan sonra geri dönülemeyecek şekilde ana navigasyona yönlendirir
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const AnaNavigation()),
-        (route) => false,
+            (route) => false,
       );
     } on FirebaseAuthException catch (e) {
+      // Firebase'den dönen hata kodlarına göre kullanıcıya dostça mesajlar verir
       if (e.code == 'user-not-found') {
         _mesajGoster(
           "Böyle bir kahraman bulamadık! Önce kayıt olmalısın. 😊",
@@ -66,6 +74,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     }
   }
 
+  // Ekranda bilgi veya hata mesajı göstermek için kullanılan Snackbar yapısı
   void _mesajGoster(String mesaj, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -82,6 +91,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
   @override
   void dispose() {
+    // Bellek sızıntısını önlemek için controller'lar temizlenir
     _usernameController.dispose();
     _pinController.dispose();
     super.dispose();
@@ -104,13 +114,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Kayıt ekranıyla görsel geçiş sağlayan Hero animasyonu
               Hero(
                 tag: 'welcome_image',
                 child: Image.asset(
                   "assets/boy.png",
                   height: 120,
                   errorBuilder: (c, e, s) =>
-                      const Icon(Icons.person, size: 100),
+                  const Icon(Icons.person, size: 100),
                 ),
               ),
               const SizedBox(height: 20),
@@ -133,6 +144,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     );
   }
 
+  // Giriş alanlarını gruplayan kart tasarımı
   Widget _buildGirisKarti() {
     return Container(
       padding: const EdgeInsets.all(30),
@@ -164,12 +176,13 @@ class _GirisEkraniState extends State<GirisEkrani> {
     );
   }
 
+  // Form inputları için özelleştirilmiş TextField yapısı
   Widget _buildInputField(
-    String hint,
-    IconData icon,
-    TextEditingController controller, {
-    bool isPin = false,
-  }) {
+      String hint,
+      IconData icon,
+      TextEditingController controller, {
+        bool isPin = false,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -211,6 +224,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     );
   }
 
+  // Gradyan renkli ana giriş butonu
   Widget _buildLoginButton() {
     return Container(
       width: double.infinity,
@@ -240,6 +254,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
     );
   }
 
+  // Kayıt ol sayfasına geçiş için alt metin
   Widget _buildRegisterLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

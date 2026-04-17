@@ -7,17 +7,19 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 class RozetlerEkrani extends StatelessWidget {
   const RozetlerEkrani({super.key});
 
+  // hex kodlarını Flutter Color'a dönüştürür
   Color _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return AppColors.anaMavi;
     try {
       String cleanHex = hexColor.replaceAll('#', '').replaceAll('0x', '');
-      if (cleanHex.length == 6) cleanHex = 'FF$cleanHex';
+      if (cleanHex.length == 6) cleanHex = 'FF$cleanHex'; // Opacity (FF) eklemesi yapar
       return Color(int.parse('0x$cleanHex'));
     } catch (e) {
       return AppColors.anaMavi;
     }
   }
 
+  // Veritabanından gelen ikon isimlerini veya kodlarını Material Icons kütüphanesiyle eşleştirir
   IconData _getIconData(dynamic iconData) {
     if (iconData == null) return Icons.stars_rounded;
 
@@ -27,6 +29,7 @@ class RozetlerEkrani extends StatelessWidget {
 
     String name = iconData.toString();
 
+    // Sık kullanılan ikonlar için manuel eşleştirme (Fallback mekanizması)
     switch (name) {
       case 'directions_walk': return Icons.directions_walk_rounded;
       case 'menu_book': return Icons.menu_book_rounded;
@@ -74,6 +77,7 @@ class RozetlerEkrani extends StatelessWidget {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
+      // İç içe StreamBuilder: Hem kullanıcı ilerlemesini hem de tüm rozet listesini anlık dinler
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).snapshots(),
         builder: (context, userSnap) {
@@ -85,14 +89,15 @@ class RozetlerEkrani extends StatelessWidget {
               }
 
               final userData = userSnap.data!.data() as Map<String, dynamic>?;
-              final List kazanilanIds = userData?['rozetler'] ?? [];
+              final List kazanilanIds = userData?['rozetler'] ?? []; // Kullanıcının sahip olduğu rozet ID'leri
 
               final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
 
+              // Sıralama Mantığı: Kazanılan rozetleri listenin en başına taşır
               tumRozetler.sort((a, b) {
                 bool aKazanildi = kazanilanIds.contains(a.id);
                 bool bKazanildi = kazanilanIds.contains(b.id);
-                
+
                 if (aKazanildi && !bKazanildi) return -1;
                 if (!aKazanildi && bKazanildi) return 1;
                 return 0;
@@ -104,6 +109,7 @@ class RozetlerEkrani extends StatelessWidget {
                   SliverToBoxAdapter(
                     child: _buildEnhancedHeader(kazanilanIds.length, tumRozetler.length, size),
                   ),
+                  // Rozetlerin 3'lü sütun yapısında sergilendiği ızgara (Grid)
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     sliver: SliverGrid(
@@ -134,6 +140,7 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
+  // Kullanıcının kaç rozet topladığını gösteren özet alanı
   Widget _buildEnhancedHeader(int current, int total, Size size) {
     double progress = total > 0 ? (current / total) : 0;
     return Container(
@@ -193,6 +200,7 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
+  // Her bir rozetin görselini ve ismini içeren kart yapısı
   Widget _buildModernBadgeCard(BuildContext context, Map<String, dynamic> data, bool isEarned) {
     final Color badgeColor = _parseColor(data['renk']);
     final IconData badgeIcon = _getIconData(data['ikon']);
@@ -222,6 +230,7 @@ class RozetlerEkrani extends StatelessWidget {
                   ),
                 ),
                 Icon(
+                  // Kazanılmamış rozetlerde kilit ikonu gösterilir
                   isEarned ? badgeIcon : Icons.lock_rounded,
                   color: isEarned ? badgeColor : Colors.grey[400],
                   size: 32,
@@ -249,6 +258,7 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
+  // Rozete tıklandığında alttan açılan detaylı bilgi ekranı
   void _showBadgeInfo(BuildContext context, Map<String, dynamic> data, bool isEarned, Color color, IconData icon) {
     showModalBottomSheet(
       context: context,
@@ -272,6 +282,7 @@ class RozetlerEkrani extends StatelessWidget {
             const SizedBox(height: 20),
             Text(data['ad'] ?? "Gizemli Rozet", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
             const SizedBox(height: 12),
+            // Kazanma durumuna göre dinamik açıklama metni
             Text(
               isEarned
                   ? "Tebrikler! Bu rozeti koleksiyonuna ekledin. Başarılarınla gurur duyuyoruz!"

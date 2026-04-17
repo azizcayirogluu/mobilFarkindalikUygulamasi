@@ -10,6 +10,7 @@ class UserManager extends StatefulWidget {
 }
 
 class _UserManagerState extends State<UserManager> {
+  // Firestore veritabanı işlemlerini yönetmek için ana referans
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -24,6 +25,7 @@ class _UserManagerState extends State<UserManager> {
             _buildHeader(),
             const SizedBox(height: 35),
             Expanded(
+              // StreamBuilder: 'users' koleksiyonunu kayıt tarihine göre sıralı ve canlı olarak dinler
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('users').orderBy('kayitTarihi', descending: true).snapshots(),
                 builder: (context, snapshot) {
@@ -45,9 +47,10 @@ class _UserManagerState extends State<UserManager> {
 
                       final String username = userData['kullaniciAdi'] ?? "İsimsiz";
                       final String yasGrubu = userData['yasGrubu'] ?? "-";
-                      final String uid = doc.id; // En sağlam yöntem döküman ID'sidir
+                      final String uid = doc.id; // Doküman silme ve analiz çekme işlemleri için ID'yi saklar
                       final bool isOnline = userData['isOnline'] ?? false;
 
+                      // Timestamp verisini güvenli bir şekilde çekmek için çift isimli kontrol (sonGörülme/sonGorulme)
                       final dynamic rawLastSeen = userData['sonGörülme'] ?? userData['sonGorulme'];
                       final Timestamp? sonGorulme = rawLastSeen is Timestamp ? rawLastSeen : null;
 
@@ -82,11 +85,13 @@ class _UserManagerState extends State<UserManager> {
     );
   }
 
+  // Her bir kullanıcı için oluşturulan liste elemanı
   Widget _buildUserCard(String username, String yas, String uid, bool isOnline, Timestamp? sonGorulme) {
     String sonHareket = "Bilinmiyor";
     if (isOnline) {
       sonHareket = "Şu an aktif";
     } else if (sonGorulme != null) {
+      // Çevrimdışı ise son görülme tarihini okunabilir formata çevirir
       sonHareket = DateFormat('dd/MM HH:mm').format(sonGorulme.toDate());
     }
 
@@ -120,6 +125,7 @@ class _UserManagerState extends State<UserManager> {
                     style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold, fontSize: 22)),
               ),
             ),
+            // online durumu icin yesil nokta
             Positioned(
               right: 2,
               bottom: 2,
@@ -159,6 +165,7 @@ class _UserManagerState extends State<UserManager> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Analiz ikonuna basıldığında kullanıcının istatistiklerini getirir puan vs
             _actionIconButton(Icons.analytics_outlined, const Color(0xFF6366F1), () => _showUserAnalytics(username, uid)),
             const SizedBox(width: 12),
             _actionIconButton(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteUser(username, uid)),
@@ -168,10 +175,12 @@ class _UserManagerState extends State<UserManager> {
     );
   }
 
+  // Seçili kullanıcının oyun gelişim verilerini (usersProgress) modal içinde gösterir
   void _showUserAnalytics(String username, String uid) {
     showDialog(
       context: context,
       builder: (context) => FutureBuilder<DocumentSnapshot>(
+        // Tek seferlik veri çekimi için FutureBuilder kullanılır
         future: _firestore.collection('usersProgress').doc(uid).get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
@@ -200,6 +209,7 @@ class _UserManagerState extends State<UserManager> {
                         flex: 3,
                         child: Column(
                           children: [
+                            // Puan, süre ve hata gibi özet kutuları
                             Row(
                               children: [
                                 _premiumStatBox("Toplam Puan", "${data['toplam_puan'] ?? 0}", Icons.bolt_rounded, Colors.orange),
@@ -210,6 +220,7 @@ class _UserManagerState extends State<UserManager> {
                               ],
                             ),
                             const SizedBox(height: 30),
+                            // Empati, farkındalık gibi bar tipi analiz grafikleri
                             _buildCharacterChart(karar),
                           ],
                         ),
@@ -217,7 +228,7 @@ class _UserManagerState extends State<UserManager> {
                       const SizedBox(width: 30),
                       Expanded(
                         flex: 2,
-                        child: _buildBadgeAndMissionList(rozetler, bolumler),
+                        child: _buildBadgeAndMissionList(rozetler, bolumler), // Kazanılan rozetler ve bölümler
                       ),
                     ],
                   ),
@@ -239,6 +250,7 @@ class _UserManagerState extends State<UserManager> {
         children: [
           const Text("Gelişim Analiz Grafiği", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1E293B))),
           const SizedBox(height: 25),
+          // Bar değerlerini 0.0 - 1.0 arasına normalize ederek gösterir
           _skillBar("Kullanıcıların Ortalama Empati Yeteneği", (karar['empati'] ?? 0) / 100, Colors.pinkAccent),
           _skillBar("Kullanıcıların Ortalama Siber Farkındalığı", (karar['dikkat'] ?? 0) / 100, Colors.green),
           _skillBar("Kullanıcıların Ortalama Yardımseverlik Oranı", (karar['yardim'] ?? 0) / 100, Colors.orange),
@@ -350,6 +362,7 @@ class _UserManagerState extends State<UserManager> {
     );
   }
 
+  // Toplam kullanıcı sayısını takip eden sağ üst köşedeki alan
   Widget _buildTotalUserBadge() {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('users').snapshots(),
@@ -375,6 +388,7 @@ class _UserManagerState extends State<UserManager> {
     );
   }
 
+  // Kullanıcıyı hem 'users' hem de 'usersProgress' koleksiyonlarından kalıcı olarak siler
   void _deleteUser(String username, String uid) {
     showDialog(context: context, builder: (c) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
@@ -384,6 +398,7 @@ class _UserManagerState extends State<UserManager> {
         TextButton(onPressed: () => Navigator.pop(c), child: const Text("VAZGEÇ")),
         ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
+              // İki farklı koleksiyondaki veriyi asenkron olarak temizler
               await _firestore.collection('users').doc(uid).delete();
               await _firestore.collection('usersProgress').doc(uid).delete();
               Navigator.pop(c);

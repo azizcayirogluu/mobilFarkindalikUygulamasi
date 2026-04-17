@@ -13,15 +13,19 @@ class KayitEkrani extends StatefulWidget {
 }
 
 class _KayitEkraniState extends State<KayitEkrani> {
+
+  // Kullanıcı girişlerini kontrol etmek için kullanılan denetleyiciler
   String seciliGrup = "";
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
   bool _isLoading = false;
 
+  // Firebase Auth ve Firestore işlemlerini başlatan ana fonksiyon
   void _kayitSureciniBaslat() async {
     final String kullaniciAdi = _usernameController.text.trim().toLowerCase();
     final String pin = _pinController.text.trim();
 
+    // Giriş Validasyonu: Bilgilerin eksiksiz ve kriterlere uygun olduğunu kontrol eder
     if (kullaniciAdi.isEmpty) {
       _mesajGoster("Lütfen bir kullanıcı adı seç! 😊", isError: true);
       return;
@@ -38,6 +42,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     setState(() => _isLoading = true);
 
     try {
+      // Uygulamaya özel sahte bir e-posta yapısıyla kimlik doğrulama oluşturulur
       final String fakeEmail = "$kullaniciAdi@zorbalik.app";
 
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -47,8 +52,10 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
       final String uid = userCredential.user!.uid;
 
+      // Firestore Batch: Birden fazla dökümanı tek seferde (atomik) kaydetmeyi sağlar
       WriteBatch batch = FirebaseFirestore.instance.batch();
-      
+
+      // 'users' koleksiyonuna temel profil bilgilerini kaydeder
       batch.set(FirebaseFirestore.instance.collection('users').doc(uid), {
         'uid': uid,
         'kullaniciAdi': kullaniciAdi,
@@ -59,6 +66,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
         'kayitTarihi': FieldValue.serverTimestamp(),
       });
 
+      // 'usersProgress' koleksiyonuna oyunlaştırma ve ilerleme verilerini kaydeder
       batch.set(FirebaseFirestore.instance.collection('usersProgress').doc(uid), {
         'uid': uid,
         'kullaniciAdi': kullaniciAdi,
@@ -69,13 +77,16 @@ class _KayitEkraniState extends State<KayitEkrani> {
         'sonGuncelleme': FieldValue.serverTimestamp(),
       });
 
-      await batch.commit();
+      await batch.commit(); // Tüm verileri aynı anda sunucuya gönderir
       await userCredential.user!.updateDisplayName(kullaniciAdi);
 
       if (!mounted) return;
       _mesajGoster("Hoş geldin siber kahraman $kullaniciAdi! 🛡️");
+
+      // Kayıt başarılıysa geri dönülemez şekilde ana navigasyon ekranına yönlendirir
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AnaNavigation()), (route) => false);
     } on FirebaseAuthException catch (e) {
+      // Firebase özel hata mesajlarını kullanıcıya dostça iletir
       if (e.code == 'email-already-in-use') {
         _mesajGoster("Bu kullanıcı adı zaten alınmış! Başka bir tane dene. ✨", isError: true);
       } else {
@@ -88,6 +99,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     }
   }
 
+  // SnackBar kullanarak kullanıcıya geri bildirim veren fonksiyon
   void _mesajGoster(String mesaj, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(mesaj, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -121,6 +133,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // Karşılama kartı
   Widget _buildWelcomeCard() {
     return Container(
       width: double.infinity,
@@ -148,6 +161,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // Kullanıcıdan bilgi alan ana kayıt formu
   Widget _buildFormKarti() {
     return Container(
       padding: const EdgeInsets.all(25),
@@ -174,6 +188,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // Özelleştirilmiş giriş alanı
   Widget _buildInput(String title, String hint, IconData icon, TextEditingController controller, {required bool isPin}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,6 +215,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // yaş grubu seçici widget
   Widget _buildYasKarti(String range, String group) {
     bool selected = seciliGrup == group;
     return Expanded(
@@ -219,6 +235,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // Kayıt işlemini onaylayan buton
   Widget _buildBaslaButonu() {
     return Container(
       width: double.infinity, height: 60,
@@ -231,6 +248,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  // Hesabı olan kullanıcıları giriş ekranına yönlendiren metin
   Widget _buildLoginLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

@@ -21,8 +21,10 @@ class VideoListelemeEkrani extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      // Firestore'daki 'videos' koleksiyonunu anlık olarak çek
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('videos').snapshots(),
+        //Sorguyu ilk 20 video ile sınırlandırarak veri tasarrufu sağla
+        stream: FirebaseFirestore.instance.collection('videos').limit(20).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -35,10 +37,11 @@ class VideoListelemeEkrani extends StatelessWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-            physics: const BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(), // iOS tarzı esnek kaydırma efekti
             itemCount: videos.length,
             itemBuilder: (context, index) {
               var data = videos[index].data() as Map<String, dynamic>;
+              // Kart oluşturulurken tüm video listesi, detay sayfasındaki "sıradakiler" için gönder
               return _buildVideoCard(context, data, videos.map((e) => e.data()).toList());
             },
           );
@@ -47,6 +50,7 @@ class VideoListelemeEkrani extends StatelessWidget {
     );
   }
 
+  // Kullanıcının videoya tıklayarak detay sayfasına gitmesini sağlayan kart.
   Widget _buildVideoCard(BuildContext context, Map<String, dynamic> data, List allVideos) {
     String yId = data['youtubeId']?.toString() ?? "";
 
@@ -72,6 +76,7 @@ class VideoListelemeEkrani extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Video önizlemesi ve üzerindeki oynat butonu simgesi.
             Stack(
               alignment: Alignment.center,
               children: [
@@ -112,6 +117,7 @@ class VideoListelemeEkrani extends StatelessWidget {
     );
   }
 
+  // Öncelikli olarak YouTube'dan çekmeyi dener, hata oluşursa yerel/uzak kapak yoluna geçer.
   Widget _buildThumbnail(String yId, String? kapakYolu) {
     return Image.network(
       "https://img.youtube.com/vi/$yId/maxresdefault.jpg",
@@ -119,9 +125,8 @@ class VideoListelemeEkrani extends StatelessWidget {
       width: double.infinity,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        // Eğer YouTube görseli yüklenemezse yedek görsele geç
+        // YouTube görseli yüklenemezse yedek görseli kontrol et.
         if (kapakYolu != null && kapakYolu.isNotEmpty) {
-          // Kapak yolu 'assets/' ile başlıyorsa yerel görseli getir
           if (kapakYolu.startsWith('assets/')) {
             return Image.asset(
               kapakYolu,
@@ -144,6 +149,7 @@ class VideoListelemeEkrani extends StatelessWidget {
     );
   }
 
+  // Hiçbir görsel kaynağı bulunamazsa gösterilecek standart gri alan.
   Widget _buildPlaceholder() {
     return Container(
         height: 180,

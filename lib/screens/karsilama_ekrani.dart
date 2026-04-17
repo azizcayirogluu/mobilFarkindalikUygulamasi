@@ -8,12 +8,13 @@ class HomePages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size; //responsive ekran icin
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7FF),
       body: Stack(
         children: [
+          // Arka Plan Süslemeleri
           Positioned(
             top: -size.width * 0.2,
             right: -size.width * 0.2,
@@ -28,10 +29,11 @@ class HomePages extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                _buildModernHeader(),
+                _buildModernHeader(), // Uygulama logosu ve başlığı
 
                 const Spacer(),
 
+                // Görselin yukarı-aşağı hafifçe süzülmesini sağlayan animasyon yapısı
                 TweenAnimationBuilder(
                   tween: Tween<double>(begin: 0, end: 15),
                   duration: const Duration(seconds: 3),
@@ -61,6 +63,7 @@ class HomePages extends StatelessWidget {
     );
   }
 
+  // Şık bir kalkan ikonu ve uygulama ismini içeren başlık tasarımı
   Widget _buildModernHeader() {
     return Column(
       children: [
@@ -98,6 +101,7 @@ class HomePages extends StatelessWidget {
     );
   }
 
+  // Kavisli beyaz alt panel: Kullanıcıyı karşılayan metinler ve aksiyon butonları
   Widget _buildBottomPanel(BuildContext context, Size size) {
     return Container(
       width: double.infinity,
@@ -138,6 +142,7 @@ class HomePages extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 35),
+          // "Macerayı Başlat" butonu: Kullanıcıyı kayıt olma ekranına yönlendirir
           SizedBox(
             width: double.infinity,
             height: 60,
@@ -157,6 +162,7 @@ class HomePages extends StatelessWidget {
           ),
 
           const SizedBox(height: 16),
+          // Mevcut kullanıcılar için giriş yapma linki
           TextButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GirisEkrani())),
             child: RichText(
@@ -181,6 +187,7 @@ class HomePages extends StatelessWidget {
   }
 }
 
+// Arka plandaki dekoratif daireleri oluşturan yardımcı widget
 class _CircleDecorator extends StatelessWidget {
   final double size;
   final Color color;

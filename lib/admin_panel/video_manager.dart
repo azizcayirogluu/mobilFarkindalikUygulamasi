@@ -11,6 +11,7 @@ class VideoManager extends StatefulWidget {
 }
 
 class _VideoManagerState extends State<VideoManager> {
+  // Firestore veritabanı erişimi için kullanılan ana nesne
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -27,6 +28,7 @@ class _VideoManagerState extends State<VideoManager> {
             _buildQuickStats(),
             const SizedBox(height: 25),
             Expanded(
+              // StreamBuilder: 'videos' koleksiyonunu eklenme tarihine göre canlı olarak dinler
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('videos').orderBy('eklenmeTarihi', descending: true).snapshots(),
                 builder: (context, snapshot) {
@@ -37,6 +39,7 @@ class _VideoManagerState extends State<VideoManager> {
                     return _buildEmptyState();
                   }
                   final docs = snapshot.data!.docs;
+                  // Videoları 3 sütunlu ızgara yapısında görüntüler
                   return GridView.builder(
                     physics: const BouncingScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -49,6 +52,7 @@ class _VideoManagerState extends State<VideoManager> {
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
                       final docId = docs[index].id;
+                      // URL'den YouTube ID'sini çekerek kapak görseli ve oynatma linki oluşturur
                       final String? videoId = data['youtubeId'] ?? _extractYoutubeId(data['url']);
                       return _buildPremiumVideoCard(docId, data, videoId ?? "error");
                     },
@@ -89,7 +93,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
-  // --- STÜDYO DİALOGU ---
+//Video ekleme ekranı
   void _showVideoStudioDialog({String? docId, Map<String, dynamic>? existingData}) {
     final tC = TextEditingController(text: existingData?['baslik']);
     final sC = TextEditingController(text: existingData?['altBaslik']);
@@ -114,6 +118,7 @@ class _VideoManagerState extends State<VideoManager> {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
             child: Row(
               children: [
+                // Sol Panel: Canlı Önizleme
                 Expanded(
                   flex: 4,
                   child: Container(
@@ -144,6 +149,7 @@ class _VideoManagerState extends State<VideoManager> {
                     ),
                   ),
                 ),
+                // Sağ Panel: Veri Giriş Formu
                 Expanded(
                   flex: 6,
                   child: Padding(
@@ -196,7 +202,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
-  // YARDIMCI WIDGETLAR
+  // --- UI YARDIMCILARI ---
   Widget _buildColorRow(String current, Function(String) onSelect) {
     final List<String> colors = ["0xFFE57373", "0xFF81C784", "0xFF64B5F6", "0xFFFFD54F", "0xFF9575CD", "0xFF4DB6AC"];
     return Row(
@@ -253,6 +259,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
+  // --- CRUD İŞLEMLERİ (Kaydetme Butonları) ---
   Widget _buildDialogButtons(String? id, TextEditingController t, TextEditingController s, TextEditingController a, TextEditingController u, TextEditingController d, String icon, String color) {
     return Row(
       children: [
@@ -268,6 +275,7 @@ class _VideoManagerState extends State<VideoManager> {
           child: ElevatedButton(
             onPressed: () async {
               if (t.text.isEmpty || u.text.isEmpty) return;
+              // Linkten YouTube ID'sini çıkarıp Firestore'a kaydeder
               final String vidId = _extractYoutubeId(u.text);
               final data = {
                 'baslik': t.text,
@@ -293,6 +301,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
+  // Ana sayfadaki her bir video kartını oluşturan yapı
   Widget _buildPremiumVideoCard(String docId, Map<String, dynamic> data, String videoId) {
     return Container(
       decoration: BoxDecoration(
@@ -306,8 +315,8 @@ class _VideoManagerState extends State<VideoManager> {
             flex: 6,
             child: Stack(
               children: [
-                _buildThumbnailImage(videoId),
-                _buildPlayOverlay(videoId),
+                _buildThumbnailImage(videoId), // YouTube üzerinden kapak görselini çeker
+                _buildPlayOverlay(videoId),    // Tıklanıldığında YouTube'a yönlendirir
                 Positioned(
                   top: 12, left: 12,
                   child: CircleAvatar(
@@ -348,6 +357,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
+  // YouTube resmî API'sini kullanarak videonun kapak fotoğrafını çeker
   Widget _buildThumbnailImage(String id) {
     return Container(
       width: double.infinity, height: double.infinity,
@@ -360,6 +370,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
+  // Videoya tıklandığında url_launcher paketi ile YouTube uygulamasını veya tarayıcıyı açar
   Widget _buildPlayOverlay(String id) {
     return Positioned.fill(
       child: InkWell(
@@ -399,6 +410,7 @@ class _VideoManagerState extends State<VideoManager> {
     );
   }
 
+  // REGEX kullanarak standart YouTube URL'lerinden veya Shorts linklerinden sadece ID kısmını ayıklar
   String _extractYoutubeId(String? url) {
     if (url == null || url.isEmpty) return "error";
     if (url.length == 11) return url;

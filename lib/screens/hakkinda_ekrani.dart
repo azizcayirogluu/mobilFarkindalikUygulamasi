@@ -19,7 +19,7 @@ class HakkindaEkrani extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 30),
-                  _buildHeroSection(), // Hedefimiz Kısmı
+                  _buildHeroSection(), // Uygulamanın amacını anlatan ana kart
                   const SizedBox(height: 40),
                   _buildSectionHeader("KAHRAMAN GÜÇLERİN"),
                   const SizedBox(height: 20),
@@ -52,6 +52,7 @@ class HakkindaEkrani extends StatelessWidget {
     );
   }
 
+  // Görsel efektler, logolar ve animasyonlu baloncuklar içeren esnek başlık çubuğu
   Widget _buildSliverAppBar(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 340,
@@ -76,7 +77,7 @@ class HakkindaEkrani extends StatelessWidget {
             // Arka Plan Gradiyenti
             Container(decoration: const BoxDecoration(gradient: AppColors.anaGradient)),
 
-            // Hareketli Baloncuklar
+            // Hareketli Dekoratif Baloncuklar: Arka plana canlılık katar
             _buildAnimatedBubble(top: 40, left: -20, size: 120, color: Colors.white10),
             _buildAnimatedBubble(top: 180, right: -30, size: 160, color: Colors.blueAccent.withOpacity(0.1)),
             _buildAnimatedBubble(bottom: 50, left: 40, size: 80, color: Colors.white12),
@@ -85,7 +86,7 @@ class HakkindaEkrani extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo Alanı
+                  // Logo Alanı: Sürekli yukarı-aşağı süzülme animasyonu içerir
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -121,7 +122,7 @@ class HakkindaEkrani extends StatelessWidget {
               ),
             ),
 
-            // Yumuşak Geçiş (Bottom Curve)
+            // Gövde ile başlık arasında yumuşak bir geçiş sağlayan kavisli kenar (Bottom Curve)
             Positioned(
               bottom: -1,
               left: 0,
@@ -140,6 +141,7 @@ class HakkindaEkrani extends StatelessWidget {
     );
   }
 
+  // Uygulamanın vizyonunu anlatan parlama (shimmer) efektli kahraman kartı
   Widget _buildHeroSection() {
     return Container(
       width: double.infinity,
@@ -189,6 +191,7 @@ class HakkindaEkrani extends StatelessWidget {
     );
   }
 
+  // Renkli ikonlar ve başlıklarla özelleştirilmiş bilgi kartı yapısı
   Widget _buildValueCard(IconData icon, String title, String desc, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -224,6 +227,7 @@ class HakkindaEkrani extends StatelessWidget {
     ).animate().fadeIn().slideX(begin: 0.1);
   }
 
+  // Sayfanın en altındaki motive edici footer alanı
   Widget _buildFooter() {
     return Column(
       children: [
@@ -239,6 +243,7 @@ class HakkindaEkrani extends StatelessWidget {
     );
   }
 
+  // AppBar'daki baloncukların ölçeklenme ve hareket animasyonlarını yöneten yardımcı widget
   Widget _buildAnimatedBubble({double? top, double? bottom, double? left, double? right, required double size, required Color color}) {
     return Positioned(
       top: top, bottom: bottom, left: left, right: right,
