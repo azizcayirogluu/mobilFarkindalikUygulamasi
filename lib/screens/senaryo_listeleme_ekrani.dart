@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'senaryo_bolum_listeleme_ekrani.dart';
 
@@ -8,6 +9,8 @@ class SenaryoListelemeEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: AppColors.zemin,
       appBar: AppBar(
@@ -21,29 +24,61 @@ class SenaryoListelemeEkrani extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        // Performans için limit ekledik. Çok fazla senaryo varsa sayfalama (pagination) düşünülebilir.
-        stream: FirebaseFirestore.instance.collection('scenarios').limit(20).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("Henüz bir senaryo eklenmemiş."));
-          }
+      body: uid == null 
+        ? const Center(child: Text("Lütfen giriş yapın."))
+        : FutureBuilder<DocumentSnapshot>(
+            // Önce kullanıcının yaş grubunu öğreniyoruz
+            future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+            builder: (context, userSnap) {
+              if (userSnap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            physics: const BouncingScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var doc = snapshot.data!.docs[index];
-              var data = doc.data() as Map<String, dynamic>;
-              return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index);
+              String kullaniciYasGrubu = "6-12"; // Varsayılan değer
+              if (userSnap.hasData && userSnap.data!.exists) {
+                final userData = userSnap.data!.data() as Map<String, dynamic>;
+                kullaniciYasGrubu = userData['yasGrubu'] ?? "6-12";
+              }
+
+              return StreamBuilder<QuerySnapshot>(
+                // Sorguya yaş grubu filtresini ekledik
+                stream: FirebaseFirestore.instance
+                    .collection('scenarios')
+                    .where('yasGrubu', isEqualTo: kullaniciYasGrubu)
+                    .limit(20)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.sentiment_neutral_rounded, size: 60, color: Colors.grey.shade400),
+                          const SizedBox(height: 15),
+                          Text("$kullaniciYasGrubu yaş grubu için henüz senaryo eklenmemiş.", 
+                            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      var doc = snapshot.data!.docs[index];
+                      var data = doc.data() as Map<String, dynamic>;
+                      return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index);
+                    },
+                  );
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
     );
   }
 
@@ -70,7 +105,7 @@ class SenaryoListelemeEkrani extends StatelessWidget {
         ],
         border: Border.all(color: anaRenk.withOpacity(0.15), width: 1.5),
       ),
-      child: InkWell( //tıklanabilirlik katan metot
+      child: InkWell(
         onTap: () => Navigator.push(
           context, 
           MaterialPageRoute(

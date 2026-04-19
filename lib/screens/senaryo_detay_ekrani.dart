@@ -20,6 +20,7 @@ class SenaryoDetayEkrani extends StatefulWidget {
 
 class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProviderStateMixin {
   final TtsService _ttsService = TtsService();
+  final AnalyticsService _analyticsService = AnalyticsService();
   late ConfettiController _confettiController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -38,42 +39,24 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     _verileriYukle();
   }
 
-  // --- SESLENDİRME MANTIĞI ---
-  // Önce senaryo metni (soru), ardından seçenekler harfleriyle beraber okunur.
-  Future<void> _soruyuVeSecenekleriOku(Map soruData) async {
+  Future<void> _soruyuVeSecenekleriSeslendir(Map soruData) async {
     if (!_sesAcik || !mounted) return;
 
-    // 1. ADIM: Mevcut bir ses varsa durdur ve temizle
-    await _ttsService.stop();
+    await _ttsService.speak(soruData['soru'] ?? "");
+    await Future.delayed(const Duration(milliseconds: 1000));
 
-    // 2. ADIM: Senaryoyu/Soruyu oku
-    String soruMetni = soruData['soru'] ?? "";
-    if (soruMetni.isNotEmpty) {
-      await _ttsService.speak(soruMetni);
-    }
-
-    // 3. ADIM: Soru bittikten sonra seçeneklere geçmeden önce doğal bir bekleme (nefes payı)
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    // 4. ADIM: Seçenekleri sırayla oku
     List secenekler = soruData['secenekler'] ?? [];
     for (int i = 0; i < secenekler.length; i++) {
-      // Güvenlik kontrolleri: Ses kapatıldıysa, cevap verildiyse veya ekrandan çıkıldıysa okumayı kes.
       if (!_sesAcik || _cevapVerildiMi || !mounted) break;
-
-      String harf = String.fromCharCode(65 + i); // A, B, C... üretir
+      String harf = String.fromCharCode(65 + i);
       String secenekMetni = "$harf şıkkı. ${secenekler[i]['metin']}";
-
       await _ttsService.speak(secenekMetni);
-
-      // Şıklar arasında kısa, doğal bir duraksama (Google Neural seslerin vurgusu için önemli)
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(milliseconds: 700));
     }
   }
 
   Future<void> _verileriYukle() async {
     if (_currentUser == null) return;
-
     try {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
       String kullaniciYasGrubu = userDoc.exists ? (userDoc.data()?['yasGrubu'] ?? "6-12") : "6-12";
@@ -84,30 +67,42 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         final bolumler = data?['bolumler'] as List? ?? [];
 
         if (bolumler.isNotEmpty && widget.bolumIndex < bolumler.length) {
-          final tumSorular = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
-          final filtrelenmisSorular = tumSorular.where((s) => (s['yasGrubu'] ?? "6-12") == kullaniciYasGrubu).toList();
+          final tumSorularRaw = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
+          final filtrelenmisSorular = tumSorularRaw.where((s) => (s['yasGrubu'] ?? "6-12") == kullaniciYasGrubu).toList();
+
+          final hazirSorular = [];
+          for (var s in filtrelenmisSorular) {
+            Map<String, dynamic> soruMap = Map<String, dynamic>.from(s);
+            if (soruMap['secenekler'] != null) {
+              List secList = List.from(soruMap['secenekler']);
+              secList.shuffle();
+              soruMap['secenekler'] = secList;
+            }
+            hazirSorular.add(soruMap);
+          }
 
           setState(() {
-            _sorular = filtrelenmisSorular;
+            _sorular = hazirSorular;
             _isLoading = false;
           });
 
-          // Veriler yüklendiğinde ses açıksa otomatik başlat
           if (_sorular.isNotEmpty && _sesAcik) {
-            _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
+            _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
           }
+        } else {
+           setState(() => _isLoading = false);
         }
+      } else {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       debugPrint("Veri yükleme hatası: $e");
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _cevapKontrol(int index, Map secenek) {
     if (_cevapVerildiMi) return;
-
-    // Cevap verildiği an seslendirme durdurulur.
     _ttsService.stop();
 
     setState(() {
@@ -122,7 +117,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (mounted) _sonraki();
       });
     } else {
-      if (_currentUser != null) AnalyticsService().hataKaydet(_currentUser!.uid);
+      if (_currentUser != null) _analyticsService.hataKaydet(_currentUser!.uid);
       _showFeedback(secenek['feedback'] ?? "Harika bir denemeydi ama bu doğru yol değil...");
     }
   }
@@ -135,8 +130,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         _cevapVerildiMi = false;
         _secilenIndeks = null;
       });
-      // Yeni soruya geçildiğinde otomatik seslendirmeyi başlat
-      if (_sesAcik) _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
+      if (_sesAcik) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
     } else {
       _sonucGoster();
     }
@@ -145,7 +139,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-
     if (_sorular.isEmpty) {
       return Scaffold(
         appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent, leading: const CloseButton(color: Colors.grey)),
@@ -188,7 +181,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             alignment: Alignment.topCenter,
             child: ConfettiWidget(confettiController: _confettiController, blastDirectionality: BlastDirectionality.explosive),
           ),
-          // Konuşma Göstergesi (Aktifken sağ altta çıkar)
           ValueListenableBuilder<bool>(
               valueListenable: _ttsService.isSpeaking,
               builder: (context, isSpeaking, _) {
@@ -220,11 +212,8 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           onPressed: () {
             setState(() {
               _sesAcik = !_sesAcik;
-              if (_sesAcik) {
-                _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
-              } else {
-                _ttsService.stop();
-              }
+              if (_sesAcik) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+              else _ttsService.stop();
             });
           },
         ),
@@ -250,7 +239,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
-                value: val == 0 ? 0.05 : val,
+                value: val <= 0 ? 0.05 : val,
                 minHeight: 12,
                 backgroundColor: Colors.white,
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi)
@@ -265,7 +254,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     return Container(
       height: size.height * 0.25, width: double.infinity,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white, width: 5)),
-      child: ClipRRect(borderRadius: BorderRadius.circular(25), child: CachedNetworkImage(imageUrl: url, fit: BoxFit.cover)),
+      child: ClipRRect(borderRadius: BorderRadius.circular(25), child: CachedNetworkImage(imageUrl: url, fit: BoxFit.cover, placeholder: (context, url) => const Center(child: CircularProgressIndicator()))),
     );
   }
 
@@ -310,9 +299,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   void _showFeedback(String mesaj) {
-    // Hatalı cevap verildiğinde feedback metni de seslendirilir.
     if (_sesAcik) _ttsService.speak(mesaj);
-
     showModalBottomSheet(
       context: context, isDismissible: false, enableDrag: false, backgroundColor: Colors.transparent,
       builder: (c) => Container(
@@ -327,11 +314,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             const SizedBox(height: 30),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-              onPressed: () {
-                _ttsService.stop(); // Kapatınca sesi durdur
-                Navigator.pop(c);
-                _sonraki();
-              },
+              onPressed: () { Navigator.pop(c); _sonraki(); },
               child: const Text("ANLADIM, DEVAM ET!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
@@ -343,11 +326,8 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   void _sonucGoster() async {
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
-
     if (basarili) await _bolumuTamamlaVeSenkronizeEt();
-
     if (!mounted) return;
-
     showDialog(context: context, barrierDismissible: false, builder: (c) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -364,21 +344,32 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
   Future<void> _bolumuTamamlaVeSenkronizeEt() async {
     if (_currentUser == null) return;
-    final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid);
+    final String uid = _currentUser!.uid;
+    final String buBolumId = "${widget.docId}_${widget.bolumIndex}";
+
     try {
+      final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
       final userSnap = await progressRef.get();
-      Map<String, dynamic> userData = userSnap.exists ? (userSnap.data() as Map<String, dynamic>) : {};
-      List bitti = List.from(userData['tamamlanan_bolumler'] ?? []);
-      String buBolumId = "${widget.docId}_${widget.bolumIndex}";
-      if (!bitti.contains(buBolumId)) bitti.add(buBolumId);
-      await progressRef.set({'tamamlanan_bolumler': bitti, 'sonGuncelleme': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-    } catch (e) { debugPrint("Senkronizasyon hatası: $e"); }
+
+      if (userSnap.exists) {
+        List bitti = List.from(userSnap.data()?['tamamlanan_bolumler'] ?? []);
+        if (!bitti.contains(buBolumId)) {
+          // Eğer bölüm ilk kez tamamlanıyorsa puan ver ve listeye ekle
+          await _analyticsService.bolumTamamla(uid, 100, buBolumId);
+        }
+      } else {
+        // Eğer kullanıcı progress dökümanı yoksa (yeni kayıt gibi)
+        await _analyticsService.bolumTamamla(uid, 100, buBolumId);
+      }
+    } catch (e) {
+      debugPrint("Senkronizasyon hatası: $e");
+    }
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
-    _ttsService.stop(); // Ekrandan çıkınca sesin kesilmesini garanti eder.
+    _ttsService.stop();
     super.dispose();
   }
 }

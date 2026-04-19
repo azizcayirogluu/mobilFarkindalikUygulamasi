@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
 
 class SiberDedektifOyunu extends StatefulWidget {
   const SiberDedektifOyunu({super.key});
@@ -19,10 +20,10 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
   List<Map<String, dynamic>> _soruHavuzu = [];
   int _currentIndex = 0;
-  int _puan = 0;
+  int _kazanilanPuan = 0; 
   bool _oyunBitti = false;
   bool _isLoading = true;
-  bool _isProcessing = false; // Aynı anda birden fazla tıklamayı engelle
+  bool _isProcessing = false;
   List<String> _bilinenSoruIds = [];
 
   @override
@@ -35,19 +36,15 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   Future<void> _verileriYukle() async {
     if (_currentUser == null) return;
     try {
-      // 1. Kullanıcının daha önce bildiği soruların ID'lerini çek (Tekrar sormamak için)
       final userDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).get();
       if (userDoc.exists) {
         _bilinenSoruIds = List<String>.from(userDoc.data()?['bilinen_dedektif_sorulari'] ?? []);
       }
 
-      // 2. Tüm dedektif sorularını getir
       final snap = await FirebaseFirestore.instance.collection('detective_questions').get();
-
       List<Map<String, dynamic>> guvenliListesi = [];
       List<Map<String, dynamic>> tehlikeliListesi = [];
 
-      // Soruları durumlarına göre kategorize et (Henüz bilinmeyenleri listeye ekle)
       for (var doc in snap.docs) {
         if (!_bilinenSoruIds.contains(doc.id)) {
           final data = doc.data();
@@ -59,7 +56,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             "gercekIkon": _getIconFromName(data['ikon'] ?? "help"),
             "gercekRenk": _getColorFromHex(data['renk'] ?? "#607D8B"),
           };
-
           if (soru["durum"] == "GÜVENLİ") {
             guvenliListesi.add(soru);
           } else {
@@ -68,7 +64,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         }
       }
 
-      // 3. Algoritma: Dengeli bir soru seti oluştur (Örn: 2 Güvenli, 3 Tehlikeli)
       guvenliListesi.shuffle();
       tehlikeliListesi.shuffle();
 
@@ -83,18 +78,16 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         finalSet.add(tehlikeliListesi.removeAt(0));
       }
 
-      // Eğer yeterli soru yoksa kalan havuzdan tamamla
       List<Map<String, dynamic>> kalanlar = [...guvenliListesi, ...tehlikeliListesi];
       kalanlar.shuffle();
       while (finalSet.length < 5 && kalanlar.isNotEmpty) {
         finalSet.add(kalanlar.removeAt(0));
       }
 
-      finalSet.shuffle(); // Karışık sırada sun
+      finalSet.shuffle();
 
       setState(() {
         _soruHavuzu = finalSet;
-        // Eğer havuz boşsa (tüm sorular bilinmişse) sıfırla ve baştan başla
         if (_soruHavuzu.isEmpty && _bilinenSoruIds.isNotEmpty) {
           _bilinenSoruIds.clear();
           _verileriYukle();
@@ -108,7 +101,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     }
   }
 
-  // Veritabanından gelen String ikon ismini IconData'ya çevirir
   IconData _getIconFromName(String name) {
     switch (name) {
       case 'vpn_key': return Icons.vpn_key_rounded;
@@ -122,14 +114,12 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     }
   }
 
-  // HEX'i Color objesine çevirir
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll("#", "");
     if (hexColor.length == 6) hexColor = "FF$hexColor";
     return Color(int.parse("0x$hexColor"));
   }
 
-  // Kullanıcının cevabına göre puanlama yap
   void _kararVer(String karar) {
     if (_isProcessing || _oyunBitti || _soruHavuzu.isEmpty) return;
 
@@ -139,31 +129,29 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     bool dogruMu = mevcutSoru["durum"] == karar;
 
     if (dogruMu) {
-      _puan += 20;
-      _bilinenSoruIds.add(mevcutSoru["id"]); // Doğru bildiği ID'yi listeye ekle
+      _kazanilanPuan += 20;
+      _bilinenSoruIds.add(mevcutSoru["id"]);
       _confettiController.play();
       _showFeedback(true, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
     } else {
       _showFeedback(false, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
     }
 
-    // Kısa bir bekleme sonrası sonraki soruya geç veya bitir
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          if (_currentIndex < _soruHavuzu.length - 1 && _currentIndex < 4) {
+          if (_currentIndex < _soruHavuzu.length - 1) {
             _currentIndex++;
           } else {
             _oyunBitti = true;
-            _ilerlemeyiTamamlaVeSenkronizeEt(); // Verileri Firestore'a kaydet
+            _verileriSenkronizeEt();
           }
         });
       }
     });
   }
 
-  // Kullanıcıya kararı sonrası SnackBar ile bilgi verir
   void _showFeedback(bool isCorrect, String msg, IconData icon) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -183,36 +171,22 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
-  // Puanları ve ilerlemeyi veritabanına aktarır
-  Future<void> _ilerlemeyiTamamlaVeSenkronizeEt() async {
+  Future<void> _verileriSenkronizeEt() async {
     if (_currentUser == null) return;
     try {
-      final ref = FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid);
-      final doc = await ref.get();
-      final data = doc.data() ?? {};
-
-      List tamamlananlar = List.from(data['tamamlanan_bolumler'] ?? []);
-      List okunanHikayeler = List.from(data['okunan_hikayeler'] ?? []);
-
-      if (!tamamlananlar.contains("siber_dedektif")) {
-        tamamlananlar.add("siber_dedektif");
+      final String uid = _currentUser!.uid;
+      final ref = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
+      
+      // 1. PUANI GÜNCELLE VE ROZET KONTROLÜ TETİKLE
+      if (_kazanilanPuan > 0) {
+        await AnalyticsService().aktiviteGuncelle(uid, _kazanilanPuan);
       }
 
-      // Tüm uygulama genelindeki toplam puanı yeniden hesaplar
-      int senaryoSayisi = tamamlananlar.where((id) => !id.toString().contains("siber_dedektif") && !id.toString().contains("ayak_izi_temizligi")).length;
-
-      int senaryoPuani = senaryoSayisi * 100;
-      int hikayePuani = okunanHikayeler.length * 10;
-      int dedektifPuani = _bilinenSoruIds.length * 20;
-
-      int yeniToplamPuan = senaryoPuani + hikayePuani + dedektifPuani;
-
-      await ref.set({
-        'toplam_puan': yeniToplamPuan,
-        'tamamlanan_bolumler': tamamlananlar,
+      // 2. SADECE Bilinen sorular listesini güncelle (tamamlanan_bolumler listesine ARTIK eklenmiyor)
+      await ref.update({
         'bilinen_dedektif_sorulari': _bilinenSoruIds,
         'sonGuncelleme': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
     }
@@ -240,45 +214,46 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
               children: [
                 const Icon(Icons.stars_rounded, color: Colors.orange, size: 20),
                 const SizedBox(width: 4),
-                Text("$_puan", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                Text("$_kazanilanPuan", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
               ],
             ),
           )
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _soruHavuzu.isEmpty
-          ? _buildEmptyState()
-          : Stack(
-        children: [
-          if (!_oyunBitti) _buildGameArea() else _buildResultArea(),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.pink],
-            ),
-          ),
-        ],
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _soruHavuzu.isEmpty
+                ? _buildEmptyState()
+                : Stack(
+                    children: [
+                      if (!_oyunBitti) _buildGameArea() else _buildResultArea(),
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: ConfettiWidget(
+                          confettiController: _confettiController,
+                          blastDirectionality: BlastDirectionality.explosive,
+                          colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.pink],
+                        ),
+                      ),
+                    ],
+                  ),
       ),
     );
   }
 
-  // Sorular bittiğinde gösterilen boş ekran
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(30.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.auto_awesome, size: 100, color: Colors.amber).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.2)),
+            const Icon(Icons.auto_awesome, size: 100, color: Colors.amber).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
             const SizedBox(height: 25),
             const Text("TÜM GİZEMLER ÇÖZÜLDÜ!", textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
             const SizedBox(height: 15),
-            const Text("Harika bir iş çıkardın dedektif! Şimdilik tüm ipuçlarını değerlendirdin. Yeni görevler gelene kadar akademiyi gezmeye ne dersin?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
+            const Text("Harika bir iş çıkardın dedektif!", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
             const SizedBox(height: 40),
             ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
@@ -291,143 +266,153 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
-  //sürükle-bırak mekanizmasının ve kartın bulunduğu alan
   Widget _buildGameArea() {
     final soru = _soruHavuzu[_currentIndex];
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("DAVA İLERLEMESİ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12)),
-                  Text("${_currentIndex + 1}/5", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: (_currentIndex + 1) / 5,
-                  backgroundColor: Colors.white,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
-                  minHeight: 12,
+    return LayoutBuilder(builder: (context, constraints) {
+      return SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("DAVA İLERLEMESİ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12)),
+                          Text("${_currentIndex + 1}/${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: (_currentIndex + 1) / _soruHavuzu.length,
+                          backgroundColor: Colors.white,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
+                          minHeight: 10,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const Expanded(child: SizedBox(height: 20)),
+                Draggable(
+                  feedback: Material(color: Colors.transparent, child: _buildCard(soru, opacity: 0.8)),
+                  childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
+                  onDragEnd: (details) {
+                    if (details.offset.dx < -80) _kararVer("TEHLİKELİ");
+                    else if (details.offset.dx > 80) _kararVer("GÜVENLİ");
+                  },
+                  child: _buildCard(soru),
+                ).animate().slideY(begin: 0.1, duration: 500.ms).fadeIn(),
+                const Expanded(child: SizedBox(height: 20)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(30, 0, 30, 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _actionButton("TEHLİKELİ", const Color(0xFFFF5252), Icons.report_gmailerrorred_rounded),
+                      _actionButton("GÜVENLİ", const Color(0xFF4CAF50), Icons.verified_user_rounded),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const Spacer(),
-        // Sürükle-Bırak Mantığı: Sola sürüklenince Tehlikeli, sağa sürüklenince Güvenli tetiklenir
-        Draggable(
-          feedback: _buildCard(soru, opacity: 0.8),
-          childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
-          onDragEnd: (details) {
-            if (details.offset.dx < -80) _kararVer("TEHLİKELİ");
-            else if (details.offset.dx > 80) _kararVer("GÜVENLİ");
-          },
-          child: _buildCard(soru),
-        ).animate().slideY(begin: 0.2, duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
-        const Spacer(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _actionButton("TEHLİKELİ", const Color(0xFFFF5252), Icons.report_gmailerrorred_rounded),
-              _actionButton("GÜVENLİ", const Color(0xFF4CAF50), Icons.verified_user_rounded),
-            ],
-          ),
-        ),
-      ],
-    );
+      );
+    });
   }
 
-  // Sorunun metnini içeren kart tasarımı
   Widget _buildCard(Map<String, dynamic> soru, {double opacity = 1.0}) {
+    final size = MediaQuery.of(context).size;
     return Container(
-      width: MediaQuery.of(context).size.width * 0.82,
-      height: MediaQuery.of(context).size.height * 0.42,
+      width: size.width * 0.82,
+      height: size.height * 0.40,
+      constraints: const BoxConstraints(minHeight: 300, maxHeight: 400),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(opacity),
         borderRadius: BorderRadius.circular(35),
         boxShadow: [
           BoxShadow(color: AppColors.anaMavi.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
-          const BoxShadow(color: Colors.white, spreadRadius: -2, blurRadius: 0),
         ],
         border: Border.all(color: Colors.white, width: 6),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(color: AppColors.anaMavi.withOpacity(0.05), shape: BoxShape.circle),
-            child: const Icon(Icons.search_rounded, size: 70, color: AppColors.anaMavi),
-          ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.2)),
-          const SizedBox(height: 30),
-          const Text("GİZEMLİ MESAJ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12, letterSpacing: 2)),
+            child: const Icon(Icons.search_rounded, size: 50, color: AppColors.anaMavi),
+          ),
           const SizedBox(height: 15),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: Text(
-              soru["metin"],
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF2D3142), height: 1.4, decoration: TextDecoration.none, fontFamily: 'Roboto'),
+          const Text("GİZEMLİ MESAJ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none)),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Text(
+                  soru["metin"],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2D3142), height: 1.3, decoration: TextDecoration.none, fontFamily: 'Roboto'),
+                ),
+              ),
             ),
           ),
+          const SizedBox(height: 10),
         ],
       ),
     );
   }
 
-  // Alt kısımdaki "Güvenli/Tehlikeli" butonları
   Widget _actionButton(String label, Color color, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: () => _kararVer(label),
           child: Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
                 boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
             ),
-            child: Icon(icon, color: Colors.white, size: 35),
+            child: Icon(icon, color: Colors.white, size: 30),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+        const SizedBox(height: 10),
+        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1, decoration: TextDecoration.none)),
       ],
     );
   }
 
-  // Oyun bittiğinde toplam puanı gösteren sonuç ekranı
   Widget _buildResultArea() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(30.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.stars_rounded, size: 120, color: Colors.orangeAccent).animate().scale(duration: 600.ms, curve: Curves.bounceOut),
+            const Icon(Icons.stars_rounded, size: 100, color: Colors.orangeAccent).animate().scale(duration: 600.ms, curve: Curves.bounceOut),
             const SizedBox(height: 25),
-            const Text("DOSYA KAPANDI!", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
+            const Text("DOSYA KAPANDI!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
             const SizedBox(height: 10),
-            Text("Harika dedektiflik yaptın!\nBu görevden $_puan puan topladın.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
-            const SizedBox(height: 45),
+            Text("Harika dedektiflik yaptın!\nBu görevden $_kazanilanPuan puan topladın.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+            const SizedBox(height: 40),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.anaMavi,
-                  minimumSize: const Size(double.infinity, 65),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                  elevation: 8,
-                  shadowColor: AppColors.anaMavi.withOpacity(0.5)
+                  minimumSize: const Size(double.infinity, 60),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
               ),
               onPressed: () => Navigator.pop(context),
               child: const Text("DEVAM ET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
@@ -435,7 +420,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
           ],
         ),
       ),
-    ).animate().fadeIn().scale();
+    );
   }
 
   @override

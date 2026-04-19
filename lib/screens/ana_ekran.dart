@@ -23,20 +23,18 @@ class AnaSayfa extends StatefulWidget {
 }
 
 class _AnaSayfaState extends State<AnaSayfa> {
-  // Karışık içeriklerin tutulduğu liste
   List<Map<String, dynamic>> _kesifHavuzu = [];
   bool _isLoading = true;
-  int _toplamBolum = 0;
+  int _toplamGorevSayisi = 0; // Toplam Senaryo Bölümleri + Hikayeler
 
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
-    _initData(); // Ekran açıldığında verileri başlat
+    _initData();
   }
 
-  // Firestore'dan gelen hex renk kodlarını Flutter Color nesnesine dönüştürür
   Color _hexToColor(String? hexString) {
     if (hexString == null || hexString.isEmpty) return AppColors.anaMavi;
     try {
@@ -50,144 +48,81 @@ class _AnaSayfaState extends State<AnaSayfa> {
     }
   }
 
-  // İçerik tipine göre uygun Material ikonunu döndürür
   IconData _getIcon(String? iconName) {
     switch (iconName) {
-      case 'psychology':
-        return Icons.psychology_alt_rounded;
-      case 'auto_stories':
-        return Icons.auto_stories_rounded;
-      case 'play':
-        return Icons.play_circle_filled_rounded;
-      case 'security':
-        return Icons.security_rounded;
-      case 'bolt':
-        return Icons.bolt_rounded;
-      case 'favorite':
-        return Icons.favorite_rounded;
-      case 'visibility':
-        return Icons.visibility_rounded;
-      case 'people':
-        return Icons.people_alt_rounded;
-      case 'star':
-        return Icons.star_rounded;
-      default:
-        return Icons.stars_rounded;
+      case 'psychology': return Icons.psychology_alt_rounded;
+      case 'auto_stories': return Icons.auto_stories_rounded;
+      case 'play': return Icons.play_circle_filled_rounded;
+      default: return Icons.stars_rounded;
     }
   }
 
-  // Kullanıcının ilerleme yüzdesine göre motivasyon mesajı oluşturur
   String _ilerlemeMesaji(double ilerleme) {
     int yuzde = (ilerleme * 100).toInt();
     if (yuzde == 0) return "Maceraya atılmaya hazır mısın? İlk görevini seç!";
-    if (yuzde < 20)
-      return "Harika bir başlangıç! Siber dünya seni tanımaya başlıyor. 🌟";
-    if (yuzde < 40)
-      return "Yolun üçte biri bitti! Bilgin her geçen gün artıyor. 💪";
-    if (yuzde < 60)
-      return "Yarı yolu geçtin! Gerçek bir siber koruyucu oluyorsun. 🛡️";
+    if (yuzde < 40) return "Harika bir başlangıç! Siber dünya seni tanımaya başlıyor. 🌟";
     if (yuzde < 80) return "Mükemmel ilerleme! Rozetlerine çok az kaldı. ✨";
-    if (yuzde < 100)
-      return "Neredeyse başardın! Son adımları atmaya hazır mısın? 🔥";
+    if (yuzde < 100) return "Neredeyse başardın! Son adımları atmaya hazır mısın? 🔥";
     return "Tebrikler Kahraman! Tüm görevleri başarıyla tamamladın! 🎉";
   }
 
-  // Senaryo, Hikaye ve Video koleksiyonlarından verileri çekip harmanlar
   Future<void> _initData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      List<Map<String, dynamic>> senaryoListesi = [];
-      List<Map<String, dynamic>> hikayeListesi = [];
-      List<Map<String, dynamic>> videoListesi = [];
-      int toplam = 0;
+      int toplamBolumler = 0;
+      int toplamHikayeler = 0;
 
-      // 1. Senaryoları Çek: Bölüm sayılarını toplayarak ilerleme hesaplaması için saklar
-      final sSnap = await FirebaseFirestore.instance
-          .collection('scenarios')
-          .limit(10)
-          .get();
+      // 1. Tüm senaryoları kısıtlama olmadan çek (Toplam bölüm sayısı için)
+      final sSnap = await FirebaseFirestore.instance.collection('scenarios').get();
+      List<Map<String, dynamic>> senaryoOnerileri = [];
       for (var d in sSnap.docs) {
         final data = d.data();
         final bolumler = (data['bolumler'] as List?) ?? [];
-        toplam += bolumler.length;
-        senaryoListesi.add({
-          "id": d.id,
-          "tip": "SENARYO",
-          "baslik": data['baslik'] ?? "Zorbalık Senaryosu",
-          "altBaslik": data['altBaslik'] ?? "Kararlarınla hikayeyi yönet.",
-          "renk": _hexToColor(data['renk'] ?? "0xFF9575CD"),
-          "ikon": _getIcon(data['ikon'] ?? "psychology"),
-          "data": data,
-        });
+        toplamBolumler += bolumler.length;
+        
+        if (senaryoOnerileri.length < 5) {
+          senaryoOnerileri.add({
+            "id": d.id, "tip": "SENARYO", "baslik": data['baslik'] ?? "Senaryo",
+            "altBaslik": data['altBaslik'] ?? "Kararlarınla yönet.",
+            "renk": _hexToColor(data['renk']), "ikon": _getIcon(data['ikon']), "data": data,
+          });
+        }
       }
 
-      // 2. Hikayeleri Çek
-      final hSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .limit(5)
-          .get();
-      for (var d in hSnap.docs) {
+      // 2. Tüm hikayeleri çek
+      final hSnap = await FirebaseFirestore.instance.collection('stories').get();
+      toplamHikayeler = hSnap.docs.length;
+      List<Map<String, dynamic>> hikayeOnerileri = [];
+      for (var d in hSnap.docs.take(5)) {
         final data = d.data();
-        hikayeListesi.add({
-          "id": d.id,
-          "tip": "HİKAYE",
-          "baslik": data['baslik'] ?? "Eğitici Öykü",
-          "altBaslik": data['altBaslik'] ?? "Gerçek deneyimleri oku.",
-          "renk": _hexToColor(data['renk'] ?? "0xFFFFB74D"),
-          "ikon": _getIcon(data['ikon'] ?? "auto_stories"),
-          "data": data,
+        hikayeOnerileri.add({
+          "id": d.id, "tip": "HİKAYE", "baslik": data['baslik'] ?? "Hikaye",
+          "altBaslik": data['altBaslik'] ?? "Gerçek deneyimler.",
+          "renk": _hexToColor(data['renk'] ?? "0xFFFFB74D"), "ikon": _getIcon("auto_stories"), "data": data,
         });
       }
 
-      // 3. Videoları Çek
-      final vSnap = await FirebaseFirestore.instance
-          .collection('videos')
-          .limit(5)
-          .get();
+      // 3. Videoları çek
+      final vSnap = await FirebaseFirestore.instance.collection('videos').limit(5).get();
+      List<Map<String, dynamic>> videoOnerileri = [];
       for (var d in vSnap.docs) {
         final data = d.data();
-        videoListesi.add({
-          "id": d.id,
-          "tip": "VİDEO",
-          "baslik": data['baslik'] ?? "Video Rehber",
-          "altBaslik": data['altBaslik'] ?? "İzle ve farkındalık kazan.",
-          "renk": _hexToColor(data['renk'] ?? "0xFFE57373"),
-          "ikon": _getIcon(data['ikon'] ?? "play"),
-          "data": data,
+        videoOnerileri.add({
+          "id": d.id, "tip": "VİDEO", "baslik": data['baslik'] ?? "Video",
+          "altBaslik": data['altBaslik'] ?? "İzle ve öğren.",
+          "renk": _hexToColor(data['renk'] ?? "0xFFE57373"), "ikon": _getIcon("play"), "data": data,
         });
       }
 
-      // Verileri karıştırıp "Senin İçin Önerilenler" havuzunu oluşturur
-      List<Map<String, dynamic>> finalHavuz = [];
-      senaryoListesi.shuffle();
-      hikayeListesi.shuffle();
-      videoListesi.shuffle();
-
-      // Her tipten en az bir tane eklemeye çalışır
-      if (senaryoListesi.isNotEmpty) finalHavuz.add(senaryoListesi.removeAt(0));
-      if (hikayeListesi.isNotEmpty) finalHavuz.add(hikayeListesi.removeAt(0));
-      if (videoListesi.isNotEmpty) finalHavuz.add(videoListesi.removeAt(0));
-
-      List<Map<String, dynamic>> kalanlar = [
-        ...senaryoListesi,
-        ...hikayeListesi,
-        ...videoListesi,
-      ];
-      kalanlar.shuffle();
-
-      int maxOneri = 4;
-      while (kalanlar.isNotEmpty && finalHavuz.length < maxOneri) {
-        finalHavuz.add(kalanlar.removeAt(0));
-      }
-
+      List<Map<String, dynamic>> finalHavuz = [...senaryoOnerileri, ...hikayeOnerileri, ...videoOnerileri];
       finalHavuz.shuffle();
 
       if (mounted) {
         setState(() {
-          _toplamBolum = toplam == 0 ? 1 : toplam;
-          _kesifHavuzu = finalHavuz;
+          _toplamGorevSayisi = toplamBolumler + toplamHikayeler;
+          _kesifHavuzu = finalHavuz.take(4).toList();
           _isLoading = false;
         });
       }
@@ -199,545 +134,127 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-
+    if (_currentUser == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final size = MediaQuery.of(context).size;
-    final double paddingValue = size.width * 0.05;
-
-    final String ad = _currentUser!.displayName ?? widget.kullaniciAdi;
+    final paddingValue = size.width * 0.05;
     final String uid = _currentUser!.uid;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -100,
-            right: -100,
-            child: _decorCircle(
-              size.width * 0.7,
-              AppColors.anaMavi.withOpacity(0.03),
-            ),
-          ),
-          SafeArea(
-            child: StreamBuilder<DocumentSnapshot>(
-              // Kullanıcının puan ve tamamlanan bölümlerini anlık ceker
-              stream: FirebaseFirestore.instance
-                  .collection('usersProgress')
-                  .doc(uid)
-                  .snapshots(),
-              builder: (context, snap) {
-                int puan = 0;
-                List tamamlananlar = [];
-                if (snap.hasData && snap.data!.exists) {
-                  final data = snap.data!.data() as Map<String, dynamic>;
-                  puan = data['toplam_puan'] ?? 0;
-                  tamamlananlar = data['tamamlanan_bolumler'] as List? ?? [];
-                }
-                return RefreshIndicator(
-                  onRefresh: _initData,
-                  displacement: 20,
-                  color: AppColors.anaMavi,
-                  child: CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      _buildAppBar(ad, paddingValue),
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          paddingValue,
-                          10,
-                          paddingValue,
-                          20,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: _buildProgressCard(tamamlananlar, puan, size),
-                        ),
+      body: SafeArea(
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
+          builder: (context, snap) {
+            int puan = 0;
+            int tamamlananSayisi = 0;
+            if (snap.hasData && snap.data!.exists) {
+              final data = snap.data!.data() as Map<String, dynamic>;
+              puan = data['toplam_puan'] ?? 0;
+              List bitti = data['tamamlanan_bolumler'] as List? ?? [];
+              List okundu = data['okunan_hikayeler'] as List? ?? [];
+              tamamlananSayisi = bitti.length + okundu.length;
+            }
+
+            double ilerleme = _toplamGorevSayisi > 0 
+                ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
+                : 0.0;
+
+            return RefreshIndicator(
+              onRefresh: _initData,
+              child: CustomScrollView(
+                slivers: [
+                  _buildAppBar(_currentUser!.displayName ?? "Kahraman", paddingValue),
+                  SliverToBoxAdapter(child: Padding(
+                    padding: EdgeInsets.all(paddingValue),
+                    child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
+                  )),
+                  _buildSectionTitle("Senin İçin Önerilenler", paddingValue),
+                  _isLoading 
+                    ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                    : SliverPadding(
+                        padding: EdgeInsets.symmetric(horizontal: paddingValue),
+                        sliver: SliverList(delegate: SliverChildBuilderDelegate((c, i) => _buildModernContentCard(_kesifHavuzu[i], size), childCount: _kesifHavuzu.length)),
                       ),
-                      _buildSectionTitle(
-                        "Senin İçin Önerilenler",
-                        paddingValue,
-                      ),
-                      _isLoading
-                          ? const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                          : SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: paddingValue,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                                (c, i) => _buildModernContentCard(
-                              _kesifHavuzu[i],
-                              size,
-                            ),
-                            childCount: _kesifHavuzu.length,
-                          ),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildAppBar(String ad, double padding) {
     return SliverAppBar(
-      floating: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      toolbarHeight: 90,
-      title: Padding(
-        padding: EdgeInsets.symmetric(horizontal: padding / 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "İyi günler,",
-                    style: TextStyle(
-                      color: Colors.blueGrey.shade400,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "$ad 👋",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Hero(
-              tag: 'profile_hero',
-              child: GestureDetector(
-                onTap: widget.onProfileTap,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.anaMavi,
-                        AppColors.anaMavi.withOpacity(0.4),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.anaMavi.withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: const CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.white,
-                    backgroundImage: AssetImage("assets/boy.png"),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      floating: true, backgroundColor: Colors.transparent, elevation: 0, toolbarHeight: 80,
+      title: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("İyi günler,", style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13)),
+          Text("$ad 👋", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        ]),
+        GestureDetector(onTap: widget.onProfileTap, child: const CircleAvatar(radius: 25, backgroundImage: AssetImage("assets/boy.png"))),
+      ]),
     );
   }
 
-  // Kullanıcının gelişim durumunu gösteren kart
-  Widget _buildProgressCard(List tamamlananlar, int puan, Size size) {
-    double ilerleme = _toplamBolum > 0
-        ? (tamamlananlar.length / _toplamBolum).clamp(0.0, 1.0)
-        : 0.0;
-    double cardWidth = size.width;
-    String dinamikMesaj = _ilerlemeMesaji(ilerleme);
-
+  Widget _buildProgressCard(int tamamlanan, int puan, double ilerleme, Size size) {
     return Container(
-      width: cardWidth,
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
+        gradient: AppColors.anaGradient,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.anaMavi.withOpacity(0.35),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
-          ),
+        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text("GELİŞİM MERKEZİ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
+            Text("$puan TP", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ]),
+          const SizedBox(height: 15),
+          Row(children: [
+            Text("${(ilerleme * 100).toInt()}%", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+            const SizedBox(width: 15),
+            Expanded(child: Text(_ilerlemeMesaji(ilerleme), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))),
+          ]),
+          const SizedBox(height: 15),
+          LinearProgressIndicator(value: ilerleme, backgroundColor: Colors.white.withOpacity(0.2), valueColor: const AlwaysStoppedAnimation(Colors.white), minHeight: 8),
+          const SizedBox(height: 10),
+          Text("$tamamlanan / $_toplamGorevSayisi Görev Bitti", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.anaMavi,
-                      AppColors.anaMavi.withBlue(230),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.15,
-                child: Image.asset(
-                  "assets/isilti.jpg",
-                  fit: BoxFit.cover,
-                  colorBlendMode: BlendMode.screen,
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(cardWidth * 0.055),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.stars_rounded,
-                            color: Colors.amberAccent,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            "GELİŞİM MERKEZİ",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 10,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Text(
-                          "$puan TP",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Text(
-                        "${(ilerleme * 100).toInt()}%",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 38,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -1.5,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          dinamikMesaj,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  // Özel ilerleme çubuğu (Progress Bar)
-                  Stack(
-                    children: [
-                      Container(
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      LayoutBuilder(
-                        builder: (context, constraints) => Container(
-                          height: 10,
-                          width: constraints.maxWidth * ilerleme,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: const LinearGradient(
-                              colors: [Colors.white, Color(0xFFB3E5FC)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.4),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${tamamlananlar.length} / $_toplamBolum Görev Bitti",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Icon(
-                        ilerleme == 1.0
-                            ? Icons.verified
-                            : Icons.check_circle_outline,
-                        color: Colors.white.withOpacity(0.5),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  // Önerilen her bir içerik için modern liste elemanı
-  Widget _buildModernContentCard(Map<String, dynamic> item, Size size) {
+  Widget _buildModernContentCard(Map item, Size size) {
     final Color color = item['renk'];
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.12),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => _route(item), // Tıklanan içeriğin türüne göre yönlendirme yap
-        borderRadius: BorderRadius.circular(35),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 75,
-                      height: 85,
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Icon(item['ikon'], color: color, size: 35),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              item['tip'], // SENARYO, HİKAYE veya VİDEO etiketi
-                              style: TextStyle(
-                                color: color,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 10,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            item['baslik'],
-                            style: const TextStyle(
-                              color: AppColors.yaziRengi,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item['altBaslik'],
-                            style: TextStyle(
-                              color: AppColors.yaziRengi.withOpacity(0.5),
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: color.withOpacity(0.4),
-                      size: 26,
-                    ),
-                    const SizedBox(width: 5),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))]),
+      child: ListTile(
+        onTap: () => _route(item),
+        leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15)), child: Icon(item['ikon'], color: color)),
+        title: Text(item['baslik'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        subtitle: Text(item['altBaslik'], style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
 
   Widget _buildSectionTitle(String title, double padding) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(padding, 15, padding, 15),
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 20,
-              decoration: BoxDecoration(
-                color: AppColors.anaMavi,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(padding), child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))));
   }
 
-  Widget _decorCircle(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-
-  // Tıklanan içeriğin tipine göre ilgili detay ekranına yönlendirme yapar
   void _route(Map item) {
     final data = item['data'];
-    switch (item['tip']) {
-      case "SENARYO":
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                SenaryoDetayEkrani(docId: item['id'], bolumIndex: 0),
-          ),
-        );
-        break;
-      case "HİKAYE":
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HikayeDetayEkrani(
-              baslik: data['baslik'] ?? "Hikaye",
-              gorselYolu: data['gorselYolu'] ?? "",
-              temaRengi: item['renk'],
-              hikayeMetni: data['hikayeMetni'] ?? "",
-              feedbackMessage: data['feedbackMessage'] ?? "",
-            ),
-          ),
-        );
-        break;
-      case "VİDEO":
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => VideoDetayEkrani(
-              baslik: data['baslik'] ?? "Video",
-              youtubeId: data['youtubeId'] ?? "",
-              tumVideolarJson: _kesifHavuzu,
-            ),
-          ),
-        );
-        break;
+    if (item['tip'] == "SENARYO") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => SenaryoDetayEkrani(docId: item['id'], bolumIndex: 0)));
+    } else if (item['tip'] == "HİKAYE") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => HikayeDetayEkrani(baslik: data['baslik'], gorselYolu: data['gorselYolu'], temaRengi: item['renk'], hikayeMetni: data['hikayeMetni'], feedbackMessage: data['feedbackMessage'])));
+    } else if (item['tip'] == "VİDEO") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoDetayEkrani(baslik: data['baslik'], youtubeId: data['youtubeId'], tumVideolarJson: _kesifHavuzu)));
     }
   }
 }

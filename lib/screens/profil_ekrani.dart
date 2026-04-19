@@ -25,81 +25,38 @@ class ProfilEkrani extends StatefulWidget {
 
 class _ProfilEkraniState extends State<ProfilEkrani> {
   bool bildirimlerAcik = true;
-  bool _isDeleting = false; // Hesap silme durumunu kontrol et
+  bool _isDeleting = false;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
-  // Mevcut oturumu güvenli bir şekilde kapatır
   Future<void> _cikisYap() async {
-    bool? onay = await _onayDiyalogu(
-        "Oturumu Kapat",
-        "Kahramanlık görevine ara vermek mi istiyorsun? 👋",
-        "Evet, Çıkış Yap",
-        AppColors.anaMavi
-    );
+    bool? onay = await _onayDiyalogu("Oturumu Kapat", "Kahramanlık görevine ara vermek mi istiyorsun? 👋", "Evet, Çıkış Yap", AppColors.anaMavi);
     if (onay == true) {
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePages()),
-              (route) => false
-      );
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
     }
   }
 
-  // Kullanıcının tüm verilerini (mesajlar, ilerleme, profil) Firebase'den siler
   Future<void> _hesabiSil() async {
     if (_currentUser == null) return;
-
-    bool? onay = await _onayDiyalogu(
-        "Hesabı Kalıcı Sil",
-        "Tüm başarın ve rozetlerin silinecek. Bu işlem geri alınamaz! 😢",
-        "Evet, Hesabımı Sil",
-        Colors.redAccent
-    );
+    bool? onay = await _onayDiyalogu("Hesabı Kalıcı Sil", "Tüm başarın ve rozetlerin silinecek. Bu işlem geri alınamaz! 😢", "Evet, Hesabımı Sil", Colors.redAccent);
     if (onay == true) {
       setState(() => _isDeleting = true);
       try {
         final String uid = _currentUser!.uid;
-
-        // Alt koleksiyon olan mesajları temizler
-        final messages = await FirebaseFirestore.instance
-            .collection('usersProgress')
-            .doc(uid)
-            .collection('messages')
-            .get();
-
-        WriteBatch batch = FirebaseFirestore.instance.batch();
-        for (var doc in messages.docs) {
-          batch.delete(doc.reference);
-        }
-        await batch.commit();
-
-        // Ana dökümanları ve auth kaydını siler
         await FirebaseFirestore.instance.collection('users').doc(uid).delete();
         await FirebaseFirestore.instance.collection('usersProgress').doc(uid).delete();
         await _currentUser!.delete();
-
         if (!mounted) return;
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePages()),
-                (route) => false
-        );
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
       } catch (e) {
-        debugPrint("Hesap silme hatası: $e");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Hata: Lütfen tekrar giriş yapıp deneyin."))
-          );
-        }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hata: Lütfen tekrar giriş yapıp deneyin.")));
       } finally {
         if (mounted) setState(() => _isDeleting = false);
       }
     }
   }
 
-  // Kritik işlemler öncesi kullanıcıdan onay alan kart
   Future<bool?> _onayDiyalogu(String baslik, String icerik, String butonMetni, Color renk) {
     return showDialog<bool>(
       context: context,
@@ -108,20 +65,8 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         title: Text(baslik, style: const TextStyle(fontWeight: FontWeight.w900)),
         content: Text(icerik),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: renk,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              elevation: 0,
-            ),
-            child: Text(butonMetni, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: renk, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0), child: Text(butonMetni, style: const TextStyle(fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -139,45 +84,25 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       body: _isDeleting
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<DocumentSnapshot>(
-        // Kullanıcının puan, rozet ve bölüm ilerlemesini anlık takip eder
-        stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          var progressData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
-          List tamamlananlar = progressData['tamamlanan_bolumler'] ?? [];
-          List rozetler = progressData['rozetler'] ?? [];
-          int toplamPuan = progressData['toplam_puan'] ?? 0;
+                var progressData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+                List bitti = progressData['tamamlanan_bolumler'] as List? ?? [];
+                List okundu = progressData['okunan_hikayeler'] as List? ?? [];
+                List rozetler = progressData['rozetler'] as List? ?? [];
+                int toplamPuan = progressData['toplam_puan'] ?? 0;
+                int tamamlananToplam = bitti.length + okundu.length;
 
-          return FutureBuilder<DocumentSnapshot>(
-            // Kullanıcının admin yetkisini kontrol eder
-              future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
-              builder: (context, userSnap) {
-                bool isAdmin = false;
-                if (userSnap.hasData && userSnap.data!.exists) {
-                  isAdmin = (userSnap.data!.data() as Map<String, dynamic>)['isAdmin'] ?? false;
-                }
+                return FutureBuilder<Map<String, dynamic>>(
+                  future: _getStats(uid),
+                  builder: (context, statsSnap) {
+                    bool isAdmin = statsSnap.data?['isAdmin'] ?? false;
+                    int toplamGorev = statsSnap.data?['toplamGorev'] ?? 1;
 
-                return FutureBuilder<QuerySnapshot>(
-                  // İlerleme yüzdesini hesaplamak için toplam senaryo sayısını çeker
-                  future: FirebaseFirestore.instance.collection('scenarios').get(),
-                  builder: (context, scenarioSnap) {
-                    int toplamBolumSayisi = 0;
-                    if (scenarioSnap.hasData) {
-                      for (var doc in scenarioSnap.data!.docs) {
-                        toplamBolumSayisi += ((doc.data() as Map)['bolumler'] as List? ?? []).length;
-                      }
-                    }
-
-                    // Toplam hedef: bölümler + ek görevler
-                    int toplamHedef = toplamBolumSayisi + 2;
-
-                    double ilerleme = toplamHedef > 0
-                        ? (tamamlananlar.length / toplamHedef).clamp(0.0, 1.0)
-                        : 0.0;
-
-                    // Her 3 bölümde bir seviye atlama mantığı
-                    int seviye = (tamamlananlar.length ~/ 3) + 1;
+                    double ilerleme = (tamamlananToplam / toplamGorev).clamp(0.0, 1.0);
+                    int seviye = (tamamlananToplam ~/ 3) + 1;
 
                     return SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
@@ -187,7 +112,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                           const SizedBox(height: 60),
                           _buildProfileInfo(ekrandaGozukenIsim, ilerleme, size),
                           const SizedBox(height: 40),
-                          _buildStatsGrid(tamamlananlar.length, rozetler.length, toplamPuan, size),
+                          _buildStatsGrid(tamamlananToplam, rozetler.length, toplamPuan, size),
                           const SizedBox(height: 40),
                           _buildSettingsList(size, isAdmin),
                           const SizedBox(height: 40),
@@ -196,75 +121,46 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                         ],
                       ),
                     );
-                  },
+                  }
                 );
-              }
-          );
-        },
-      ),
+              },
+            ),
     );
   }
 
-  // Dalgalı üst alan ve seviye etiketini içeren tasarım
+  Future<Map<String, dynamic>> _getStats(String uid) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    bool admin = userDoc.exists ? (userDoc.data()?['isAdmin'] ?? false) : false;
+
+    final sSnap = await FirebaseFirestore.instance.collection('scenarios').get();
+    int sCount = 0;
+    for (var d in sSnap.docs) {
+      sCount += (d.data()['bolumler'] as List? ?? []).length;
+    }
+
+    final hSnap = await FirebaseFirestore.instance.collection('stories').get();
+    int hCount = hSnap.docs.length;
+
+    return {
+      'isAdmin': admin,
+      'toplamGorev': sCount + hCount,
+    };
+  }
+
   Widget _buildHeader(int seviye, Size size) {
     double headerHeight = size.height * 0.22;
     if (headerHeight < 180) headerHeight = 180;
-
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
       children: [
-        ClipPath(
-          clipper: WaveClipperTwo(),
-          child: Container(
-            height: headerHeight,
-            width: double.infinity,
-            decoration: const BoxDecoration(gradient: AppColors.anaGradient),
-            child: Center(
-              child: Icon(Icons.shield_rounded, size: headerHeight * 0.5, color: Colors.white.withOpacity(0.1)),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: -50,
-          child: Hero(
-            tag: 'profil_avatar',
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10))]
-              ),
-              child: CircleAvatar(
-                  radius: size.width * 0.16,
-                  backgroundColor: AppColors.zemin,
-                  backgroundImage: const AssetImage("assets/boy.png")
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: -55,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Colors.amber, Colors.orange]),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 10)]
-            ),
-            child: Text(
-                "SEVİYE $seviye",
-                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 13, letterSpacing: 1)
-            ),
-          ),
-        ),
+        ClipPath(clipper: WaveClipperTwo(), child: Container(height: headerHeight, width: double.infinity, decoration: const BoxDecoration(gradient: AppColors.anaGradient))),
+        Positioned(bottom: -50, child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10))]), child: CircleAvatar(radius: size.width * 0.16, backgroundColor: AppColors.zemin, backgroundImage: const AssetImage("assets/boy.png")))),
+        Positioned(bottom: -55, child: Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Colors.amber, Colors.orange]), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 10)]), child: Text("SEVİYE $seviye", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 13, letterSpacing: 1)))),
       ],
     );
   }
 
-  // İlerleme durumuna göre dinamik rütbe belirleyen ve progress bar gösteren alan
   Widget _buildProfileInfo(String isim, double ilerleme, Size size) {
     String rutbe() {
       if (ilerleme <= 0.2) return "Çaylak Koruyucu 🛡️";
@@ -272,51 +168,22 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       if (ilerleme <= 0.8) return "Usta Muhafız ⚔️";
       return "Efsanevi Kahraman 👑";
     }
-
     return Column(
       children: [
-        Text(
-            isim.toLowerCase(),
-            style: TextStyle(
-                fontSize: size.width > 600 ? 32 : 28,
-                fontWeight: FontWeight.w900,
-                color: AppColors.yaziRengi,
-                letterSpacing: -0.5
-            )
-        ),
+        Text(isim.toLowerCase(), style: TextStyle(fontSize: size.width > 600 ? 32 : 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi, letterSpacing: -0.5)),
         const SizedBox(height: 4),
-        Text(
-            rutbe(),
-            style: const TextStyle(color: AppColors.accentMavi, fontWeight: FontWeight.bold, fontSize: 16)
-        ),
+        Text(rutbe(), style: const TextStyle(color: AppColors.accentMavi, fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 25),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("KAHRAMANLIK YOLU", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11, letterSpacing: 1)),
-                  Text("%${(ilerleme * 100).toInt()}", style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 15)),
-                ],
-              ),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("KAHRAMANLIK YOLU", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11, letterSpacing: 1)),
+                Text("%${(ilerleme * 100).toInt()}", style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 15)),
+              ]),
               const SizedBox(height: 10),
-              Container(
-                height: 14,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.1), blurRadius: 10)]
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: LinearProgressIndicator(
-                    value: ilerleme,
-                    backgroundColor: AppColors.anaMavi.withOpacity(0.1),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
-                  ),
-                ),
-              ),
+              ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: ilerleme, backgroundColor: AppColors.anaMavi.withOpacity(0.1), valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi), minHeight: 12)),
             ],
           ),
         ),
@@ -324,156 +191,57 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
-  // Görev, Rozet ve Puan verilerini yan yana kartlar halinde sunar
   Widget _buildStatsGrid(int bolumSayisi, int rozetSayisi, int puan, Size size) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          _buildStatCard("GÖREV", bolumSayisi.toString(), Icons.auto_awesome_mosaic_rounded, Colors.orangeAccent, size),
-          const SizedBox(width: 15),
-          _buildStatCard("ROZET", rozetSayisi.toString(), Icons.emoji_events_rounded, Colors.purpleAccent, size),
-          const SizedBox(width: 15),
-          _buildStatCard("PUAN", puan.toString(), Icons.stars_rounded, Colors.greenAccent, size),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Row(children: [
+      _buildStatCard("GÖREV", bolumSayisi.toString(), Icons.auto_awesome_mosaic_rounded, Colors.orangeAccent, size),
+      const SizedBox(width: 15),
+      _buildStatCard("ROZET", rozetSayisi.toString(), Icons.emoji_events_rounded, Colors.purpleAccent, size),
+      const SizedBox(width: 15),
+      _buildStatCard("PUAN", puan.toString(), Icons.stars_rounded, Colors.greenAccent, size),
+    ]));
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color, Size size) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(color: color.withOpacity(0.14), blurRadius: 5, offset: const Offset(0, 8))
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 10),
-            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
-          ],
-        ),
-      ),
-    );
+    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: color.withOpacity(0.14), blurRadius: 5, offset: const Offset(0, 8))]), child: Column(children: [
+      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 28)),
+      const SizedBox(height: 10),
+      Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
+      Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
+    ])));
   }
 
-  // Ayarlar listesini ve admin ise özel yetki butonunu oluşturur
   Widget _buildSettingsList(Size size, bool isAdmin) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))]
-        ),
-        child: Column(
-          children: [
-            if (isAdmin) _buildSettingsTile(Icons.admin_panel_settings_rounded, "Yönetici Paneli", size, color: Colors.deepPurple, onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHome()));
-            }),
-            _buildSettingsTile(
-                Icons.sos_rounded,
-                "Siber İmdat & Destek",
-                size,
-                color: Colors.redAccent,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani()))
-            ),
-            _buildSettingsTile(Icons.notifications_active_rounded, "Bildirim Gönderebilir Miyiz ?", size, isSwitch: true),
-            _buildSettingsTile(
-                Icons.shield_rounded,
-                "Güvenlik Rehberim",
-                size,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuvenlikRehberiEkrani()))
-            ),
-            _buildSettingsTile(
-              Icons.info_rounded,
-              "Uygulama Hakkında",
-              size,
-              onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_) => const HakkindaEkrani()) ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))]), child: Column(children: [
+      if (isAdmin) _buildSettingsTile(Icons.admin_panel_settings_rounded, "Yönetici Paneli", size, color: Colors.deepPurple, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHome()))),
+      _buildSettingsTile(Icons.sos_rounded, "Siber İmdat & Destek", size, color: Colors.redAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani()))),
+      _buildSettingsTile(Icons.notifications_active_rounded, "Bildirimler", size, isSwitch: true),
+      _buildSettingsTile(Icons.shield_rounded, "Güvenlik Rehberim", size, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuvenlikRehberiEkrani()))),
+      _buildSettingsTile(Icons.info_rounded, "Uygulama Hakkında", size, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HakkindaEkrani()))),
+    ])));
   }
 
-  // Tekrarlanan ayar satırları için ortak şablon
   Widget _buildSettingsTile(IconData icon, String title, Size size, {bool isSwitch = false, bool isLast = false, Color? color, VoidCallback? onTap}) {
-    return Column(
-      children: [
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: (color ?? AppColors.anaMavi).withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color ?? AppColors.anaMavi, size: 22),
-          ),
-          title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: color)),
-          trailing: isSwitch
-              ? Switch(
-              value: bildirimlerAcik,
-              onChanged: (v) => setState(() => bildirimlerAcik = v),
-              activeColor: AppColors.anaMavi
-          )
-              : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
-          onTap: onTap ?? (isSwitch ? null : () {}),
-        ),
-        if (!isLast) Divider(height: 1, indent: 70, endIndent: 30, color: Colors.grey.shade100),
-      ],
-    );
+    return Column(children: [
+      ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (color ?? AppColors.anaMavi).withOpacity(0.08), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color ?? AppColors.anaMavi, size: 22)),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: color)),
+        trailing: isSwitch ? Switch(value: bildirimlerAcik, onChanged: (v) => setState(() => bildirimlerAcik = v), activeColor: AppColors.anaMavi) : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+        onTap: onTap ?? (isSwitch ? null : () {}),
+      ),
+      if (!isLast) Divider(height: 1, indent: 70, endIndent: 30, color: Colors.grey.shade100),
+    ]);
   }
 
-  // Oturumu kapatma ve hesap silme gibi geri dönülemez işlemlerin bulunduğu alan
   Widget _buildDangerZone(Size size) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          _buildActionButton("OTURUMU KAPAT", AppColors.anaMavi, Icons.logout_rounded, _cikisYap, size),
-          const SizedBox(height: 15),
-          TextButton(
-            onPressed: _hesabiSil,
-            child: Text(
-                "HESABI KALICI OLARAK SİL",
-                style: TextStyle(color: Colors.red.shade300, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1)
-            ),
-          ),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Column(children: [
+      _buildActionButton("OTURUMU KAPAT", AppColors.anaMavi, Icons.logout_rounded, _cikisYap, size),
+      const SizedBox(height: 15),
+      TextButton(onPressed: _hesabiSil, child: Text("HESABI KALICI OLARAK SİL", style: TextStyle(color: Colors.red.shade300, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1))),
+    ]));
   }
 
-  // Geniş, gölgeli ve gradyanlı aksiyon butonu tasarımı
   Widget _buildActionButton(String text, Color color, IconData icon, VoidCallback onTap, Size size) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(colors: [color, color.withOpacity(0.85)]),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, color: Colors.white, size: 20),
-        label: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 14)),
-        style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-        ),
-      ),
-    );
+    return Container(width: double.infinity, height: 60, decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), gradient: LinearGradient(colors: [color, color.withOpacity(0.85)]), boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))]), child: ElevatedButton.icon(onPressed: onTap, icon: Icon(icon, color: Colors.white, size: 20), label: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 14)), style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)))));
   }
 }
