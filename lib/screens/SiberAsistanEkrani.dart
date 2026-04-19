@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:zorbalik_uygulamasi/services/tts_service.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SiberAsistanEkrani extends StatefulWidget {
   const SiberAsistanEkrani({super.key});
@@ -16,7 +17,7 @@ class SiberAsistanEkrani extends StatefulWidget {
 class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final FlutterTts flutterTts = FlutterTts();
+  final TtsService _ttsService = TtsService();
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   List<Map<String, String>> _mesajlar = [];
@@ -24,7 +25,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   bool _yukleniyor = false;
   bool _sesAcik = true;
 
-  // Kullanıcı Bilgileri
   int _anlikPuan = 0;
   int _anlikRozet = 0;
   int _gorevSayisi = 0;
@@ -40,34 +40,28 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     const Color(0xFF42A5F5),
   ];
 
-  final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-
   @override
   void initState() {
     super.initState();
-    _initTts();
     _verileriYukle();
   }
 
-  // Robotik sesi azaltmak için pitch ve rate optimizasyonu
-  Future<void> _initTts() async {
-    await flutterTts.setLanguage("tr-TR");
-    await flutterTts.setPitch(1.15);
-    await flutterTts.setSpeechRate(0.52);
-    await flutterTts.setVolume(1.0);
-  }
-
-  //Hem gelişim hem de profil verilerini bot için çekiyoruz
   Future<void> _verileriYukle() async {
     if (_currentUser == null) return;
     try {
-      // 1. Gelişim verileri (Puan, Rozet, Görevler)
-      var progressDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).get();
-      // 2. Profil verileri (Yaş Grubu)
-      var userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
+      final String uid = _currentUser!.uid;
+
+      // Verileri paralel çekerek hızı artırıyoruz
+      final results = await Future.wait([
+        FirebaseFirestore.instance.collection('usersProgress').doc(uid).get(),
+        FirebaseFirestore.instance.collection('users').doc(uid).get(),
+      ]);
+
+      final progressDoc = results[0];
+      final userDoc = results[1];
 
       if (progressDoc.exists) {
-        var pData = progressDoc.data()!;
+        var pData = progressDoc.data() as Map<String, dynamic>;
         setState(() {
           _anlikPuan = pData['toplam_puan'] ?? 0;
           _anlikRozet = (pData['rozetler'] as List? ?? []).length;
@@ -88,7 +82,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
       if (userDoc.exists) {
         setState(() {
-          _yasGrubu = userDoc.data()?['yasGrubu'] ?? "6-12";
+          _yasGrubu = (userDoc.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
         });
       }
 
@@ -101,25 +95,11 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     }
   }
 
-  // Rütbe Hesaplama (Botun seni rütbenle övmesi için)
   String _rutbeHesapla() {
     if (_gorevSayisi <= 3) return "Çaylak Koruyucu 🛡️";
     if (_gorevSayisi <= 8) return "Siber Devriye 🚔";
     if (_gorevSayisi <= 15) return "Usta Muhafız ⚔️";
     return "Efsanevi Kahraman 👑";
-  }
-
-  // SESLİ OKUMA FİLTRESİ: Robotik okumayı engellemek için metni temizler
-  Future<void> _sesliOku(String metin) async {
-    if (_sesAcik) {
-      String temiz = metin.replaceAll(RegExp(r'[*_#>]'), '');
-      temiz = temiz.replaceAll(RegExp(r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]', unicode: true), '');
-      
-      await flutterTts.stop();
-      if (temiz.trim().isNotEmpty) {
-        await flutterTts.speak(temiz.trim());
-      }
-    }
   }
 
   Future<void> _mesajKaydet(Map<String, String> mesaj) async {
@@ -133,6 +113,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Future<void> _mesajGonder(String metin) async {
+    final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
     if (metin.trim().isEmpty || _yukleniyor || _apiKey.isEmpty) return;
 
     final Map<String, String> kullaniciMesaji = {"rol": "kullanici", "metin": metin};
@@ -156,11 +137,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           "contents": gonderilecekGecmis,
           "systemInstruction": {
             "parts": [{"text": "Adın Siber Dost. $_kullaniciAdi ile konuşuyorsun. "
-                "Yaş Grubu: $_yasGrubu, Puanı: $_anlikPuan, Tamamladığı Görev: $_gorevSayisi, "
-                "Rozet Sayısı: $_anlikRozet, Rütbesi: ${_rutbeHesapla()}. "
-                "Sen onun siber güvenlik rehberisin. "
-                "CEVAPLARIN KISA (MAX 2-3 CÜMLE), EĞLENCELİ VE MOTİVE EDİCİ OLSUN. Bol emoji kullan. Kullanıcı zorbalığa uğruyorsa"
-                "ona acilen yardım için bir yere yönlendir. Üzülmesine asla izin verme ve yetişkine haber vermesini sağla"}]
+                "Yaş Grubu: $_yasGrubu, Puan: $_anlikPuan, Biten Görev: $_gorevSayisi, "
+                "Rozet: $_anlikRozet, Rütbe: ${_rutbeHesapla()}. "
+                "Sen samimi, eğlenceli ve cesaret verici bir siber güvenlik rehberisin. "
+                "CEVAPLARIN ÇOK KISA (MAX 2 CÜMLE) OLSUN. Bol emoji kullan."}]
           }
         }),
       ).timeout(const Duration(seconds: 15));
@@ -177,7 +157,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         });
 
         _mesajKaydet(botMesaji);
-        _sesliOku(botCevabi);
+        if (_sesAcik) _ttsService.speak(botCevabi);
       } else { throw Exception("API Hatası"); }
     } catch (e) {
       setState(() => _yukleniyor = false);
@@ -218,6 +198,20 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
               _buildModernInput(),
             ],
           ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _ttsService.isSpeaking,
+            builder: (context, isSpeaking, _) {
+              if (!isSpeaking) return const SizedBox.shrink();
+              return Positioned(
+                top: 100, right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: _seciliRenk, shape: BoxShape.circle),
+                  child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 20),
+                ).animate(onPlay: (c) => c.repeat()).shimmer(),
+              );
+            }
+          ),
         ],
       ),
     );
@@ -247,7 +241,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       actions: [
         IconButton(
             icon: Icon(_sesAcik ? Icons.volume_up : Icons.volume_off, color: _seciliRenk),
-            onPressed: () { setState(() => _sesAcik = !_sesAcik); if(!_sesAcik) flutterTts.stop(); }
+            onPressed: () { setState(() => _sesAcik = !_sesAcik); if(!_sesAcik) _ttsService.stop(); }
         ),
         PopupMenuButton<Color>(
           icon: Icon(Icons.palette_rounded, color: _seciliRenk),
@@ -369,12 +363,17 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       _mesajlar.add(botMesaji);
       _history.add({"role": "model", "parts": [{"text": m}]});
     });
-    _sesliOku(m);
+    if (_sesAcik) _ttsService.speak(m);
     _mesajKaydet(botMesaji);
   }
 
   @override
-  void dispose() { _controller.dispose(); _scrollController.dispose(); flutterTts.stop(); super.dispose(); }
+  void dispose() { 
+    _controller.dispose(); 
+    _scrollController.dispose(); 
+    _ttsService.stop(); 
+    super.dispose(); 
+  }
 }
 
 class StaticBackgroundPainter extends CustomPainter {

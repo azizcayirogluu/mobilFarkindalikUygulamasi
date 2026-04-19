@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:confetti/confetti.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
+import 'package:zorbalik_uygulamasi/services/tts_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
 
 class SenaryoDetayEkrani extends StatefulWidget {
   final String docId;
@@ -20,7 +19,7 @@ class SenaryoDetayEkrani extends StatefulWidget {
 }
 
 class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProviderStateMixin {
-  final FlutterTts _flutterTts = FlutterTts();
+  final TtsService _ttsService = TtsService();
   late ConfettiController _confettiController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -36,18 +35,39 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
-    _initTts();
     _verileriYukle();
   }
 
-  Future<void> _initTts() async {
-    try {
-      await _flutterTts.setLanguage("tr-TR");
-      await _flutterTts.setPitch(1.1);
-      await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.awaitSpeakCompletion(true);
-    } catch (e) {
-      debugPrint("TTS Hatası: $e");
+  // --- SESLENDİRME MANTIĞI ---
+  // Önce senaryo metni (soru), ardından seçenekler harfleriyle beraber okunur.
+  Future<void> _soruyuVeSecenekleriOku(Map soruData) async {
+    if (!_sesAcik || !mounted) return;
+
+    // 1. ADIM: Mevcut bir ses varsa durdur ve temizle
+    await _ttsService.stop();
+
+    // 2. ADIM: Senaryoyu/Soruyu oku
+    String soruMetni = soruData['soru'] ?? "";
+    if (soruMetni.isNotEmpty) {
+      await _ttsService.speak(soruMetni);
+    }
+
+    // 3. ADIM: Soru bittikten sonra seçeneklere geçmeden önce doğal bir bekleme (nefes payı)
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    // 4. ADIM: Seçenekleri sırayla oku
+    List secenekler = soruData['secenekler'] ?? [];
+    for (int i = 0; i < secenekler.length; i++) {
+      // Güvenlik kontrolleri: Ses kapatıldıysa, cevap verildiyse veya ekrandan çıkıldıysa okumayı kes.
+      if (!_sesAcik || _cevapVerildiMi || !mounted) break;
+
+      String harf = String.fromCharCode(65 + i); // A, B, C... üretir
+      String secenekMetni = "$harf şıkkı. ${secenekler[i]['metin']}";
+
+      await _ttsService.speak(secenekMetni);
+
+      // Şıklar arasında kısa, doğal bir duraksama (Google Neural seslerin vurgusu için önemli)
+      await Future.delayed(const Duration(milliseconds: 800));
     }
   }
 
@@ -55,14 +75,9 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     if (_currentUser == null) return;
 
     try {
-      // 1. Kullanıcının yaş grubunu al
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
-      String kullaniciYasGrubu = "6-12";
-      if (userDoc.exists) {
-        kullaniciYasGrubu = userDoc.data()?['yasGrubu'] ?? "6-12";
-      }
+      String kullaniciYasGrubu = userDoc.exists ? (userDoc.data()?['yasGrubu'] ?? "6-12") : "6-12";
 
-      // 2. Senaryo verisini çek
       final doc = await FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).get();
       if (doc.exists && mounted) {
         final data = doc.data();
@@ -70,34 +85,16 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
         if (bolumler.isNotEmpty && widget.bolumIndex < bolumler.length) {
           final tumSorular = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
-
-          // YAŞ GRUBUNA GÖRE FİLTRELE
-          final filtrelenmisSorular = [];
-          for (var soru in tumSorular) {
-            String soruYas = soru['yasGrubu'] ?? "6-12";
-            if (soruYas == kullaniciYasGrubu) {
-              // Performans için resimleri önceden belleğe al
-              if (soru['imageUrl'] != null && soru['imageUrl'].toString().isNotEmpty) {
-                precacheImage(CachedNetworkImageProvider(soru['imageUrl']), context);
-              }
-              // Seçenekleri karıştırarak her seferinde farklı sırada gelmesini sağlar
-              if (soru['secenekler'] != null) {
-                List seceneklerListesi = List.from(soru['secenekler']);
-                seceneklerListesi.shuffle();
-                soru['secenekler'] = seceneklerListesi;
-              }
-              filtrelenmisSorular.add(soru);
-            }
-          }
+          final filtrelenmisSorular = tumSorular.where((s) => (s['yasGrubu'] ?? "6-12") == kullaniciYasGrubu).toList();
 
           setState(() {
             _sorular = filtrelenmisSorular;
             _isLoading = false;
           });
 
-          // Eğer ses açık seçildiyse ilk soruyu otomatik okur
+          // Veriler yüklendiğinde ses açıksa otomatik başlat
           if (_sorular.isNotEmpty && _sesAcik) {
-            _soruyuOku(_sorular[_currentIndex]['soru']);
+            _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
           }
         }
       }
@@ -107,17 +104,12 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     }
   }
 
-  // Soruyu sesli olarak seslendirir
-  Future<void> _soruyuOku(String metin) async {
-    if (_sesAcik && metin.isNotEmpty) {
-      await _flutterTts.stop();
-      await _flutterTts.speak(metin);
-    }
-  }
-
-  // Kullanıcının verdiği cevabı kontrol eder, doğruysa konfeti patlatır
   void _cevapKontrol(int index, Map secenek) {
     if (_cevapVerildiMi) return;
+
+    // Cevap verildiği an seslendirme durdurulur.
+    _ttsService.stop();
+
     setState(() {
       _secilenIndeks = index;
       _cevapVerildiMi = true;
@@ -130,24 +122,21 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (mounted) _sonraki();
       });
     } else {
-      // Yanlış cevapta hata analitiği kaydı tutar ve geri bildirim (feedback) gösterir
-      if (_currentUser != null) {
-        AnalyticsService().hataKaydet(_currentUser!.uid);
-      }
+      if (_currentUser != null) AnalyticsService().hataKaydet(_currentUser!.uid);
       _showFeedback(secenek['feedback'] ?? "Harika bir denemeydi ama bu doğru yol değil...");
     }
   }
 
-  // Bir sonraki soruya geçer veya senaryo bittiyse sonuç ekranını açar
   void _sonraki() {
-    _flutterTts.stop();
+    _ttsService.stop();
     if (_currentIndex < _sorular.length - 1) {
       setState(() {
         _currentIndex++;
         _cevapVerildiMi = false;
         _secilenIndeks = null;
       });
-      if (_sesAcik) _soruyuOku(_sorular[_currentIndex]['soru']);
+      // Yeni soruya geçildiğinde otomatik seslendirmeyi başlat
+      if (_sesAcik) _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
     } else {
       _sonucGoster();
     }
@@ -157,32 +146,16 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    // Yaş grubuna uygun soru bulunamazsa kullanıcıyı uyarır
     if (_sorular.isEmpty) {
       return Scaffold(
         appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent, leading: const CloseButton(color: Colors.grey)),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.sentiment_dissatisfied_rounded, size: 80, color: Colors.blueGrey),
-              const SizedBox(height: 20),
-              const Text("Bu bölüm senin yaş grubun için\nhenüz hazır değil.", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-              const SizedBox(height: 30),
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("GERİ DÖN"))
-            ],
-          ),
-        ),
+        body: const Center(child: Text("Henüz görev hazır değil.", style: TextStyle(fontWeight: FontWeight.bold))),
       );
     }
 
     final size = MediaQuery.of(context).size;
     final soru = _sorular[_currentIndex];
-
-    // İlerleme çubuğu değerini hesaplar
-    double val = (_cevapVerildiMi && _currentIndex == _sorular.length - 1)
-        ? 1.0
-        : (_currentIndex / _sorular.length);
+    double val = (_cevapVerildiMi && _currentIndex == _sorular.length - 1) ? 1.0 : (_currentIndex / _sorular.length);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFF),
@@ -199,12 +172,11 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
-                      if (soru['imageUrl'] != null && soru['imageUrl'].toString().isNotEmpty) _buildHeroImage(soru['imageUrl'], size),
+                      if (soru['imageUrl'] != null && soru['imageUrl'].isNotEmpty) _buildHeroImage(soru['imageUrl'], size),
                       const SizedBox(height: 20),
                       _buildQuestionCard(soru['soru'], size),
                       const SizedBox(height: 25),
-                      ...List.generate(soru['secenekler'].length,
-                              (i) => _buildAnimatedOption(i, soru['secenekler'][i], size)),
+                      ...List.generate(soru['secenekler'].length, (i) => _buildAnimatedOption(i, soru['secenekler'][i], size)),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -214,11 +186,22 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           ),
           Align(
             alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              colors: const [Colors.blue, Colors.green, Colors.orange, Colors.pink],
-            ),
+            child: ConfettiWidget(confettiController: _confettiController, blastDirectionality: BlastDirectionality.explosive),
+          ),
+          // Konuşma Göstergesi (Aktifken sağ altta çıkar)
+          ValueListenableBuilder<bool>(
+              valueListenable: _ttsService.isSpeaking,
+              builder: (context, isSpeaking, _) {
+                if (!isSpeaking) return const SizedBox.shrink();
+                return Positioned(
+                  bottom: 100, right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(color: AppColors.anaMavi, shape: BoxShape.circle),
+                    child: const Icon(Icons.record_voice_over_rounded, color: Colors.white, size: 24),
+                  ).animate(onPlay: (c) => c.repeat()).shimmer(),
+                );
+              }
           ),
         ],
       ),
@@ -229,24 +212,18 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      centerTitle: true,
-      leading: IconButton(
-        icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 28),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text("BÖLÜM ${widget.bolumIndex + 1}",
-          style: const TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.bold, fontSize: 18)),
+      leading: IconButton(icon: const Icon(Icons.close_rounded, color: Colors.grey), onPressed: () => Navigator.pop(context)),
+      title: Text("BÖLÜM ${widget.bolumIndex + 1}", style: const TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.bold)),
       actions: [
         IconButton(
-          icon: Icon(_sesAcik ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-              color: _sesAcik ? AppColors.anaMavi : Colors.grey),
+          icon: Icon(_sesAcik ? Icons.volume_up_rounded : Icons.volume_off_rounded, color: _sesAcik ? AppColors.anaMavi : Colors.grey),
           onPressed: () {
             setState(() {
               _sesAcik = !_sesAcik;
               if (_sesAcik) {
-                _soruyuOku(_sorular[_currentIndex]['soru']);
+                _soruyuVeSecenekleriOku(_sorular[_currentIndex]);
               } else {
-                _flutterTts.stop();
+                _ttsService.stop();
               }
             });
           },
@@ -257,10 +234,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Widget _buildModernProgressBar(double val, Size size) {
-    int currentNum = (_cevapVerildiMi && _currentIndex == _sorular.length - 1)
-        ? _sorular.length
-        : _currentIndex + 1;
-
+    int currentNum = (_cevapVerildiMi && _currentIndex == _sorular.length - 1) ? _sorular.length : _currentIndex + 1;
     return Container(
       padding: EdgeInsets.all(size.width * 0.05),
       child: Column(
@@ -269,22 +243,17 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("İlerlemen", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.anaMavi.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text("$currentNum / ${_sorular.length}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
-              ),
+              Text("$currentNum / ${_sorular.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
             ],
           ),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
-              value: val == 0 ? 0.05 : val,
-              minHeight: 12,
-              backgroundColor: Colors.white,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
+                value: val == 0 ? 0.05 : val,
+                minHeight: 12,
+                backgroundColor: Colors.white,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi)
             ),
           ),
         ],
@@ -295,48 +264,22 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Widget _buildHeroImage(String url, Size size) {
     return Container(
       height: size.height * 0.25, width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 250),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 20, spreadRadius: 2)],
-          border: Border.all(color: Colors.white, width: 5)
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: CachedNetworkImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
-          fadeInDuration: const Duration(milliseconds: 500),
-          placeholder: (context, url) => Container(
-            color: Colors.grey[50],
-            child: Center(
-              child: Icon(Icons.image_rounded, color: Colors.blue[100], size: 50)
-                  .animate(onPlay: (c) => c.repeat())
-                  .shimmer(duration: 1500.ms, color: Colors.white)
-                  .scale(duration: 1000.ms, begin: const Offset(0.8, 0.8), end: const Offset(1.1, 1.1)),
-            ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: Colors.grey[100],
-            child: const Icon(Icons.broken_image, color: Colors.grey),
-          ),
-        ),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white, width: 5)),
+      child: ClipRRect(borderRadius: BorderRadius.circular(25), child: CachedNetworkImage(imageUrl: url, fit: BoxFit.cover)),
     );
   }
 
   Widget _buildQuestionCard(String text, Size size) {
     return Container(
       width: double.infinity, padding: EdgeInsets.all(size.width * 0.05),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]),
-      child: Text(text, textAlign: TextAlign.center, style: TextStyle(fontSize: size.width > 600 ? 20 : 17, fontWeight: FontWeight.w800, color: AppColors.yaziRengi, height: 1.4)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+      child: Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.yaziRengi)),
     );
   }
 
   Widget _buildAnimatedOption(int index, Map secenek, Size size) {
     bool isSelected = _secilenIndeks == index;
     bool isCorrect = secenek['dogru'] == true;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -348,20 +291,16 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             color: isSelected ? (isCorrect ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE)) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: isSelected ? (isCorrect ? Colors.green : Colors.redAccent) : Colors.grey.withOpacity(0.1), width: 2),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
           ),
           child: Row(
             children: [
               CircleAvatar(
-                radius: 16,
-                backgroundColor: isSelected ? (isCorrect ? Colors.green : Colors.redAccent) : AppColors.anaMavi.withOpacity(0.1),
-                child: Text(String.fromCharCode(65 + index), style: TextStyle(color: isSelected ? Colors.white : AppColors.anaMavi, fontWeight: FontWeight.bold)),
+                  radius: 16,
+                  backgroundColor: isSelected ? (isCorrect ? Colors.green : Colors.redAccent) : AppColors.anaMavi.withOpacity(0.1),
+                  child: Text(String.fromCharCode(65 + index), style: TextStyle(color: isSelected ? Colors.white : AppColors.anaMavi, fontWeight: FontWeight.bold))
               ),
               const SizedBox(width: 15),
-              Expanded(
-                child: Text(secenek['metin'],
-                    style: TextStyle(fontSize: size.width > 600 ? 18 : 15, fontWeight: FontWeight.w700, color: isSelected ? (isCorrect ? Colors.green[800] : Colors.red[800]) : AppColors.yaziRengi)),
-              ),
+              Expanded(child: Text(secenek['metin'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.yaziRengi))),
               if (isSelected) Icon(isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded, color: isCorrect ? Colors.green : Colors.redAccent),
             ],
           ),
@@ -370,9 +309,10 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
-  // Yanlış cevap verildiğinde açılan pencere
   void _showFeedback(String mesaj) {
-    if (_sesAcik) _flutterTts.speak(mesaj);
+    // Hatalı cevap verildiğinde feedback metni de seslendirilir.
+    if (_sesAcik) _ttsService.speak(mesaj);
+
     showModalBottomSheet(
       context: context, isDismissible: false, enableDrag: false, backgroundColor: Colors.transparent,
       builder: (c) => Container(
@@ -383,14 +323,16 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           children: [
             const Icon(Icons.lightbulb_circle_rounded, color: Colors.orangeAccent, size: 70),
             const SizedBox(height: 15),
-            const Text("KÜÇÜK BİR İPUCU", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppColors.yaziRengi)),
-            const SizedBox(height: 10),
             Text(mesaj, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.blueGrey)),
             const SizedBox(height: 30),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 5),
-              onPressed: () { Navigator.pop(c); _sonraki(); },
-              child: const Text("ANLADIM, DEVAM ET!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+              onPressed: () {
+                _ttsService.stop(); // Kapatınca sesi durdur
+                Navigator.pop(c);
+                _sonraki();
+              },
+              child: const Text("ANLADIM, DEVAM ET!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -398,144 +340,45 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
-  // Bölüm sonunda başarı oranını hesaplayan ve verileri senkronize eden fonksiyon
   void _sonucGoster() async {
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
 
-    if (basarili) {
-      await _bolumuTamamlaVeSenkronizeEt();
-    }
+    if (basarili) await _bolumuTamamlaVeSenkronizeEt();
 
     if (!mounted) return;
-    showDialog(
-      context: context, barrierDismissible: false,
-      builder: (c) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Text(basarili ? "MÜKEMMEL! 🏆" : "TEKRAR DENE! 💪", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-            const SizedBox(height: 20),
-            _buildResultStat("Başarı Oranın", "%${oran.toInt()}"),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: basarili ? Colors.green : AppColors.anaMavi,
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-              ),
-              onPressed: () {
-                Navigator.pop(c);
-                Navigator.pop(context);
-              },
-              child: Text(basarili ? "BİTİR" : "TEKRAR DENE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          ],
-        ),
-      ),
-    );
+
+    showDialog(context: context, barrierDismissible: false, builder: (c) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(basarili ? "MÜKEMMEL! 🏆" : "TEKRAR DENE! 💪", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+        const SizedBox(height: 30),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: basarili ? Colors.green : AppColors.anaMavi, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+          onPressed: () { Navigator.pop(c); Navigator.pop(context); },
+          child: Text(basarili ? "BİTİR" : "TEKRAR DENE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        )
+      ]),
+    ));
   }
 
-  // Puan hesaplar, tamamlanan bölümleri günceller ve yeni rozet kazanılıp kazanılmadığını kontrol eder
   Future<void> _bolumuTamamlaVeSenkronizeEt() async {
     if (_currentUser == null) return;
-    final String uid = _currentUser!.uid;
-    final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
-
+    final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid);
     try {
       final userSnap = await progressRef.get();
       Map<String, dynamic> userData = userSnap.exists ? (userSnap.data() as Map<String, dynamic>) : {};
-
       List bitti = List.from(userData['tamamlanan_bolumler'] ?? []);
-      List bilinenDedektifSorulari = List.from(userData['bilinen_dedektif_sorulari'] ?? []);
-      List okunanHikayeler = List.from(userData['okunan_hikayeler'] ?? []);
-      List mevcutRozetler = List.from(userData['rozetler'] ?? []);
-
       String buBolumId = "${widget.docId}_${widget.bolumIndex}";
-
-      if (!bitti.contains(buBolumId)) {
-        bitti.add(buBolumId);
-      }
-
-      // Dinamik Puan Hesaplama Mantığı
-      int senaryoSayisi = bitti.where((id) => !id.toString().contains("siber_dedektif") && !id.toString().contains("ayak_izi_temizligi")).length;
-      int senaryoPuani = senaryoSayisi * 100;
-      int dedektifPuani = bilinenDedektifSorulari.length * 20;
-      int hikayePuani = okunanHikayeler.length * 10;
-      int yeniToplamPuan = senaryoPuani + dedektifPuani + hikayePuani;
-
-      // Rozet Kazanma Kontrolü: Puan veya tamamlanan senaryo sayısına göre
-      final badgesSnap = await FirebaseFirestore.instance.collection('badges').get();
-      List<String> yeniKazanilanlar = [];
-      int benzersizSenaryoSayisi = bitti.map((id) => id.toString().split('_').first).toSet().length;
-
-      for (var doc in badgesSnap.docs) {
-        if (mevcutRozetler.contains(doc.id)) continue;
-        final bData = doc.data();
-        final String tip = bData['kriter_tipi']?.toString() ?? "";
-        final dynamic rawHedef = bData['hedef_deger'];
-        int hedef = 9999;
-        if (rawHedef is num) hedef = rawHedef.toInt();
-        else if (rawHedef is String) hedef = int.tryParse(rawHedef) ?? 9999;
-
-        bool kazandiMi = false;
-        if (tip == "puan" && yeniToplamPuan >= hedef) kazandiMi = true;
-        else if (tip == "senaryo_sayisi" && (bitti.length >= hedef || benzersizSenaryoSayisi >= hedef)) kazandiMi = true;
-
-        if (kazandiMi) yeniKazanilanlar.add(doc.id);
-      }
-
-      // Firestore Veri Güncelleme
-      Map<String, dynamic> updateData = {
-        'tamamlanan_bolumler': bitti,
-        'toplam_puan': yeniToplamPuan,
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      };
-
-      if (yeniKazanilanlar.isNotEmpty) {
-        updateData['rozetler'] = FieldValue.arrayUnion(yeniKazanilanlar);
-      }
-
-      await progressRef.set(updateData, SetOptions(merge: true));
-
-      if (yeniKazanilanlar.isNotEmpty && mounted) {
-        _yeniRozetBildirimi(yeniKazanilanlar.length);
-      }
-
-    } catch (e) {
-      debugPrint("Senkronizasyon hatası: $e");
-    }
-  }
-
-  Widget _buildResultStat(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: const TextStyle(fontWeight: FontWeight.w600)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi, fontSize: 18))],
-      ),
-    );
-  }
-
-  // Yeni rozet kazanıldığında ekranın altında çıkan bilgilendirme mesajı
-  void _yeniRozetBildirimi(int adet) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("TEBRİKLER! $adet YENİ ROZET KAZANDIN! 🏆"),
-      backgroundColor: Colors.orangeAccent,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      duration: const Duration(seconds: 4),
-    ));
+      if (!bitti.contains(buBolumId)) bitti.add(buBolumId);
+      await progressRef.set({'tamamlanan_bolumler': bitti, 'sonGuncelleme': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    } catch (e) { debugPrint("Senkronizasyon hatası: $e"); }
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
-    _flutterTts.stop();
+    _ttsService.stop(); // Ekrandan çıkınca sesin kesilmesini garanti eder.
     super.dispose();
   }
 }
