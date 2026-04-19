@@ -332,6 +332,8 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(basarili ? "MÜKEMMEL! 🏆" : "TEKRAR DENE! 💪", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+        const SizedBox(height: 10),
+        Text("$_dogruCevapSayisi / ${_sorular.length} Doğru Cevap", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
         const SizedBox(height: 30),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: basarili ? Colors.green : AppColors.anaMavi, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
@@ -350,16 +352,18 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     try {
       final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
       final userSnap = await progressRef.get();
+      
+      // Dinamik Puan Hesaplama: Doğru Cevap Sayısı * 20
+      int toplamKazanilanPuan = _dogruCevapSayisi * 20;
 
       if (userSnap.exists) {
         List bitti = List.from(userSnap.data()?['tamamlanan_bolumler'] ?? []);
         if (!bitti.contains(buBolumId)) {
-          // Eğer bölüm ilk kez tamamlanıyorsa puan ver ve listeye ekle
-          await _analyticsService.bolumTamamla(uid, 100, buBolumId);
+          // Eğer bölüm ilk kez tamamlanıyorsa dinamik puanı ver
+          await _analyticsService.bolumTamamla(uid, toplamKazanilanPuan, buBolumId);
         }
       } else {
-        // Eğer kullanıcı progress dökümanı yoksa (yeni kayıt gibi)
-        await _analyticsService.bolumTamamla(uid, 100, buBolumId);
+        await _analyticsService.bolumTamamla(uid, toplamKazanilanPuan, buBolumId);
       }
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
