@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
 
 class HikayeDetayEkrani extends StatefulWidget {
@@ -114,7 +113,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 250,
+            expandedHeight: 320,
             pinned: true,
             backgroundColor: widget.temaRengi,
             actions: [
@@ -125,16 +124,21 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
               const SizedBox(width: 10),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(gradient: LinearGradient(colors: [widget.temaRengi, widget.temaRengi.withOpacity(0.7)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-                child: Center(
-                  child: Hero(
-                    tag: widget.baslik,
-                    child: widget.gorselYolu.startsWith("http")
-                        ? Image.network(widget.gorselYolu, height: 140)
-                        : Image.asset(widget.gorselYolu, height: 140, errorBuilder: (c,e,s) => const Icon(Icons.book, size: 80, color: Colors.white)),
-                  ),
-                ),
+              background: Hero(
+                tag: widget.baslik,
+                child: widget.gorselYolu.startsWith("http")
+                    ? Image.network(
+                        widget.gorselYolu,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        widget.gorselYolu,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          color: widget.temaRengi,
+                          child: const Icon(Icons.book, size: 80, color: Colors.white),
+                        ),
+                      ),
               ),
             ),
           ),

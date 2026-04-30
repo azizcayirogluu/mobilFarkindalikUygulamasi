@@ -53,20 +53,25 @@ class _GirisEkraniState extends State<GirisEkrani> {
             (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      // Firebase'den dönen hata kodlarına göre kullanıcıya dostça mesajlar verir
-      if (e.code == 'user-not-found') {
-        _mesajGoster(
-          "Böyle bir kahraman bulamadık! Önce kayıt olmalısın. 😊",
-          isError: true,
-        );
-      } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        _mesajGoster(
-          "Hatalı PIN kodu Veya Şifre! Lütfen Tekrar dene. 🔐",
-          isError: true,
-        );
-      } else {
-        _mesajGoster("Giriş Hatası: ${e.message}", isError: true);
+      String mesaj = "Giriş yapılamadı kahraman! ✨";
+      switch (e.code) {
+        case 'user-not-found':
+          mesaj = "Böyle bir kullanıcı henüz kayıtlarda yok! Önce kayıt olmalısın. 😊";
+          break;
+        case 'wrong-password':
+        case 'invalid-credential':
+          mesaj = "Girdiğin PIN kodu yanlış! Lütfen tekrar dene. 🔐";
+          break;
+        case 'network-request-failed':
+          mesaj = "İnternet sinyalin biraz zayıf gibi, bağlantını kontrol eder misin? 🌐";
+          break;
+        case 'too-many-requests':
+          mesaj = "Çok fazla deneme yaptın! Güvenlik için biraz bekle. 🛡️";
+          break;
+        default:
+          mesaj = "Küçük bir aksilik oldu ama biz kahramanız, pes etmeyiz! Tekrar dene. 💪";
       }
+      _mesajGoster(mesaj, isError: true);
     } catch (e) {
       _mesajGoster("Giriş yapılamadı. İnternetini kontrol et!", isError: true);
     } finally {

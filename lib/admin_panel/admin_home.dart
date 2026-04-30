@@ -15,8 +15,9 @@ import 'package:zorbalik_uygulamasi/admin_panel/video_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/user_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/detective_manager.dart';
 
-// Çıkış yaptıktan sonra yönlendirilecek giriş/karşılama ekranı
+// Gerekli ekran yönlendirmeleri
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
+import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 
 // Stateful widget → çünkü sayfa değiştikçe UI güncelleniyor
 class AdminHome extends StatefulWidget {
@@ -32,12 +33,12 @@ class _AdminHomeState extends State<AdminHome> {
 
   // Sağ tarafta gösterilecek sayfalar listesi
   final List<Widget> _pages = [
-    const DashboardPage(),       // 0 → Ana dashboard
-    const ScenarioManager(),     // 1 → Senaryo yönetimi
-    const StoryManager(),        // 2 → Hikaye yönetimi
-    const VideoManager(),        // 3 → Video yönetimi
-    const UserManager(),         // 4 → Kullanıcı yönetimi
-    const DetectiveManager(),    // 5 → Dedektif soruları
+    const DashboardPage(), // 0 → Ana dashboard
+    const ScenarioManager(), // 1 → Senaryo yönetimi
+    const StoryManager(), // 2 → Hikaye yönetimi
+    const VideoManager(), // 3 → Video yönetimi
+    const UserManager(), // 4 → Kullanıcı yönetimi
+    const DetectiveManager(), // 5 → Dedektif soruları
   ];
 
   @override
@@ -55,13 +56,17 @@ class _AdminHomeState extends State<AdminHome> {
 
             // Sidebar görünüm ayarları
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: const Color(0xFF0F172A).withOpacity(0.15),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
                 ),
               ],
             ),
@@ -85,14 +90,23 @@ class _AdminHomeState extends State<AdminHome> {
                       _sidebarItem(0, Icons.grid_view_rounded, "Genel Merkez"),
                       _sidebarItem(1, Icons.map_rounded, "Senaryo Akışı"),
                       _sidebarItem(2, Icons.book_rounded, "Hikaye Arşivi"),
-                      _sidebarItem(3, Icons.play_circle_outline, "Eğitim Videoları"),
+                      _sidebarItem(
+                        3,
+                        Icons.play_circle_outline,
+                        "Eğitim Videoları",
+                      ),
                       _sidebarItem(4, Icons.group_outlined, "Kullanıcılar"),
-                      _sidebarItem(5, Icons.search_rounded, "Dedektif Soruları"),
+                      _sidebarItem(
+                        5,
+                        Icons.search_rounded,
+                        "Dedektif Soruları",
+                      ),
                     ],
                   ),
                 ),
 
                 _buildAdminProfile(), // Admin bilgisi (altta)
+                _buildGoToAppButton(), // Uygulamaya git butonu
                 _buildLogoutButton(), // Çıkış butonu
               ],
             ),
@@ -185,10 +199,22 @@ class _AdminHomeState extends State<AdminHome> {
 
         // Seçili item arka planı değişir
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.08)
-              : Colors.transparent,
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    const Color(0xFF6366F1).withOpacity(0.15),
+                    const Color(0xFF4338CA).withOpacity(0.05),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
           borderRadius: BorderRadius.circular(15),
+          border: isSelected
+              ? Border(
+                  left: BorderSide(color: const Color(0xFF6366F1), width: 4),
+                )
+              : null,
         ),
 
         child: Row(
@@ -197,12 +223,12 @@ class _AdminHomeState extends State<AdminHome> {
             Icon(
               icon,
               color: isSelected
-                  ? AppColors.anaMavi
-                  : Colors.white.withOpacity(0.4),
-              size: 20,
+                  ? const Color(0xFF818CF8)
+                  : Colors.white.withOpacity(0.5),
+              size: 22,
             ),
 
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
             // Yazı rengi ve bold durumu değişir
             Text(
@@ -210,23 +236,12 @@ class _AdminHomeState extends State<AdminHome> {
               style: TextStyle(
                 color: isSelected
                     ? Colors.white
-                    : Colors.white.withOpacity(0.4),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    : Colors.white.withOpacity(0.6),
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 fontSize: 14,
+                letterSpacing: 0.3,
               ),
             ),
-
-            // Seçili item'in en sağına küçük dot ekler
-            if (isSelected) const Spacer(),
-            if (isSelected)
-              Container(
-                width: 4,
-                height: 4,
-                decoration: const BoxDecoration(
-                  color: AppColors.anaMavi,
-                  shape: BoxShape.circle,
-                ),
-              ),
           ],
         ),
       ),
@@ -276,6 +291,33 @@ class _AdminHomeState extends State<AdminHome> {
     );
   }
 
+  // Uygulamaya dön butonu
+  Widget _buildGoToAppButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const AnaNavigation()),
+            (route) => false,
+          );
+        },
+        icon: const Icon(Icons.apps_rounded, size: 18),
+        label: const Text("UYGULAMAYA GİT"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.anaMavi,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 45),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
   // Çıkış butonu
   Widget _buildLogoutButton() {
     return Padding(
@@ -293,7 +335,7 @@ class _AdminHomeState extends State<AdminHome> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const HomePages()),
-                (r) => false,
+            (r) => false,
           );
         },
 

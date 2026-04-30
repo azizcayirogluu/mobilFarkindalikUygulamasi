@@ -6,6 +6,7 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/admin_home.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/notification_service.dart';
 import 'guvenlik_rehberi_ekrani.dart';
 import 'hakkinda_ekrani.dart';
 
@@ -27,6 +28,37 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   bool bildirimlerAcik = true;
   bool _isDeleting = false;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+  final NotificationService _notificationService = NotificationService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkNotificationStatus();
+  }
+
+  Future<void> _checkNotificationStatus() async {
+    // Burada ileride cihaz izin durumuna göre switch'i güncelleyebiliriz
+    // Şimdilik varsayılan true kalsın.
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    setState(() => bildirimlerAcik = value);
+    if (value) {
+      await _notificationService.initialize();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bildirimler başarıyla açıldı! 🔔")),
+        );
+      }
+    } else {
+      // Bildirimleri kapatma mantığı (Token temizleme vb.) eklenebilir.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bildirimler kapatıldı.")),
+        );
+      }
+    }
+  }
 
   Future<void> _cikisYap() async {
     bool? onay = await _onayDiyalogu("Oturumu Kapat", "Kahramanlık görevine ara vermek mi istiyorsun? 👋", "Evet, Çıkış Yap", AppColors.anaMavi);
@@ -226,7 +258,12 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
         leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (color ?? AppColors.anaMavi).withOpacity(0.08), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color ?? AppColors.anaMavi, size: 22)),
         title: Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: color)),
-        trailing: isSwitch ? Switch(value: bildirimlerAcik, onChanged: (v) => setState(() => bildirimlerAcik = v), activeColor: AppColors.anaMavi) : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+        trailing: isSwitch
+            ? Switch(
+                value: bildirimlerAcik,
+                onChanged: _toggleNotifications,
+                activeColor: AppColors.anaMavi)
+            : const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
         onTap: onTap ?? (isSwitch ? null : () {}),
       ),
       if (!isLast) Divider(height: 1, indent: 70, endIndent: 30, color: Colors.grey.shade100),

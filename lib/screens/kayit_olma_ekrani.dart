@@ -86,12 +86,21 @@ class _KayitEkraniState extends State<KayitEkrani> {
       // Kayıt başarılıysa geri dönülemez şekilde ana navigasyon ekranına yönlendirir
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AnaNavigation()), (route) => false);
     } on FirebaseAuthException catch (e) {
-      // Firebase özel hata mesajlarını kullanıcıya dostça iletir
-      if (e.code == 'email-already-in-use') {
-        _mesajGoster("Bu kullanıcı adı zaten alınmış! Başka bir tane dene. ✨", isError: true);
-      } else {
-        _mesajGoster("Hata: ${e.message}", isError: true);
+      String mesaj = "Kayıt yapılamadı! ✨";
+      switch (e.code) {
+        case 'email-already-in-use':
+          mesaj = "Bu kahraman adı çoktan kapılmış! 🚀";
+          break;
+        case 'network-request-failed':
+          mesaj = "İnternet sinyalin biraz zayıf gibi, bağlantını kontrol eder misin? 🌐";
+          break;
+        case 'too-many-requests':
+          mesaj = "Çok fazla deneme yaptın! Güvenlik için biraz dinlenip tekrar gel. 🛡️";
+          break;
+        default:
+          mesaj = "Küçük bir aksilik oldu! Tekrar dene. 💪";
       }
+      _mesajGoster(mesaj, isError: true);
     } catch (e) {
       _mesajGoster("Bir hata oluştu, internetini kontrol eder misin? 🌐", isError: true);
     } finally {

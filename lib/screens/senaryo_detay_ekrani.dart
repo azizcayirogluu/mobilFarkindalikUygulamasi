@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
 import 'package:zorbalik_uygulamasi/services/tts_service.dart';
+import 'package:zorbalik_uygulamasi/services/ai_analysis_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SenaryoDetayEkrani extends StatefulWidget {
@@ -21,6 +22,7 @@ class SenaryoDetayEkrani extends StatefulWidget {
 class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProviderStateMixin {
   final TtsService _ttsService = TtsService();
   final AnalyticsService _analyticsService = AnalyticsService();
+  final AiAnalysisService _aiAnalysisService = AiAnalysisService();
   late ConfettiController _confettiController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -31,6 +33,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   bool _isLoading = true;
   bool _sesAcik = false;
   int _dogruCevapSayisi = 0;
+  int _currentReadingSession = 0; // Seslendirme çakışmalarını önlemek için session ID
 
   @override
   void initState() {
@@ -42,16 +45,26 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Future<void> _soruyuVeSecenekleriSeslendir(Map soruData) async {
     if (!_sesAcik || !mounted) return;
 
-    await _ttsService.speak(soruData['soru'] ?? "");
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final sessionId = ++_currentReadingSession;
 
+    // Önce tüm metni tek bir paket yapalım
+    String tamMetin = "${soruData['soru']}. ";
     List secenekler = soruData['secenekler'] ?? [];
+
     for (int i = 0; i < secenekler.length; i++) {
-      if (!_sesAcik || _cevapVerildiMi || !mounted) break;
       String harf = String.fromCharCode(65 + i);
-      String secenekMetni = "$harf şıkkı. ${secenekler[i]['metin']}";
-      await _ttsService.speak(secenekMetni);
-      await Future.delayed(const Duration(milliseconds: 700));
+      tamMetin += "$harf şıkkı: ${secenekler[i]['metin']}. ";
+    }
+
+    try {
+      // Session kontrolü: Eğer bu sırada başka bir soruya geçildiyse okuma
+      if (_currentReadingSession != sessionId) return;
+
+      // Tek bir istek, tek bir uzun ses dosyası
+      await _ttsService.speak(tamMetin);
+
+    } catch (e) {
+      debugPrint("Seslendirme hatası: $e");
     }
   }
 
@@ -86,6 +99,13 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             _isLoading = false;
           });
 
+          // Fotoğrafları arka planda önceden yükle (Precache)
+          for (var s in hazirSorular) {
+            if (s['imageUrl'] != null && s['imageUrl'].toString().isNotEmpty) {
+              precacheImage(CachedNetworkImageProvider(s['imageUrl']), context);
+            }
+          }
+
           if (_sorular.isNotEmpty && _sesAcik) {
             _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
           }
@@ -97,7 +117,15 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       }
     } catch (e) {
       debugPrint("Veri yükleme hatası: $e");
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text("Görev dosyaları yolda bir yerlerde takıldı! Sayfayı yenileyerek tekrar çağıralım mı? 🔄", style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.blueAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ));
+      }
     }
   }
 
@@ -117,20 +145,28 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (mounted) _sonraki();
       });
     } else {
-      if (_currentUser != null) _analyticsService.hataKaydet(_currentUser!.uid);
+      if (_currentUser != null) {
+        _analyticsService.hataKaydet(_currentUser!.uid);
+        _aiAnalysisService.logMistake(_currentUser!.uid, "Senaryo Hatası: ${_sorular[_currentIndex]['soru']} (Seçtiği cevap: ${secenek['metin']})");
+      }
       _showFeedback(secenek['feedback'] ?? "Harika bir denemeydi ama bu doğru yol değil...");
     }
   }
 
   void _sonraki() {
+    _currentReadingSession++; // Önceki session'ı geçersiz kıl
     _ttsService.stop();
+
     if (_currentIndex < _sorular.length - 1) {
       setState(() {
         _currentIndex++;
         _cevapVerildiMi = false;
         _secilenIndeks = null;
       });
-      if (_sesAcik) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+      // Kısa bir gecikme ver ki UI güncellensin, sonra oku
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_sesAcik && mounted) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+      });
     } else {
       _sonucGoster();
     }
@@ -252,9 +288,27 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
   Widget _buildHeroImage(String url, Size size) {
     return Container(
-      height: size.height * 0.25, width: double.infinity,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white, width: 5)),
-      child: ClipRRect(borderRadius: BorderRadius.circular(25), child: CachedNetworkImage(imageUrl: url, fit: BoxFit.cover, placeholder: (context, url) => const Center(child: CircularProgressIndicator()))),
+      height: size.height * 0.25,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white, width: 5),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          memCacheWidth: 800, // Bellek verimliliği ve hız için genişliği sınırla
+          maxWidthDiskCache: 1200, // Disk önbelleği için kaliteyi koru
+          fadeInDuration: const Duration(milliseconds: 500),
+          placeholder: (context, url) => Container(
+            color: Colors.grey[200],
+          ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1500.ms),
+          errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.grey),
+        ),
+      ),
     );
   }
 
@@ -326,22 +380,139 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   void _sonucGoster() async {
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
+
     if (basarili) await _bolumuTamamlaVeSenkronizeEt();
     if (!mounted) return;
-    showDialog(context: context, barrierDismissible: false, builder: (c) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(basarili ? "MÜKEMMEL! 🏆" : "TEKRAR DENE! 💪", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-        const SizedBox(height: 10),
-        Text("$_dogruCevapSayisi / ${_sorular.length} Doğru Cevap", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 30),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: basarili ? Colors.green : AppColors.anaMavi, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-          onPressed: () { Navigator.pop(c); Navigator.pop(context); },
-          child: Text(basarili ? "BİTİR" : "TEKRAR DENE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        )
-      ]),
-    ));
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: basarili
+                  ? [Colors.green.shade400, Colors.green.shade700]
+                  : [Colors.blue.shade400, Colors.blue.shade700],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              /// 🏆 İKON
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.white,
+                child: Icon(
+                  basarili ? Icons.emoji_events : Icons.refresh,
+                  size: 45,
+                  color: basarili ? Colors.orange : Colors.blue,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              /// 🎉 BAŞLIK
+              Text(
+                basarili ? "LEVEL TAMAMLANDI!" : "HADİ BİR DAHA!",
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 10),
+
+              /// 💬 ALT MESAJ
+              Text(
+                basarili
+                    ? "Harika gidiyorsun! 🚀"
+                    : "Denemeye devam et, başaracaksın! 💪",
+                style: const TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 20),
+
+              /// 📊 PUAN KARTI
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    _statItem("Doğru", _dogruCevapSayisi, Colors.green),
+                    _statItem("Yanlış",
+                        _sorular.length - _dogruCevapSayisi, Colors.red),
+                    _statItem(
+                        "Puan", oran.toStringAsFixed(0), Colors.orange),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// 🚀 BUTON
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(c);
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
+                  style: TextStyle(
+                    color: basarili ? Colors.green : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 📊 Küçük stat widgetı
+  Widget _statItem(String title, dynamic value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              "$value",
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        ],
+      ),
+    );
   }
 
   Future<void> _bolumuTamamlaVeSenkronizeEt() async {

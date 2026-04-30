@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
+import 'package:zorbalik_uygulamasi/services/ai_analysis_service.dart';
 
 class SiberDedektifOyunu extends StatefulWidget {
   const SiberDedektifOyunu({super.key});
@@ -17,10 +18,11 @@ class SiberDedektifOyunu extends StatefulWidget {
 class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   late ConfettiController _confettiController;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+  final AiAnalysisService _aiAnalysisService = AiAnalysisService();
 
   List<Map<String, dynamic>> _soruHavuzu = [];
   int _currentIndex = 0;
-  int _kazanilanPuan = 0; 
+  int _kazanilanPuan = 0;
   bool _oyunBitti = false;
   bool _isLoading = true;
   bool _isProcessing = false;
@@ -78,25 +80,14 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         finalSet.add(tehlikeliListesi.removeAt(0));
       }
 
-      List<Map<String, dynamic>> kalanlar = [...guvenliListesi, ...tehlikeliListesi];
-      kalanlar.shuffle();
-      while (finalSet.length < 5 && kalanlar.isNotEmpty) {
-        finalSet.add(kalanlar.removeAt(0));
-      }
-
       finalSet.shuffle();
 
       setState(() {
         _soruHavuzu = finalSet;
-        if (_soruHavuzu.isEmpty && _bilinenSoruIds.isNotEmpty) {
-          _bilinenSoruIds.clear();
-          _verileriYukle();
-          return;
-        }
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint("Veri yükleme hatası: $e");
+      debugPrint("Hata: $e");
       setState(() => _isLoading = false);
     }
   }
@@ -106,10 +97,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       case 'vpn_key': return Icons.vpn_key_rounded;
       case 'thumb_up': return Icons.thumb_up_rounded;
       case 'location_off': return Icons.location_off_rounded;
-      case 'group_remove': return Icons.group_remove_rounded;
-      case 'school': return Icons.school_rounded;
-      case 'security': return Icons.security_rounded;
-      case 'warning': return Icons.warning_amber_rounded;
       default: return Icons.help_outline_rounded;
     }
   }
@@ -122,7 +109,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
   void _kararVer(String karar) {
     if (_isProcessing || _oyunBitti || _soruHavuzu.isEmpty) return;
-
     setState(() => _isProcessing = true);
 
     final mevcutSoru = _soruHavuzu[_currentIndex];
@@ -132,12 +118,16 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       _kazanilanPuan += 20;
       _bilinenSoruIds.add(mevcutSoru["id"]);
       _confettiController.play();
-      _showFeedback(true, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
     } else {
-      _showFeedback(false, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
+      if (_currentUser != null) {
+        // Hatalı cevapta yapay zekanın analizi için soruyu kaydediyoruz.
+        _aiAnalysisService.logMistake(_currentUser!.uid, "Dedektif Oyunu Hatası: ${mevcutSoru["metin"]}");
+      }
     }
 
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    _showFeedback(dogruMu, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
+
+    Future.delayed(const Duration(milliseconds: 2200), () {
       if (mounted) {
         setState(() {
           _isProcessing = false;
@@ -153,7 +143,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   }
 
   void _showFeedback(bool isCorrect, String msg, IconData icon) {
-    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -163,10 +152,10 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             Expanded(child: Text(isCorrect ? "HARİKA! $msg" : "DİKKAT! $msg")),
           ],
         ),
-        backgroundColor: isCorrect ? Colors.green : Colors.redAccent,
-        duration: const Duration(seconds: 2),
+        backgroundColor: isCorrect ? Colors.green.shade600 : Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -174,16 +163,8 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   Future<void> _verileriSenkronizeEt() async {
     if (_currentUser == null) return;
     try {
-      final String uid = _currentUser!.uid;
-      final ref = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
-      
-      // 1. PUANI GÜNCELLE VE ROZET KONTROLÜ TETİKLE
-      if (_kazanilanPuan > 0) {
-        await AnalyticsService().aktiviteGuncelle(uid, _kazanilanPuan);
-      }
-
-      // 2. SADECE Bilinen sorular listesini güncelle (tamamlanan_bolumler listesine ARTIK eklenmiyor)
-      await ref.update({
+      await AnalyticsService().aktiviteGuncelle(_currentUser!.uid, _kazanilanPuan);
+      await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).update({
         'bilinen_dedektif_sorulari': _bilinenSoruIds,
         'sonGuncelleme': FieldValue.serverTimestamp(),
       });
@@ -195,230 +176,225 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F7FF),
+      backgroundColor: const Color(0xFFF4F9FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.anaMavi),
+          icon: const Icon(Icons.close_rounded, color: AppColors.anaMavi, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("SİBER DEDEKTİF", style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, letterSpacing: 1.2)),
+        title: const Text("SİBER DEDEKTİF",
+            style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, letterSpacing: 1.5)),
         centerTitle: true,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(color: Colors.amber.withOpacity(0.2), borderRadius: BorderRadius.circular(15)),
-            child: Row(
-              children: [
-                const Icon(Icons.stars_rounded, color: Colors.orange, size: 20),
-                const SizedBox(width: 4),
-                Text("$_kazanilanPuan", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-              ],
-            ),
-          )
-        ],
       ),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _soruHavuzu.isEmpty
-                ? _buildEmptyState()
-                : Stack(
-                    children: [
-                      if (!_oyunBitti) _buildGameArea() else _buildResultArea(),
-                      Align(
-                        alignment: Alignment.topCenter,
-                        child: ConfettiWidget(
-                          confettiController: _confettiController,
-                          blastDirectionality: BlastDirectionality.explosive,
-                          colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.pink],
-                        ),
-                      ),
-                    ],
-                  ),
+            ? _buildEmptyState()
+            : _oyunBitti ? _buildResultArea() : _buildGameLayout(),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(30.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildGameLayout() {
+    final soru = _soruHavuzu[_currentIndex];
+    return Stack(
+      children: [
+        Column(
           children: [
-            const Icon(Icons.auto_awesome, size: 100, color: Colors.amber).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
-            const SizedBox(height: 25),
-            const Text("TÜM GİZEMLER ÇÖZÜLDÜ!", textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
-            const SizedBox(height: 15),
-            const Text("Harika bir iş çıkardın dedektif!", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
-            const SizedBox(height: 40),
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("AKADEMİYE DÖN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-            )
+            // İlerleme Barı
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("DAVA İLERLEMESİ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 11)),
+                      Text("${_currentIndex + 1}/${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(
+                      value: (_currentIndex + 1) / _soruHavuzu.length,
+                      backgroundColor: Colors.white,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
+                      minHeight: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            // Kart Alanı
+            Draggable(
+              feedback: Material(color: Colors.transparent, child: _buildCard(soru, opacity: 0.8)),
+              childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
+              onDragEnd: (details) {
+                if (details.offset.dx < -100) _kararVer("TEHLİKELİ");
+                else if (details.offset.dx > 100) _kararVer("GÜVENLİ");
+              },
+              child: _buildCard(soru),
+            ).animate().slideY(begin: 0.2, duration: 600.ms, curve: Curves.easeOutBack).fadeIn(),
+            const Spacer(),
+            // Butonlar
+            Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _actionButton("TEHLİKELİ", const Color(0xFFFF5252), Icons.gpp_bad_rounded),
+                  _actionButton("GÜVENLİ", const Color(0xFF4CAF50), Icons.verified_user_rounded),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGameArea() {
-    final soru = _soruHavuzu[_currentIndex];
-    return LayoutBuilder(builder: (context, constraints) {
-      return SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: IntrinsicHeight(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("DAVA İLERLEMESİ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12)),
-                          Text("${_currentIndex + 1}/${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: (_currentIndex + 1) / _soruHavuzu.length,
-                          backgroundColor: Colors.white,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
-                          minHeight: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Expanded(child: SizedBox(height: 20)),
-                Draggable(
-                  feedback: Material(color: Colors.transparent, child: _buildCard(soru, opacity: 0.8)),
-                  childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
-                  onDragEnd: (details) {
-                    if (details.offset.dx < -80) _kararVer("TEHLİKELİ");
-                    else if (details.offset.dx > 80) _kararVer("GÜVENLİ");
-                  },
-                  child: _buildCard(soru),
-                ).animate().slideY(begin: 0.1, duration: 500.ms).fadeIn(),
-                const Expanded(child: SizedBox(height: 20)),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 0, 30, 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _actionButton("TEHLİKELİ", const Color(0xFFFF5252), Icons.report_gmailerrorred_rounded),
-                      _actionButton("GÜVENLİ", const Color(0xFF4CAF50), Icons.verified_user_rounded),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            colors: const [Colors.green, Colors.blue, Colors.yellow, Colors.orange],
           ),
         ),
-      );
-    });
+      ],
+    );
   }
 
   Widget _buildCard(Map<String, dynamic> soru, {double opacity = 1.0}) {
     final size = MediaQuery.of(context).size;
     return Container(
-      width: size.width * 0.82,
-      height: size.height * 0.40,
-      constraints: const BoxConstraints(minHeight: 300, maxHeight: 400),
+      width: size.width * 0.88,
+      constraints: BoxConstraints(
+        minHeight: size.height * 0.35,
+        maxHeight: size.height * 0.52,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(opacity),
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(45),
         boxShadow: [
-          BoxShadow(color: AppColors.anaMavi.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: AppColors.anaMavi.withOpacity(0.12), blurRadius: 40, offset: const Offset(0, 20)),
         ],
-        border: Border.all(color: Colors.white, width: 6),
+        border: Border.all(color: AppColors.anaMavi.withOpacity(0.15), width: 8),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(color: AppColors.anaMavi.withOpacity(0.05), shape: BoxShape.circle),
-            child: const Icon(Icons.search_rounded, size: 50, color: AppColors.anaMavi),
-          ),
-          const SizedBox(height: 15),
-          const Text("GİZEMLİ MESAJ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 12, letterSpacing: 2, decoration: TextDecoration.none)),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Text(
-                  soru["metin"],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2D3142), height: 1.3, decoration: TextDecoration.none, fontFamily: 'Roboto'),
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(37),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -30, top: -30,
+              child: Icon(Icons.search_rounded, size: 180, color: AppColors.anaMavi.withOpacity(0.03)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(15)),
+                    child: Text("GİZEMLİ MESAJ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.amber.shade900, fontSize: 11, letterSpacing: 1)),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Text(
+                          soru["metin"],
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1D2E),
+                            height: 1.4,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Kaydırma İpucu Animasyonu
+                  Icon(Icons.keyboard_double_arrow_down_rounded, color: AppColors.anaMavi.withOpacity(0.3), size: 30)
+                      .animate(onPlay: (c) => c.repeat())
+                      .moveY(begin: 0, end: 10, duration: 1.seconds, curve: Curves.easeInOut)
+                      .fadeIn(),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _actionButton(String label, Color color, IconData icon) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: () => _kararVer(label),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
             ),
-            child: Icon(icon, color: Colors.white, size: 30),
+            child: Icon(icon, color: Colors.white, size: 35),
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1, decoration: TextDecoration.none)),
+        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 2.seconds),
+        const SizedBox(height: 12),
+        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, decoration: TextDecoration.none)),
       ],
     );
   }
 
   Widget _buildResultArea() {
     return Center(
-      child: SingleChildScrollView(
+      child: Padding(
         padding: const EdgeInsets.all(30.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.stars_rounded, size: 100, color: Colors.orangeAccent).animate().scale(duration: 600.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 25),
-            const Text("DOSYA KAPANDI!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
+            const Icon(Icons.stars_rounded, size: 120, color: Colors.orangeAccent).animate().scale(duration: 800.ms, curve: Curves.bounceOut),
+            const SizedBox(height: 20),
+            const Text("GÖREV TAMAMLANDI!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
             const SizedBox(height: 10),
-            Text("Harika dedektiflik yaptın!\nBu görevden $_kazanilanPuan puan topladın.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+            Text("Harika bir dedektifsin!\n$_kazanilanPuan Puan kazandın.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: Colors.blueGrey, fontWeight: FontWeight.w600)),
             const SizedBox(height: 40),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.anaMavi,
-                  minimumSize: const Size(double.infinity, 60),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+                backgroundColor: AppColors.anaMavi,
+                minimumSize: const Size(double.infinity, 65),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                elevation: 10,
               ),
               onPressed: () => Navigator.pop(context),
-              child: const Text("DEVAM ET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              child: const Text("AKADEMİYE DÖN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.verified_rounded, size: 100, color: Colors.green).animate().shake(),
+          const SizedBox(height: 20),
+          const Text("HİÇ GİZEM KALMADI!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
+          const SizedBox(height: 40),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri Dön", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+        ],
       ),
     );
   }

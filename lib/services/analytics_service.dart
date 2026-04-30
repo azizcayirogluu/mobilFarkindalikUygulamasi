@@ -19,9 +19,22 @@ class AnalyticsService {
       else if (gorevTipi == 'video') listeAdi = 'izlenen_videolar';
       else if (gorevTipi == 'dedektif') listeAdi = 'bilinen_dedektif_sorulari';
 
+      // Basit Algoritma: Kazanılan puana göre becerileri orantısal/rastgele artır
+      // Amacımız 0-100 arasında organik bir büyüme sağlamak. (Max değer UI tarafında 100'e sabitlenecektir)
+      int eklenecekEmpati = (puan * 0.3).ceil() + (DateTime.now().millisecond % 3);
+      int eklenecekDikkat = (puan * 0.4).ceil() + (DateTime.now().millisecond % 2);
+      int eklenecekYardim = (puan * 0.3).ceil() + (DateTime.now().millisecond % 4);
+
       await ref.set({
         'toplam_puan': FieldValue.increment(puan),
         if (listeAdi.isNotEmpty) listeAdi: FieldValue.arrayUnion([gorevId]),
+        'istatistikler': {
+          'karar_yapisi': {
+            'empati': FieldValue.increment(eklenecekEmpati),
+            'dikkat': FieldValue.increment(eklenecekDikkat),
+            'yardim': FieldValue.increment(eklenecekYardim),
+          }
+        },
         'sonGuncelleme': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 

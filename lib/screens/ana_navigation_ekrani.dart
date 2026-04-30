@@ -5,7 +5,7 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_ekran.dart';
 import 'package:zorbalik_uygulamasi/screens/egitim_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/profil_ekrani.dart';
-import 'package:zorbalik_uygulamasi/screens/SiberAsistanEkrani.dart';
+import 'package:zorbalik_uygulamasi/screens/siber_asistan_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/rozet_listeleme_ekrani.dart';
 
 class AnaNavigation extends StatefulWidget {

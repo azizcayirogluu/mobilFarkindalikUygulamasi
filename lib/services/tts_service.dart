@@ -19,59 +19,46 @@ class TtsService {
 
   Future<void> speak(String metin, {String voiceName = "tr-TR-Wavenet-C"}) async {
     if (metin.isEmpty) return;
-    
-    if (_googleApiKey.isEmpty) {
-      debugPrint("HATA: Google Cloud API Key bulunamadı! .env dosyasını kontrol et.");
-      return;
-    }
 
     try {
       isSpeaking.value = true;
-      debugPrint("TTS Başlatılıyor: $metin");
+      // Mevcut çalma varsa durdur
+      await _audioPlayer.stop();
 
       String temizMetin = metin.replaceAll(RegExp(r'[*_#>]'), '');
-      
+
       final response = await http.post(
         Uri.parse('https://texttospeech.googleapis.com/v1/text:synthesize?key=$_googleApiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "input": {"text": temizMetin},
-          "voice": {
-            "languageCode": "tr-TR",
-            "name": voiceName, 
-            "ssmlGender": voiceName.contains("Wavenet-B") ? "MALE" : "FEMALE"
-          },
-          "audioConfig": {
-            "audioEncoding": "MP3",
-            "pitch": 0.0,
-            "speakingRate": 1.05
-          }
+          "voice": {"languageCode": "tr-TR", "name": voiceName},
+          "audioConfig": {"audioEncoding": "MP3", "speakingRate": 1.0}
         }),
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String audioContent = data['audioContent'];
-        final bytes = base64Decode(audioContent);
 
         if (kIsWeb) {
-          // WEB İÇİN: Data URI kullanarak çal
           await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse("data:audio/mp3;base64,$audioContent")));
         } else {
-          // MOBİL İÇİN: Dosyaya yazarak çal
           final dir = await getTemporaryDirectory();
-          final file = File('${dir.path}/tts_cache.mp3');
-          await file.writeAsBytes(bytes);
+          final file = File('${dir.path}/tts_cache_${DateTime.now().millisecondsSinceEpoch}.mp3');
+          await file.writeAsBytes(base64Decode(audioContent));
           await _audioPlayer.setFilePath(file.path);
         }
-        
+
+        // Sesin bitmesini beklemek için kesin yöntem
         await _audioPlayer.play();
-        debugPrint("Ses başarıyla çalınıyor.");
-      } else {
-        debugPrint("API HATASI: ${response.statusCode} - ${response.body}");
+
+        // Ses bitene kadar burada bekle (Akışı bloklar, böylece ekran tarafındaki await çalışır)
+        await _audioPlayer.playerStateStream.firstWhere((state) =>
+        state.processingState == ProcessingState.completed);
       }
     } catch (e) {
-      debugPrint("TTS SERVİS KRİTİK HATA: $e");
+      debugPrint("TTS HATA: $e");
     } finally {
       isSpeaking.value = false;
     }
