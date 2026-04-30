@@ -1,6 +1,3 @@
-<img width="1080" height="2400" alt="acil-durum-ekranı" src="https://github.com/user-attachments/assets/8bea390b-7f99-480a-9bb4-c4f62efeb4b1" /><img width="1080" height="2400" alt="kullanıcı-rozet-ekranı" src="https://github.com/user-attachments/assets/3c11a795-85bc-4a54-bc3a-ee4e414a116c" /><div align="center">
-  <img src="https://cdn-icons-png.flaticon.com/512/1028/1028923.png" width="120" height="120" alt="Siber Dost Logo" />
-
   # 🛡️ Siber Dost: Yapay Zeka Destekli Farkındalık Platformu
   ### Akran, Siber ve Psikolojik Zorbalığa Karşı Akıllı & Empatik Dijital Rehber
   
