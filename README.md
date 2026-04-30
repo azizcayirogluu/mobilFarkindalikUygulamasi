@@ -58,7 +58,7 @@ Proje, sürdürülebilirlik ve test edilebilirlik için **Clean Architecture** p
 <div align="center">
   <table border="0">
     <tr>
-      <td><img src="https://github.com/user-attachments/assets/bc573b26-e6f6-4222-aae2-37b820d23933" width="250" alt="Ana Sayfa" /></td>
+      <td><img src=""C:\Users\azizc\OneDrive\Masaüstü\uygulama-ana-ekran.png"" width="250" alt="Ana Sayfa" /></td>
       <td><img src="https://github.com/user-attachments/assets/38554ad7-1339-4009-9032-887d974d67f4" width="250" alt="Siber Asistan" /></td>
     </tr>
     <tr>
