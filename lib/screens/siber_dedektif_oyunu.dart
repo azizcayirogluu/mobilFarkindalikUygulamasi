@@ -303,28 +303,27 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
                   const SizedBox(height: 20),
                   Expanded(
                     child: Center(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Text(
-                          soru["metin"],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1D2E),
-                            height: 1.4,
-                            decoration: TextDecoration.none,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          ),
+                          child: Text(
+                            soru["metin"],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1A1D2E),
+                              height: 1.4,
+                              decoration: TextDecoration.none,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Kaydırma İpucu Animasyonu
-                  Icon(Icons.keyboard_double_arrow_down_rounded, color: AppColors.anaMavi.withOpacity(0.3), size: 30)
-                      .animate(onPlay: (c) => c.repeat())
-                      .moveY(begin: 0, end: 10, duration: 1.seconds, curve: Curves.easeInOut)
-                      .fadeIn(),
                 ],
               ),
             ),

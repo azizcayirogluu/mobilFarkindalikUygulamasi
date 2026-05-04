@@ -20,7 +20,7 @@ class AiAnalysisService {
     }
   }
 
-  /// Yapay zekaya (Siber Asistan) beslemek üzere kullanıcının son hatalarını getirir.
+  /// Yapay zekaya vermek üzere kullanıcının son hatalarını getirir.
   Future<List<String>> getMistakes(String uid) async {
     try {
       final docSnap = await _firestore.collection('usersProgress').doc(uid).get();

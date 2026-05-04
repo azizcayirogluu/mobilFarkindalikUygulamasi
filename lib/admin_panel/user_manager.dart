@@ -655,24 +655,7 @@ class _UserManagerState extends State<UserManager> {
     );
   }
 
-  Widget _statusBadge(String t, Color c) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(
-          color: c,
-          fontWeight: FontWeight.w900,
-          fontSize: 9,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
+
 
   Widget _infoBadge(String t, Color c) {
     return Container(

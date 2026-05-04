@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 
-// Uygulama genelinde kullanılan renklerin merkezi bir noktadan yönetilmesini sağlar.
+//Uygulama genelinde kullanılan renkler
 class AppColors {
   static const Color anaMavi = Color(0xFF4A90E2);
   static const Color accentMavi = Color(0xFF00D2FF);
   static const Color yaziRengi = Color(0xFF2C3E50);
 
-  // Başarı, uyarı ve farklı oyun/eğlence modları için kullanılır.
+  // Başarı, uyarı ve farklı modlar için kullanılır.
   static const Color basariYesili = Color(0xFF7ED321);
   static const Color uyariTuruncusu = Color(0xFFF5A623);
   static const Color eglencePembesi = Color(0xFFFF4081);

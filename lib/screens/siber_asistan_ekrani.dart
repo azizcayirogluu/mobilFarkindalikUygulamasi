@@ -171,13 +171,24 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   Future<void> _mesajKaydet(Map<String, String> mesaj) async {
     if (_currentUser == null) return;
     try {
-      await FirebaseFirestore.instance
+      final docRef = FirebaseFirestore.instance
           .collection('usersProgress')
-          .doc(_currentUser!.uid)
-          .update({
-            'sohbet_gecmisi': FieldValue.arrayUnion([mesaj]),
-            'son_mesaj_tarihi': FieldValue.serverTimestamp(),
-          });
+          .doc(_currentUser!.uid);
+
+      // Sohbet geçmişini son 50 mesajla sınırla (Firestore kota koruması + Gemini token limiti)
+      const int maxMesaj = 50;
+      if (_mesajlar.length > maxMesaj) {
+        // Tüm listeyi güncelle, sadece son 50'yi tut
+        await docRef.update({
+          'sohbet_gecmisi': _mesajlar.sublist(_mesajlar.length - maxMesaj),
+          'son_mesaj_tarihi': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await docRef.update({
+          'sohbet_gecmisi': FieldValue.arrayUnion([mesaj]),
+          'son_mesaj_tarihi': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       debugPrint("Kayıt hatası: $e");
     }

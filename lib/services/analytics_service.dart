@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class AnalyticsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -19,8 +20,7 @@ class AnalyticsService {
       else if (gorevTipi == 'video') listeAdi = 'izlenen_videolar';
       else if (gorevTipi == 'dedektif') listeAdi = 'bilinen_dedektif_sorulari';
 
-      // Basit Algoritma: Kazanılan puana göre becerileri orantısal/rastgele artır
-      // Amacımız 0-100 arasında organik bir büyüme sağlamak. (Max değer UI tarafında 100'e sabitlenecektir)
+      // Kazanılan puana göre becerileri orantısal/rastgele artır
       int eklenecekEmpati = (puan * 0.3).ceil() + (DateTime.now().millisecond % 3);
       int eklenecekDikkat = (puan * 0.4).ceil() + (DateTime.now().millisecond % 2);
       int eklenecekYardim = (puan * 0.3).ceil() + (DateTime.now().millisecond % 4);
@@ -40,11 +40,9 @@ class AnalyticsService {
 
       await rozetKontrolEt(uid);
     } catch (e) {
-      print("Görev Tamamlama Hatası: $e");
+      debugPrint("Görev Tamamlama Hatası: $e");
     }
   }
-
-  // --- EKRANLARIN BEKLEDİĞİ METODLAR (Hataları Gideren Kısım) ---
 
   Future<void> bolumTamamla(String uid, int puan, String bolumId) async {
     await gorevTamamla(uid: uid, puan: puan, gorevId: bolumId, gorevTipi: 'senaryo');
@@ -61,7 +59,7 @@ class AnalyticsService {
         'istatistikler': {'toplam_sure_dk': FieldValue.increment(dakika)},
         'sonGuncelleme': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-    } catch (e) { print("Süre Ekleme Hatası: $e"); }
+    } catch (e) { debugPrint("Süre Ekleme Hatası: $e"); }
   }
 
   // -------------------------------------------------------------
@@ -103,7 +101,7 @@ class AnalyticsService {
         });
       }
     } catch (e) {
-      print("Rozet Sistemi Hatası: $e");
+      debugPrint("Rozet Sistemi Hatası: $e");
     }
   }
 
@@ -113,6 +111,6 @@ class AnalyticsService {
         'istatistikler': {'hatali_cevaplar': FieldValue.increment(1)},
         'sonGuncelleme': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-    } catch (e) { print(e); }
+    } catch (e) { debugPrint("Hata Kaydetme Hatası: $e"); }
   }
 }
