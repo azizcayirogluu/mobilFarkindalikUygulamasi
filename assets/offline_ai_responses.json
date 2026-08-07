@@ -1,0 +1,119 @@
+{
+  "default": "Şu an internete bağlı değiliz ama unutma: internet dünyasında en önemli şey saygı, güvenlik ve kendini korumaktır. Rahatsız olduğun bir durum varsa bunu mutlaka güvendiğin bir yetişkinle paylaşmalısın.",
+  "rules": [
+    {
+      "keywords": [
+        "şifre",
+        "parola",
+        "password",
+        "login",
+        "giriş"
+      ],
+      "response": "Şifreler senin dijital anahtarların gibidir. Onları asla arkadaşlarınla veya tanımadığın kişilerle paylaşma. Şifreni güçlü tutmak için harf, sayı ve sembol kullanabilirsin."
+    },
+    {
+      "keywords": [
+        "kötü söz",
+        "küfür",
+        "hakaret",
+        "alay",
+        "dalga",
+        "ezik",
+        "aşağılama"
+      ],
+      "response": "Kötü sözler başkalarını incitebilir. İnternette yazdığın her şey kalıcı olabilir. Bu yüzden her zaman nazik ve saygılı olmaya çalış. Başkalarını üzmek yerine destek olmak daha değerlidir."
+    },
+    {
+      "keywords": [
+        "resim",
+        "fotoğraf",
+        "video",
+        "gönder",
+        "paylaş",
+        "kamera"
+      ],
+      "response": "Fotoğraf ve videolarını paylaşmadan önce iki kez düşünmelisin. Bir kez internete düşen içerik tamamen silinmeyebilir. Sadece güvendiğin kişilerle ve ailenin izniyle paylaşım yap."
+    },
+    {
+      "keywords": [
+        "tehdit",
+        "korku",
+        "vururum",
+        "öldürürüm",
+        "döverim",
+        "zarar veririm"
+      ],
+      "response": "Tehdit içeren sözler hem gerçek hayatta hem internette çok ciddi sonuçlar doğurabilir. Böyle bir durumla karşılaşırsan hemen bir yetişkine haber vermelisin ve karşılık vermekten kaçınmalısın."
+    },
+    {
+      "keywords": [
+        "tanımadığım",
+        "yabancı",
+        "buluşmak",
+        "hediye",
+        "adres",
+        "numara"
+      ],
+      "response": "Tanımadığın kişilerle internette konuşmak riskli olabilir. Sana hediye göndermek veya buluşmak isteyen biri olursa mutlaka ailene veya öğretmenine söyle."
+    },
+    {
+      "keywords": [
+        "zorbalık",
+        "zorbalanıyorum",
+        "rahatsız ediyor",
+        "dalga geçiyor"
+      ],
+      "response": "Eğer biri seni rahatsız ediyorsa bu senin suçun değildir. Böyle durumlarda yalnız kalmamalı, güvendiğin bir yetişkine durumu anlatmalısın. Ekran görüntüsü almak da yardımcı olabilir."
+    },
+    {
+      "keywords": [
+        "arkadaş",
+        "grup",
+        "sohbet",
+        "chat",
+        "mesaj"
+      ],
+      "response": "İnternette arkadaşlık kurarken dikkatli olmalısın. Herkese güvenmek doğru değildir. Gerçek hayatta tanıdığın kişilerle iletişim kurmak her zaman daha güvenlidir."
+    },
+    {
+      "keywords": [
+        "oyun",
+        "game",
+        "free fire",
+        "roblox",
+        "minecraft"
+      ],
+      "response": "Oyun oynarken eğlenmek önemlidir ama yabancı kişilerden gelen mesajlara dikkat etmelisin. Sana hile, ödül veya hediye teklif eden kişilere güvenme."
+    },
+    {
+      "keywords": [
+        "link",
+        "tıkla",
+        "kazandın",
+        "ödül",
+        "bedava"
+      ],
+      "response": "Bilinmeyen linklere tıklamak tehlikeli olabilir. Sana 'hediye kazandın' gibi mesajlar gelirse mutlaka bir yetişkine danış."
+    },
+    {
+      "keywords": [
+        "özel bilgi",
+        "kimlik",
+        "okul",
+        "adres",
+        "telefon"
+      ],
+      "response": "Kişisel bilgilerini (adres, telefon, okul gibi) internet ortamında paylaşmamalısın. Bu bilgiler sadece senin ve ailenin bilmesi gereken özel bilgilerdir."
+    },
+    {
+      "keywords": [
+        "kamera",
+        "mikrofon",
+        "izliyor",
+        "hack",
+        "hesap çalındı"
+      ],
+      "response": "Hesabının güvende olması için güçlü şifreler kullanmalı ve şüpheli durumlarda hemen şifreni değiştirmelisin. Tanımadığın uygulamalara izin vermemelisin."
+    }
+  ]
+}

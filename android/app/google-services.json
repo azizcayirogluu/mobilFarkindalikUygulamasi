@@ -7,15 +7,18 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:610579116609:android:4536b4cc1cc2ce6e844cc0",
+        "mobilesdk_app_id": "1:610579116609:android:c20e4d5a4578da15844cc0",
         "android_client_info": {
-          "package_name": "com.example.zorbalik_uygulamasi"
+          "package_name": "com.siberkahramanapp.zorbalik"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyCPKt4kqHvzKLBuxsbpF4qd1NQTRd_XcWY"
+        },
+        {
+          "current_key": "AIzaSyBtWjm0WNP1LewIRngJro6rI3glzJ4fMO0"
         }
       ],
       "services": {

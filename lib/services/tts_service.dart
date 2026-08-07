@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class TtsService {
   static final TtsService _instance = TtsService._internal();
@@ -12,11 +12,15 @@ class TtsService {
   TtsService._internal();
 
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final String _googleApiKey = dotenv.env['GOOGLE_CLOUD_TTS_KEY'] ?? "";
+
+  // Cloud Function referansı (API anahtarı sunucuda)
+  final HttpsCallable _ttsFn =
+      FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('textToSpeech');
 
   final ValueNotifier<bool> isSpeaking = ValueNotifier<bool>(false);
-  File?
-  _lastTempFile; // Son oluşturulan geçici dosyayı takip eder (bellek yönetimi)
+  File? _lastTempFile;
+  StreamSubscription? _playerStateSubscription;
 
   Future<void> speak(
     String metin, {
@@ -25,69 +29,72 @@ class TtsService {
     if (metin.isEmpty) return;
 
     try {
-      isSpeaking.value = true;
-      // Mevcut çalma varsa durdur
+      // 1. Concurrency Safety: Önceki dinleyiciyi iptal et ve çalan sesi durdur
+      await _playerStateSubscription?.cancel();
       await _audioPlayer.stop();
+      isSpeaking.value = true;
 
       String temizMetin = metin.replaceAll(RegExp(r'[*_#>]'), '');
 
-      final response = await http
-          .post(
-            Uri.parse(
-              'https://texttospeech.googleapis.com/v1/text:synthesize?key=$_googleApiKey',
-            ),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              "input": {"text": temizMetin},
-              "voice": {"languageCode": "tr-TR", "name": voiceName},
-              "audioConfig": {"audioEncoding": "MP3", "speakingRate": 1.0},
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      // Cloud Function çağrısı
+      final result = await _ttsFn.call({
+        'metin': temizMetin,
+        'voiceName': voiceName,
+      });
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final String audioContent = data['audioContent'];
-
-        if (kIsWeb) {
-          await _audioPlayer.setAudioSource(
-            AudioSource.uri(Uri.parse("data:audio/mp3;base64,$audioContent")),
-          );
-        } else {
-          // Önceki geçici dosyayı temizle (depolama şişmesini önler)
-          if (_lastTempFile != null && await _lastTempFile!.exists()) {
-            await _lastTempFile!.delete();
-          }
-          final dir = await getTemporaryDirectory();
-          final file = File(
-            '${dir.path}/tts_cache_${DateTime.now().millisecondsSinceEpoch}.mp3',
-          );
-          await file.writeAsBytes(base64Decode(audioContent));
-          _lastTempFile = file;
-          await _audioPlayer.setFilePath(file.path);
-        }
-
-        // Sesin bitmesini beklemek için kesin yöntem
-        await _audioPlayer.play();
-
-        // Ses bitene kadar burada bekle (Akışı bloklar, böylece ekran tarafındaki await çalışır)
-        await _audioPlayer.playerStateStream.firstWhere(
-          (state) => state.processingState == ProcessingState.completed,
-        );
+      final String audioContent = result.data['audioContent'] ?? '';
+      if (audioContent.isEmpty) {
+        isSpeaking.value = false;
+        return;
       }
+
+      if (kIsWeb) {
+        await _audioPlayer.setAudioSource(
+          AudioSource.uri(Uri.parse("data:audio/mp3;base64,$audioContent")),
+        );
+      } else {
+        // Önceki geçici dosyayı güvenle temizle
+        if (_lastTempFile != null && await _lastTempFile!.exists()) {
+          try {
+            await _lastTempFile!.delete();
+          } catch (_) {}
+        }
+        final dir = await getTemporaryDirectory();
+        final file = File(
+          '${dir.path}/tts_cache_${DateTime.now().millisecondsSinceEpoch}.mp3',
+        );
+        await file.writeAsBytes(base64Decode(audioContent));
+        _lastTempFile = file;
+        await _audioPlayer.setFilePath(file.path);
+      }
+
+      await _audioPlayer.play();
+
+      // 2. Memory & Event Safety: Engelleyici firstWhere yerine abonelik (StreamSubscription) yönetimi
+      _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          isSpeaking.value = false;
+          _playerStateSubscription?.cancel();
+        }
+      });
+
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint("TTS Cloud Function Hatası: ${e.code} - ${e.message}");
+      isSpeaking.value = false;
     } catch (e) {
       debugPrint("TTS HATA: $e");
-    } finally {
       isSpeaking.value = false;
     }
   }
 
   Future<void> stop() async {
+    await _playerStateSubscription?.cancel();
     await _audioPlayer.stop();
     isSpeaking.value = false;
   }
 
   void dispose() {
+    _playerStateSubscription?.cancel();
     _audioPlayer.dispose();
   }
 }

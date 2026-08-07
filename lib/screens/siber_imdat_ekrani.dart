@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'olay_bildir_ekrani.dart';
 
 class SiberImdatEkrani extends StatefulWidget {
   const SiberImdatEkrani({super.key});
@@ -15,16 +16,49 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     {"baslik": "Ekran görüntüsü (kanıt) aldım", "tamamlandi": false},
     {"baslik": "Zorbalık yapanı hemen engelledim", "tamamlandi": false},
     {"baslik": "Güvendiğim bir büyüğüme anlattım", "tamamlandi": false},
-    {"baslik": "Siber Asistan ile durumu paylaştım", "tamamlandi": false},
+    {"baslik": "Kahraman Rehberim ile durumu paylaştım", "tamamlandi": false},
   ];
 
-  // Cihazın varsayılan telefon uygulamasını başlatır
-  Future<void> _ara(String num) async => await launchUrl(Uri.parse("tel:$num"));
+  // Cihazın varsayılan telefon uygulamasını güvenle başlatır
+  Future<void> _ara(String num) async {
+    try {
+      final Uri uri = Uri.parse("tel:$num");
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        _hataGoster("Bu cihaz telefon aramalarını desteklemiyor. 📞");
+      }
+    } catch (e) {
+      debugPrint("Arama başlatma hatası: $e");
+      _hataGoster("Arama yapılamadı.");
+    }
+  }
 
-  // Google Haritalar'ı harici uygulamada açarak en yakın yardım noktalarını aratır
+  // Google Haritalar'ı harici uygulamada güvenle açar
   Future<void> _haritaGit(String yer) async {
-    final url = "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(yer)}";
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    try {
+      final Uri uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(yer)}");
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _hataGoster("Harita açacak bir uygulama bulunamadı. 🗺️");
+      }
+    } catch (e) {
+      debugPrint("Harita açma hatası: $e");
+      _hataGoster("Harita açılamadı.");
+    }
+  }
+
+  void _hataGoster(String mesaj) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mesaj, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
   }
 
   @override
@@ -42,6 +76,8 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildEmergencySection(),
+                  const SizedBox(height: 25),
+                  _buildReportActionCard(), // Yeni buton buraya eklendi
                   const SizedBox(height: 30),
                   _buildSectionTitle("YARDIM NOKTALARI"),
                   const SizedBox(height: 15),
@@ -97,6 +133,42 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
         Expanded(child: _buildPanicCapsule("183", "DESTEK HATTI", const Color(0xFFF39C12), Icons.support_agent_rounded)),
       ],
     );
+  }
+
+  Widget _buildReportActionCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OlayBildirEkrani())),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF3498DB), Color(0xFF2980B9)]),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              child: const Icon(Icons.edit_document, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 18),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("BAŞIMA BİR ŞEY GELDİ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                  SizedBox(height: 4),
+                  Text("Yaşadığın olayı anlat, sana yardım edelim.", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
+          ],
+        ),
+      ),
+    ).animate().scale(delay: 500.ms, duration: 400.ms, curve: Curves.easeOutBack);
   }
 
   // Acil durum butonları

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class StoryManager extends StatefulWidget {
   const StoryManager({super.key});
@@ -10,155 +10,110 @@ class StoryManager extends StatefulWidget {
 }
 
 class _StoryManagerState extends State<StoryManager> {
-  // Firestore veritabanı bağlantısı için kullanılan ana referans
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.zemin,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: 30),
-            _buildQuickStoryStats(),
-            const SizedBox(height: 25),
-
-            Expanded(
-              // StreamBuilder: 'stories' koleksiyonundaki verileri canlı olarak dinler, veri değişirse ekranı anında yeniler
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('stories').snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  final docs = snapshot.data!.docs;
-
-                  if (docs.isEmpty) return _buildEmptyState();
-
-                  // Verileri 3 sütunlu bir Grid (Izgara) yapısında ekrana dizer
-                  return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      final data = docs[index].data() as Map<String, dynamic>;
-                      final docId = docs[index].id;
-
-                      return _buildStoryCard(docId, data);
-                    },
-                  );
-                },
-              ),
-            ),
+            _buildProHeader(),
+            const SizedBox(height: 40),
+            Expanded(child: _buildStoryGrid()),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildProHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text("HİKAYE KÜTÜPHANESİ",
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
-          const Text("Eğitici hikayeleri ve içerik metinlerini buradan yönetin.",
-              style: TextStyle(color: Colors.blueGrey)),
-        ]),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Eğitici Hikaye Kütüphanesi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            Text("Çocukların okuma listesindeki içerikleri yönetin ve yeni öyküler ekleyin.", style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
+          ],
+        ),
         ElevatedButton.icon(
-          onPressed: () => _showStoryDialog(), // Yeni kayıt için dialoğu boş parametreyle açar
-          icon: const Icon(Icons.add_to_photos_rounded),
-          label: const Text("YENİ HİKAYE EKLE"),
+          onPressed: () => _showStoryEditor(),
+          icon: const Icon(Icons.add_photo_alternate_rounded),
+          label: const Text("YENİ ÖYKÜ KALEME AL"),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.uyariTuruncusu,
+            backgroundColor: const Color(0xFFF59E0B),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 22),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 5,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ],
     );
   }
 
-  // --- HİKAYE KARTLARI ---
-  Widget _buildStoryCard(String docId, Map<String, dynamic> data) {
-    // Veritabanındaki Hex formatındaki rengi Flutter'ın anlayacağı Color tipine çevirir
-    Color cardColor = _parseColor(data['temaRengi']);
+  Widget _buildStoryGrid() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('stories').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final docs = snapshot.data!.docs;
+        return GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, crossAxisSpacing: 20, mainAxisSpacing: 20, childAspectRatio: 0.9,
+          ),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            return _buildStoryCard(docs[index].id, data);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStoryCard(String id, Map<String, dynamic> data) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20)],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 5,
             child: Stack(
               children: [
-                Container(
+                SizedBox(
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: cardColor.withOpacity(0.1),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  // Görselin web adresi mi (http) yoksa uygulama içi dosya mı (asset) olduğunu kontrol eder
-                  child: data['gorselYolu'] != null && data['gorselYolu'].toString().isNotEmpty
-                      ? ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: data['gorselYolu'].toString().startsWith('http')
-                        ? Image.network(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40))
-                        : Image.asset(data['gorselYolu'], fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image_rounded, size: 40)),
-                  )
-                      : const Icon(Icons.auto_stories_rounded, size: 50, color: AppColors.uyariTuruncusu),
+                  child: data['gorselYolu']?.toString().startsWith('http') == true
+                      ? CachedNetworkImage(imageUrl: data['gorselYolu'], fit: BoxFit.cover, errorWidget: (c,u,e) => Container(color: Colors.grey.shade100))
+                      : Container(color: Colors.grey.shade100, child: const Icon(Icons.menu_book_rounded, color: Colors.grey, size: 50)),
                 ),
                 Positioned(
-                  top: 15, right: 15,
+                  top: 10, right: 10,
                   child: Row(
                     children: [
-                      // Düzenle butonu: Mevcut verileri dialogun içine gönderir
-                      _miniActionBtn(Icons.edit_rounded, Colors.blue, () => _showStoryDialog(docId: docId, existingData: data)),
+                      _miniCircleBtn(Icons.edit_note_rounded, Colors.blue, () => _showStoryEditor(docId: id, existingData: data)),
                       const SizedBox(width: 8),
-                      _miniActionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteStory(docId)),
+                      _miniCircleBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteStory(id)),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(data['baslik'] ?? "İsimsiz",
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.yaziRengi)),
-                  const SizedBox(height: 8),
-                  Text(data['feedbackMessage'] ?? "Geri bildirim mesajı bulunmuyor...",
-                      maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4)),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      const Icon(Icons.notes_rounded, size: 14, color: Colors.grey),
-                      const SizedBox(width: 5),
-                      Text("${(data['hikayeMetni'] ?? '').toString().split(' ').length} Kelime",
-                          style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
-                  )
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(data['baslik'] ?? "İsimsiz Öykü", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(data['feedbackMessage'] ?? "Dönüt mesajı yok.", maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12)),
+              ],
             ),
           ),
         ],
@@ -166,234 +121,86 @@ class _StoryManagerState extends State<StoryManager> {
     );
   }
 
-  // Güvenli Hex renk dönüşümü yapar
-  Color _parseColor(String? hexColor) {
-    if (hexColor == null || hexColor.isEmpty) return AppColors.uyariTuruncusu;
-    try {
-      String cleanHex = hexColor.replaceAll('#', '').replaceAll('0x', '');
-      if (cleanHex.length == 6) cleanHex = 'FF$cleanHex';
-      return Color(int.parse('0x$cleanHex'));
-    } catch (e) {
-      return AppColors.uyariTuruncusu;
-    }
+  Widget _miniCircleBtn(IconData i, Color c, VoidCallback o) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)]),
+      child: IconButton(onPressed: o, icon: Icon(i, color: c, size: 18), constraints: const BoxConstraints(), padding: const EdgeInsets.all(8)),
+    );
   }
 
-  // Hem ekleme hem de güncelleme için kullanılan ortak Dialog fonksiyonu
-  void _showStoryDialog({String? docId, Map<String, dynamic>? existingData}) {
-    // Eğer data varsa içini doldurur, yoksa boş (null) bırakır
-    final tC = TextEditingController(text: existingData?['baslik']);
-    final mC = TextEditingController(text: existingData?['hikayeMetni']);
-    final iC = TextEditingController(text: existingData?['gorselYolu']);
-    final rC = TextEditingController(text: existingData?['temaRengi'] ?? '0xFFFFB74D');
-    final fC = TextEditingController(text: existingData?['feedbackMessage']);
+  void _showStoryEditor({String? docId, Map<String, dynamic>? existingData}) {
+    final titleC = TextEditingController(text: existingData?['baslik']);
+    final contentC = TextEditingController(text: existingData?['hikayeMetni'] ?? existingData?['icerik']);
+    final imageC = TextEditingController(text: existingData?['gorselYolu']);
+    final feedbackC = TextEditingController(text: existingData?['feedbackMessage']);
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        child: Container(
-          width: 900, height: 800,
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            children: [
-              _buildDialogHeader(docId == null ? "Yeni Hikaye Oluştur" : "Hikayeyi Güncelle"),
-              const SizedBox(height: 24),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        children: [
-                          _buildField(tC, "Hikaye Başlığı", Icons.title_rounded),
-                          const SizedBox(height: 15),
-                          _buildField(iC, "Görsel Yolu (Asset veya URL)", Icons.image_search_rounded),
-                          const SizedBox(height: 15),
-                          _buildField(rC, "Tema Rengi (Hex Örn: 0xFF2196F3)", Icons.palette_rounded),
-                          const SizedBox(height: 15),
-                          _buildField(fC, "Geri Bildirim Mesajı", Icons.feedback_rounded),
-                          const SizedBox(height: 20),
-                          _buildImagePreview(iC), // Yazılan linkteki görseli anlık gösterir
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 30),
-                    Expanded(
-                      flex: 3,
-                      child: _buildRichTextField(mC), // Hikaye içeriği için geniş alan
-                    ),
-                  ],
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(docId == null ? "Yeni Öykü Kaleme Al" : "Öyküyü Düzenle", style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: 600,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: titleC, decoration: const InputDecoration(labelText: "Öykü Başlığı", hintText: "Örn: Cesur Kaplumbağa")),
+                const SizedBox(height: 10),
+                TextField(controller: imageC, decoration: const InputDecoration(labelText: "Görsel URL (Opsiyonel)", hintText: "https://... ")),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: contentC, 
+                  maxLines: 8, 
+                  decoration: const InputDecoration(
+                    labelText: "Hikaye Metni", 
+                    hintText: "Hikayeyi buraya yazın. Sayfalar için iki kez Enter (boş satır) bırakın.",
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  )
                 ),
-              ),
-              const SizedBox(height: 24),
-              _buildDialogActions(docId, tC, mC, iC, rC, fC),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- UI YARDIMCILARI ---
-  Widget _buildField(TextEditingController controller, String label, IconData icon) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label, prefixIcon: Icon(icon, color: AppColors.uyariTuruncusu),
-        filled: true, fillColor: AppColors.zemin.withOpacity(0.4),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-      ),
-    );
-  }
-
-  Widget _buildRichTextField(TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("HİKAYE METNİ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.2, color: Colors.blueGrey)),
-        const SizedBox(height: 10),
-        Expanded(
-          child: TextFormField(
-            controller: controller,
-            maxLines: null, expands: true,
-            textAlignVertical: TextAlignVertical.top,
-            decoration: InputDecoration(
-              hintText: "Hikayeyi buraya yazmaya başlayın...",
-              filled: true, fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.grey.shade200)),
+                const SizedBox(height: 10),
+                TextField(controller: feedbackC, decoration: const InputDecoration(labelText: "Kahraman Notu (Dönüt)", hintText: "Hikaye bitince verilecek ders...")),
+              ],
             ),
           ),
         ),
-      ],
-    );
-  }
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text("İptal")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white),
+            onPressed: () async {
+              final data = {
+                'baslik': titleC.text,
+                'hikayeMetni': contentC.text,
+                'gorselYolu': imageC.text,
+                'feedbackMessage': feedbackC.text,
+                'eklenmeTarihi': existingData?['eklenmeTarihi'] ?? FieldValue.serverTimestamp(),
+              };
 
-  Widget _buildQuickStoryStats() {
-    return Row(
-      children: [
-        _miniStatCard("Toplam Hikaye Sayısı ", "stories", Icons.auto_stories_rounded, AppColors.uyariTuruncusu),
-        const SizedBox(width: 15),
-      ],
-    );
-  }
-
-  // Firestore üzerindeki doküman sayısını gerçek zamanlı sayar
-  Widget _miniStatCard(String title, String collection, IconData icon, Color color, {bool isReadStat = false}) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection(collection).snapshots(),
-      builder: (context, snapshot) {
-        String val = "...";
-        if (snapshot.hasData) {
-          if (isReadStat) {
-            int total = 0;
-            for (var d in snapshot.data!.docs) {
-              final List okunanlar = (d.data() as Map<String, dynamic>)['okunan_hikayeler'] as List? ?? [];
-              total += okunanlar.length;
-            }
-            val = total.toString();
-          } else {
-            val = snapshot.data!.docs.length.toString();
-          }
-        }
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.1))),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 12),
-              Text("$title: ", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text(val, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 16)),
-            ],
+              if (docId == null) {
+                await _firestore.collection('stories').add(data);
+              } else {
+                await _firestore.collection('stories').doc(docId).update(data);
+              }
+              Navigator.pop(c);
+            },
+            child: const Text("Kütüphaneye Kaydet"),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _miniActionBtn(IconData icon, Color color, VoidCallback onTap) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: color, size: 18),
-      style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black26, elevation: 4),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.menu_book_rounded, size: 80, color: Colors.grey.shade300),
-        const Text("Henüz kütüphanede hikaye yok.", style: TextStyle(color: Colors.grey)),
-      ]),
-    );
-  }
-
-  Widget _buildDialogActions(String? docId, TextEditingController t, TextEditingController m, TextEditingController i, TextEditingController r, TextEditingController f) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Vazgeç", style: TextStyle(color: Colors.grey))),
-        const SizedBox(width: 15),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.uyariTuruncusu, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20)),
-          onPressed: () async {
-            final data = {
-              'baslik': t.text,
-              'hikayeMetni': m.text,
-              'gorselYolu': i.text,
-              'temaRengi': r.text,
-              'feedbackMessage': f.text
-            };
-            // Eğer docId varsa veriyi UPDATE eder, yoksa yeni doküman ADD eder
-            if (docId == null) await _firestore.collection('stories').add(data);
-            else await _firestore.collection('stories').doc(docId).update(data);
-            Navigator.pop(context);
-          },
-          child: const Text("HİKAYEYİ KAYDET", style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDialogHeader(String title) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-      const CloseButton(),
-    ]);
-  }
-
-  // Controller'ı dinleyerek URL kutusuna bir şey yazıldığında anında önizleme oluşturur
-  Widget _buildImagePreview(TextEditingController iC) {
-    return ValueListenableBuilder(
-        valueListenable: iC,
-        builder: (context, value, child) {
-          return Container(
-            height: 150, width: double.infinity,
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300, style: BorderStyle.none)),
-            child: iC.text.isNotEmpty
-                ? ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: iC.text.startsWith('http')
-                    ? Image.network(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Görsel Yüklenemedi")))
-                    : Image.asset(iC.text, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Text("Asset Bulunamadı")))
-            )
-                : const Center(child: Icon(Icons.image_outlined, color: Colors.grey, size: 40)),
-          );
-        }
-    );
-  }
-
-  // Firestore'daki dokümanı ID üzerinden siler
   void _deleteStory(String id) {
     showDialog(context: context, builder: (c) => AlertDialog(
-      title: const Text("Hikayeyi Sil"),
-      content: const Text("Bu hikaye kalıcı olarak silinecektir. Onaylıyor musunuz?"),
+      title: const Text("Öyküyü Sil"),
+      content: const Text("Bu öyküyü silmek istediğine emin misin?"),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: const Text("İptal")),
-        ElevatedButton(onPressed: () { _firestore.collection('stories').doc(id).delete(); Navigator.pop(c); }, child: const Text("Sil")),
+        TextButton(onPressed: () => Navigator.pop(c), child: const Text("Vazgeç")),
+        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
+            onPressed: () { _firestore.collection('stories').doc(id).delete(); Navigator.pop(c); }, 
+            child: const Text("SİL")),
       ],
     ));
   }

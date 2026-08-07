@@ -1,4 +1,4 @@
-package com.example.zorbalik_uygulamasi
+package com.siberkahramanapp.zorbalik
 
 import io.flutter.embedding.android.FlutterActivity
 

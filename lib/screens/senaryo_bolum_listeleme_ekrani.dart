@@ -16,6 +16,20 @@ class SenaryoBolumListelemeEkrani extends StatefulWidget {
 
 class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkrani> {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+  late Stream<DocumentSnapshot> _userProgressStream;
+  late Future<DocumentSnapshot> _userFuture;
+  late Stream<DocumentSnapshot> _scenarioStream;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_currentUser != null) {
+      final uid = _currentUser!.uid;
+      _userProgressStream = FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots();
+      _userFuture = FirebaseFirestore.instance.collection('users').doc(uid).get();
+      _scenarioStream = FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +37,11 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final String uid = _currentUser!.uid;
-
     return Scaffold(
       backgroundColor: AppColors.zemin,
       body: StreamBuilder<DocumentSnapshot>(
         // Kullanıcının ilerleme verilerini anlık olarak çeker
-        stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
+        stream: _userProgressStream,
         builder: (context, userProgressSnap) {
           List<String> tamamlananlar = [];
           if (userProgressSnap.hasData && userProgressSnap.data!.exists) {
@@ -39,7 +51,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
 
           return FutureBuilder<DocumentSnapshot>(
             // Kullanıcının yaş grubunu öğrenmek için profil verisini çeker
-              future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+              future: _userFuture,
               builder: (context, userSnap) {
                 if (userSnap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
@@ -50,7 +62,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
 
                 return StreamBuilder<DocumentSnapshot>(
                   // Seçilen kategoriye  ait bölümleri çeker
-                  stream: FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots(),
+                  stream: _scenarioStream,
                   builder: (context, scenarioSnapshot) {
                     if (scenarioSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                     if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) return const Center(child: Text("Görevler bulunamadı."));

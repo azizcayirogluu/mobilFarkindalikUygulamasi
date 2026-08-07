@@ -23,8 +23,22 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Gizli Anahtarlar (API Keys)
+# Gizli Anahtarlar ve Yapılandırmalar (Kritik Güvenlik)
 .env
+google-services.json
+GoogleService-Info.plist
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pubxml
+auth.json
+
+# Android Profiling/Signing
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/key.properties
 
 # Flutter/Dart/Pub related
 **/doc/api/

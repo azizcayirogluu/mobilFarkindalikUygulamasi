@@ -1,8 +1,10 @@
+import 'package:zorbalik_uygulamasi/injection_container.dart';
+import 'package:zorbalik_uygulamasi/services/storage_service.dart';
+import 'package:zorbalik_uygulamasi/services/ad_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:zorbalik_uygulamasi/services/tts_service.dart';
 import 'package:zorbalik_uygulamasi/services/ai_analysis_service.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
@@ -18,9 +20,13 @@ class SiberAsistanEkrani extends StatefulWidget {
 class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final TtsService _ttsService = TtsService();
-  final AiAnalysisService _aiAnalysisService = AiAnalysisService();
-  final User? _currentUser = FirebaseAuth.instance.currentUser;
+  final AdManager _adManager = AdManager();
+  bool _isAdReady = false;
+
+  // MERKEZİ SİSTEMDEN ÇEKİLEN SERVİSLER
+  final TtsService _ttsService = sl<TtsService>();
+  final AiAnalysisService _aiAnalysisService = sl<AiAnalysisService>();
+  final User? _currentUser = sl<FirebaseAuth>().currentUser;
 
   List<Map<String, String>> _mesajlar = [];
   bool _yukleniyor = false;
@@ -32,23 +38,63 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   String _kullaniciAdi = "Kahraman";
   String _yasGrubu = "6-12";
   List<String> _sonHatalar = [];
+  bool _isExempt = false; // Limitlerden muaf mı? (Admin/Premium)
 
   Color _seciliRenk = const Color(0xFF009688);
 
-  ChatSession? _chatSession;
-  GenerativeModel? _model;
+  // Cloud Functions referansı (API anahtarları sunucuda)
+  final HttpsCallable _geminiChatFn = FirebaseFunctions.instanceFor(
+    region: 'europe-west1',
+  ).httpsCallable('geminiChat');
 
   @override
   void initState() {
     super.initState();
     _verileriYukle();
+    _reklamYukle();
+  }
+
+  void _reklamYukle() {
+    _adManager.loadRewardedAd(onAdLoaded: () => setState(() => _isAdReady = true));
+  }
+
+  void _enerjiBittiUyarisi() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text("Enerjin Azaldı! ⚡", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("Kahraman Dostum ile daha fazla konuşmak için kısa bir video izleyip +5 enerji kazanmak ister misin? ✨"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Sonra")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _seciliRenk, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(context);
+              _adManager.showRewardedAd(
+                onUserEarnedReward: () async {
+                  await StorageService().addRewardedMessages(5);
+                  setState(() {});
+                  _showSnack("Harika! +5 Mesaj kazandın. 🎉");
+                },
+                onAdClosed: () => _reklamYukle(),
+              );
+            },
+            child: const Text("İzle ve Kazan! 🎬"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String m) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: _seciliRenk));
   }
 
   Future<void> _verileriYukle() async {
     if (_currentUser == null) return;
     try {
       final String uid = _currentUser!.uid;
-      final String _apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
 
       final results = await Future.wait([
         FirebaseFirestore.instance.collection('usersProgress').doc(uid).get(),
@@ -87,57 +133,12 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       }
 
       if (userDoc.exists) {
+        var uData = userDoc.data() as Map<String, dynamic>;
         setState(() {
-          _yasGrubu =
-              (userDoc.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
+          _yasGrubu = uData['yasGrubu'] ?? "6-12";
+          // Admin veya Premium olanlar limitlerden muaftır
+          _isExempt = uData['isAdmin'] == true || uData['isPremium'] == true;
         });
-      }
-
-      // Veriler yüklendikten sonra Modeli ve Sohbeti başlat
-      if (_apiKey.isEmpty) {
-        debugPrint("HATA: GEMINI_API_KEY .env dosyasında bulunamadı!");
-        _hataMesajiGoster("not found");
-      } else {
-        _model = GenerativeModel(
-          model: 'gemini-2.5-flash',
-          apiKey: _apiKey,
-          systemInstruction: Content.system(
-            "Adın Siber Dost. $_kullaniciAdi ile konuşuyorsun. "
-            "Yaş Grubu: $_yasGrubu, Puan: $_anlikPuan, Biten Görev: $_gorevSayisi, "
-            "Rozet: $_anlikRozet, Rütbe: ${_rutbeHesapla()}. "
-            "Kullanıcının son eğitimlerde yaptığı hatalar: ${_sonHatalar.isNotEmpty ? _sonHatalar.join(', ') : 'Yok'}. "
-            "Sohbet sırasında yeri gelirse bu konularda ona eğlenceli mentörlük yap. "
-            "Eğer kullanıcı fiziksel/psikolojik tehlikede olduğunu, siber zorbalığa veya şantaja uğradığını söylerse veya korkutucu bir durum seziyorsan, çok kısa sakinleştirici bir mesaj ver ve en sonuna tam olarak [TEHLIKE_TESPIT] yaz. "
-            "Cevapların 2 cümleyi asla geçmesin ve bol emoji kullan.",
-          ),
-        );
-
-        // Geçmişi temizle ve rollerin sırayla (user-model) gitmesini sağla
-        List<Content> cleanedHistory = [];
-        for (var m in _mesajlar) {
-          String role = m["rol"] == "kullanici" ? "user" : "model";
-          String text = m["metin"] ?? "";
-          if (text.isEmpty) continue;
-
-          if (cleanedHistory.isNotEmpty && cleanedHistory.last.role == role) {
-            // Aynı rolden iki mesaj gelirse birleştir
-            cleanedHistory.last.parts.add(TextPart(text));
-          } else {
-            cleanedHistory.add(Content(role, [TextPart(text)]));
-          }
-        }
-
-        // Gemini geçmiş kuralları: user ile başlamalı, model ile bitmeli ki yeni mesaj user olabilsin
-        while (cleanedHistory.isNotEmpty &&
-            cleanedHistory.first.role != 'user') {
-          cleanedHistory.removeAt(0);
-        }
-        while (cleanedHistory.isNotEmpty &&
-            cleanedHistory.last.role != 'model') {
-          cleanedHistory.removeLast();
-        }
-
-        _chatSession = _model!.startChat(history: cleanedHistory);
       }
 
       if (_mesajlar.isEmpty)
@@ -151,20 +152,64 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     }
   }
 
-  String _rutbeHesapla() {
-    if (_gorevSayisi <= 3) return "Çaylak Koruyucu 🛡️";
-    if (_gorevSayisi <= 8) return "Siber Devriye 🚔";
-    if (_gorevSayisi <= 15) return "Usta Muhafız ⚔️";
-    return "Efsanevi Kahraman 👑";
+  String _sanitizeForAi(String metin) {
+    return metin
+        .replaceAll(RegExp(r'[\r\n]+'), ' ')
+        .replaceAll(
+          RegExp(
+            r'<[^>]*>|[`*_~>]|system:|assistant:|user:',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  List<Map<String, String>> _recentMessagesForAi() {
+    final List<Map<String, String>> recent = _mesajlar.length > 12
+        ? _mesajlar.sublist(_mesajlar.length - 12)
+        : List<Map<String, String>>.from(_mesajlar);
+    return recent
+        .map(
+          (m) => {
+            'rol': m['rol'] ?? '',
+            'metin': _sanitizeForAi(m['metin'] ?? ''),
+          },
+        )
+        .where((m) => m['metin']?.isNotEmpty == true)
+        .toList();
+  }
+
+  String _sanitizeBotResponse(String metin) {
+    final filtered = _sanitizeForAi(metin);
+    final yasakli = [
+      'intihar',
+      'kendine zarar',
+      'öldür',
+      'silah',
+      'uyuşturucu',
+      'pornografi',
+      'cinsel',
+      'tecavüz',
+      'fuhuş',
+      'şiddet',
+      'savaş',
+    ];
+    final lower = filtered.toLowerCase();
+    if (yasakli.any((item) => lower.contains(item))) {
+      return "Bu konuda size yardımcı olamam, ama bir yetişkine danışmandan yardım isteyebilirsin. 💙";
+    }
+    return filtered;
   }
 
   String _emojileriTemizle(String metin) {
-    // Kapsamlı emoji temizleme Regex'i
+    // Tüm emoji aralıklarını kapsayan düzeltilmiş Regex
     final regex = RegExp(
-      r'[\u{1F600}<\u{1F64F}\u{1F300}<\u{1F5FF}\u{1F680}<\u{1F6FF}\u{1F700}<\u{1F77F}\u{1F780}<\u{1F7FF}\u{1F800}<\u{1F8FF}\u{1F900}<\u{1F9FF}\u{1FA00}<\u{1FA6F}\u{1FA70}<\u{1FAFF}\u{2600}<\u{26FF}\u{2700}<\u{27BF}]+',
+      r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+',
       unicode: true,
     );
-    // Emojileri silip, oluşan fazla boşlukları düzeltir
+    // Emojileri temizle ve oluşan çift boşlukları tek boşluğa indir
     return metin.replaceAll(regex, '').replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
@@ -175,19 +220,22 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           .collection('usersProgress')
           .doc(_currentUser!.uid);
 
-      // Sohbet geçmişini son 50 mesajla sınırla (Firestore kota koruması + Gemini token limiti)
-      const int maxMesaj = 50;
+      // Sohbet geçmişini son 20 mesajla sınırla (daha az veri, daha az maliyet)
+      const int maxMesaj = 20;
+
+      // update yerine set + merge kullanarak 'permission-denied' ve 'missing document' hatalarını önlüyoruz.
       if (_mesajlar.length > maxMesaj) {
-        // Tüm listeyi güncelle, sadece son 50'yi tut
-        await docRef.update({
+        await docRef.set({
           'sohbet_gecmisi': _mesajlar.sublist(_mesajlar.length - maxMesaj),
           'son_mesaj_tarihi': FieldValue.serverTimestamp(),
-        });
+          'uid': _currentUser!.uid,
+        }, SetOptions(merge: true));
       } else {
-        await docRef.update({
+        await docRef.set({
           'sohbet_gecmisi': FieldValue.arrayUnion([mesaj]),
           'son_mesaj_tarihi': FieldValue.serverTimestamp(),
-        });
+          'uid': _currentUser!.uid,
+        }, SetOptions(merge: true));
       }
     } catch (e) {
       debugPrint("Kayıt hatası: $e");
@@ -197,11 +245,14 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   Future<void> _mesajGonder(String metin) async {
     if (metin.trim().isEmpty || _yukleniyor) return;
 
-    if (_chatSession == null) {
-      _hataMesajiGoster(
-        "API bağlantısı kurulamadı. Lütfen .env dosyasını ve internetini kontrol et.",
-      );
-      return;
+    // LİMİT KONTROLÜ (Sadece muaf olmayan normal kullanıcılar için)
+    if (!_isExempt) {
+      if (StorageService().getRemainingMessages() <= 0) {
+        _enerjiBittiUyarisi();
+        return;
+      }
+      // Hakkı kullan
+      await StorageService().useMessage();
     }
 
     final Map<String, String> kullaniciMesaji = {
@@ -219,63 +270,86 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     _mesajKaydet(kullaniciMesaji);
 
     try {
-      final response = await _chatSession!.sendMessage(Content.text(metin));
+      // Fonksiyonu tam çağrıldığı anda, europe-west1 bölgesi ile oluşturalım
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(
+        region: 'europe-west1',
+      ).httpsCallable('geminiChat');
+
+      final result = await callable.call({
+        'mesaj': _sanitizeForAi(metin),
+        'gecmis': _recentMessagesForAi(),
+        'kullaniciBilgileri': {
+          'kullaniciAdi': _sanitizeForAi(_kullaniciAdi),
+          'yasGrubu': _sanitizeForAi(_yasGrubu),
+          'puan': _anlikPuan,
+          'gorevSayisi': _gorevSayisi,
+          'rozetSayisi': _anlikRozet,
+          'sonHatalar': _sonHatalar,
+        },
+      });
 
       if (!mounted) return;
 
-      if (response.text != null) {
-        String botCevabi = response.text!;
-        bool tehlikeVarMi = botCevabi.contains("[TEHLIKE_TESPIT]");
+      final data = result.data as Map?;
+      String botCevabi = data?['cevap'] ?? '';
+      botCevabi = _sanitizeBotResponse(botCevabi);
 
-        if (tehlikeVarMi) {
-          botCevabi = botCevabi.replaceAll("[TEHLIKE_TESPIT]", "").trim();
-        }
+      // TEHLİKE TESPİTİ (Gelişmiş Regex: [TEHLIKE_TESPIT], [TEHLİKETESPİT] vb. hepsini yakalar)
+      final dangerRegex = RegExp(r'\[TEHL[Iİ]KE_?TESP[Iİ]T\]', caseSensitive: false);
+      bool tehlikeVarMi = dangerRegex.hasMatch(botCevabi);
 
-        final Map<String, String> botMesaji = {
-          "rol": "bot",
-          "metin": botCevabi,
-        };
-
-        setState(() {
-          _mesajlar.add(botMesaji);
-          _yukleniyor = false;
-        });
-
-        _mesajKaydet(botMesaji);
-        if (_sesAcik) _ttsService.speak(_emojileriTemizle(botCevabi));
-
-        if (tehlikeVarMi) {
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SiberImdatEkrani()),
-              );
-            }
-          });
-        }
-      } else {
-        throw Exception("API cevap üretmedi.");
+      if (tehlikeVarMi) {
+        // Etiketi kullanıcı görmeden tertemiz siliyoruz
+        botCevabi = botCevabi.replaceAll(dangerRegex, "").trim();
       }
+
+      if (botCevabi.isEmpty) {
+        botCevabi = "Sana yardımcı olamıyorum, ama bir yetişkine veya öğretmene danışabilirsin. 💙";
+      }
+
+      final Map<String, String> botMesaji = {"rol": "bot", "metin": botCevabi};
+
+      setState(() {
+        _mesajlar.add(botMesaji);
+        _yukleniyor = false;
+      });
+
+      _mesajKaydet(botMesaji);
+      if (_sesAcik) _ttsService.speak(_emojileriTemizle(botCevabi));
+
+      if (tehlikeVarMi) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SiberImdatEkrani()),
+            );
+          }
+        });
+      }
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint("Cloud Function Hatası: ${e.code} - ${e.message}");
+      setState(() => _yukleniyor = false);
+      _hataMesajiGoster(e.message ?? "Bir hata oluştu.");
     } catch (e) {
       debugPrint("Siber Asistan Hatası: $e");
       setState(() => _yukleniyor = false);
-      _hataMesajiGoster(e.toString());
+      _hataMesajiGoster("Bağlantı hatası. İnternetini kontrol et.");
     }
     _scrollToBottom();
   }
 
   void _hataMesajiGoster(String error) {
     String mesaj =
-        "Siber Dost'un devreleri biraz ısındı, kısa bir mola verelim mi? 🤖";
+        "Kahraman Dostum'un devreleri biraz ısındı, kısa bir mola verelim mi? 🤖";
     if (error.contains("429")) {
       mesaj =
-          "Siber Dost şu an çok meşgul, 1 dakika sonra tekrar dener misin? ☕";
+          "Kahraman Dostum şu an çok meşgul, 1 dakika sonra tekrar dener misin? ☕";
     } else if (error.contains("400") || error.contains("invalid")) {
       mesaj = "Bir şeyler karıştı, lütfen sohbeti temizleyip tekrar dene. 🛠️";
     } else if (error.contains("not found") || error.contains("404")) {
       mesaj =
-          "Siber Dost'a şu an ulaşılamıyor, API anahtarını kontrol edelim. 🔑";
+          "Kahraman Dostum'a şu an ulaşılamıyor, API anahtarını kontrol edelim. 🔑";
     }
 
     if (!mounted) return;
@@ -309,30 +383,24 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: _buildAppBar(),
-      body: Stack(
+      body: Column(
         children: [
-          _buildStaticBackground(),
-          Column(
-            children: [
-              _buildStatsHeader(),
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 15,
-                  ),
-                  itemCount: _mesajlar.length,
-                  itemBuilder: (context, index) =>
-                      _buildGameBubble(_mesajlar[index]),
-                ),
+          _buildStatsHeader(),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
               ),
-              if (_yukleniyor) _buildTypingIndicator(),
-              _buildQuickActions(),
-              _buildModernInput(),
-            ],
+              itemCount: _mesajlar.length,
+              itemBuilder: (context, index) =>
+                  _buildGameBubble(_mesajlar[index]),
+            ),
           ),
-          _buildVolumeIndicator(),
+          if (_yukleniyor) _buildTypingIndicator(),
+          _buildQuickActions(),
+          _buildModernInput(),
         ],
       ),
     );
@@ -357,7 +425,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
               color: Colors.white,
               size: 20,
             ),
-          ).animate(onPlay: (c) => c.repeat()).shimmer(),
+          ),
         );
       },
     );
@@ -389,7 +457,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           ),
           const SizedBox(width: 10),
           Text(
-            "Siber Dost",
+            "Kahraman Dostum",
             style: TextStyle(
               color: Colors.blueGrey.shade900,
               fontWeight: FontWeight.bold,
@@ -485,18 +553,12 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
             decoration: BoxDecoration(
               color: isMe ? _seciliRenk : Colors.white,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(22),
-                topRight: const Radius.circular(22),
-                bottomLeft: Radius.circular(isMe ? 22 : 0),
-                bottomRight: Radius.circular(isMe ? 0 : 22),
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: Radius.circular(isMe ? 20 : 0),
+                bottomRight: Radius.circular(isMe ? 0 : 20),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+              border: isMe ? null : Border.all(color: Colors.grey.shade200),
             ),
             child: Text(
               m["metin"]!,
@@ -524,9 +586,11 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
   Widget _buildQuickActions() {
     List<String> sorular = [
-      "Şifrem güvenli mi? 🔑",
-      "Zorbalık nedir? 😢",
-      "Oyun oynayalım! 🎮",
+      "Hadi oyun oynayalım! 🎮",
+      "Zorbalık nedir? ❔",
+      "Siber zorbalık nedir? 💻",
+      "Zorbalığa uğradığımda ne yapabilirim? ❓",
+      "İnternette nasıl güvende kalırım? 🛡️",
       "Puanım nasıl? 🏆",
     ];
     return SizedBox(
@@ -558,7 +622,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     padding: EdgeInsets.all(8),
     child: Center(
       child: Text(
-        "Siber Dost düşünüyor...",
+        "Kahraman Dostum düşünüyor...",
         style: TextStyle(
           fontSize: 12,
           color: Colors.blueGrey,
@@ -589,7 +653,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
               child: TextField(
                 controller: _controller,
                 decoration: const InputDecoration(
-                  hintText: "Siber Dost'a yaz...",
+                  hintText: "Kahraman Dostum'a yaz...",
                   border: InputBorder.none,
                 ),
                 onSubmitted: (val) => _mesajGonder(val),
@@ -620,7 +684,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       setState(() {
         _mesajlar.clear();
       });
-      _chatSession = _model?.startChat();
       _ilkMesaj();
     } catch (e) {
       debugPrint(e.toString());
@@ -629,7 +692,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
   void _ilkMesaj() {
     String m =
-        "Selam $_kullaniciAdi! 🤖 Ben senin Siber Dostunum. Bugün siber dünyada harika bir maceraya hazır mısın? ✨";
+        "Selam $_kullaniciAdi! 🤖 Ben senin Kahraman Dostunum. Her türlü zorbalığa karşı birlikte güçlenmeye hazır mısın? ✨ İstersen seninle eğitici bir oyun oynayabiliriz, 'Hadi oyun oynayalım' demen yeterli! 🎮";
     final Map<String, String> botMesaji = {"rol": "bot", "metin": m};
     setState(() {
       _mesajlar.add(botMesaji);

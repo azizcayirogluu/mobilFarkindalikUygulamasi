@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zorbalik_uygulamasi/injection_container.dart';
+import 'package:zorbalik_uygulamasi/services/tts_service.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
-
 class HikayeDetayEkrani extends StatefulWidget {
   final String baslik;
   final String gorselYolu;
@@ -24,20 +25,20 @@ class HikayeDetayEkrani extends StatefulWidget {
 }
 
 class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
-  final FlutterTts flutterTts = FlutterTts();
+  final TtsService _ttsService = sl<TtsService>();
   bool isReading = false;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   @override
   void dispose() {
-    flutterTts.stop();
+    _ttsService.stop();
     super.dispose();
   }
 
   Future<void> _hikayeyiBitir() async {
     if (_currentUser == null) return;
 
-    final String uid = _currentUser!.uid;
+    final String uid = _currentUser.uid;
     // Merkezi servis üzerinden görev tamamlama (Kusursuz Rozet Sistemi)
     await AnalyticsService().gorevTamamla(
       uid: uid,
@@ -92,17 +93,17 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
 
   Future<void> _seslendir() async {
     if (isReading) {
-      await flutterTts.stop();
+      await _ttsService.stop();
       if (mounted) setState(() => isReading = false);
     } else {
-      await flutterTts.setLanguage("tr-TR");
-      await flutterTts.setPitch(1.0);
-      await flutterTts.setSpeechRate(0.5);
-      flutterTts.setCompletionHandler(() {
-        if (mounted) setState(() => isReading = false);
-      });
       if (mounted) setState(() => isReading = true);
-      await flutterTts.speak(widget.hikayeMetni);
+      try {
+        await _ttsService.speak(widget.hikayeMetni);
+      } catch (e) {
+        debugPrint("Hikaye seslendirme hatası: $e");
+      } finally {
+        if (mounted) setState(() => isReading = false);
+      }
     }
   }
 
@@ -127,9 +128,11 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
               background: Hero(
                 tag: widget.baslik,
                 child: widget.gorselYolu.startsWith("http")
-                    ? Image.network(
-                        widget.gorselYolu,
+                    ? CachedNetworkImage(
+                        imageUrl: widget.gorselYolu,
                         fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                        errorWidget: (context, url, error) => const Icon(Icons.error),
                       )
                     : Image.asset(
                         widget.gorselYolu,

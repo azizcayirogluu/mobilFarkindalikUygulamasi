@@ -5,95 +5,75 @@ import 'package:zorbalik_uygulamasi/screens/senaryo_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:math' as math; // Dekoratif arka plan dalgaları için
 
 class EgitimEkrani extends StatelessWidget {
   const EgitimEkrani({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Ekran boyutuna göre dinamik padding hesapla
     final size = MediaQuery.of(context).size;
     final double paddingValue = size.width * 0.06;
+    const Color backgroundSubtle = Color(0xFFF0F9FF);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: backgroundSubtle,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildSliverAppBar(),
+          _buildSliverAppBar(backgroundSubtle),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(paddingValue, 5, paddingValue, 20),
+            padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildWelcomeHeader(),
                 const SizedBox(height: 25),
 
-                // Eğitim modüllerini temsil eden animasyonlu kartlar
-                _egitimKartlari(
+                _buildKidEgitimCard(
                   context,
-                  title: "Senaryo Çöz",
-                  desc: "Zor anlarda en doğru kararı sen ver, puanları topla!",
-                  icon: Icons.psychology_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  label: "GÖREV",
+                  title: "Senaryo Çöz 🧠",
+                  desc: "Zor durumlar karşısında en doğru kararı sen ver, kahraman ol!",
+                  icon: Icons.psychology_alt_rounded,
+                  accentColor: const Color(0xFF6366F1),
+                  label: "KAHRAMANLUK GÖREVİ",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
-                  imagePath: "assets/scenarios.png",
                   delay: 250.ms,
                 ),
 
-                _egitimKartlari(
+                _buildKidEgitimCard(
                   context,
-                  title: "Siber Dedektif",
-                  desc: "Olayları incele, güvenli mi yoksa tehlikeli mi karar ver!",
+                  title: "Kahraman Dedektif 🔍",
+                  desc: "Olayları gizemli bir dedektif gibi incele, tehlikeleri ortaya çıkar!",
                   icon: Icons.search_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00C9FF), Color(0xFF92FE9D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  label: "OYUN",
+                  accentColor: const Color(0xFF10B981),
+                  label: "SÜPER OYUN",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SiberDedektifOyunu())),
-                  imagePath: "assets/detective.jpg",
-                  delay: 150.ms,
+                  delay: 100.ms,
                 ),
 
-                _egitimKartlari(
+                _buildKidEgitimCard(
                   context,
-                  title: "Hikaye Oku",
-                  desc: "Eğitici öykülerle zorbalığın kahramanı ol.",
+                  title: "Hikaye Oku 📚",
+                  desc: "Eğlenceli ve heyecanlı öyküleri oku, yeni taktikler öğren!",
                   icon: Icons.auto_stories_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF9966), Color(0xFFFF5E62)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  label: "BİLGİ",
+                  accentColor: const Color(0xFFF59E0B),
+                  label: "GÜÇLÜ BİLGİLER",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HikayeListelemeEkrani())),
-                  imagePath: "assets/history.jpg",
-                  delay: 350.ms,
+                  delay: 400.ms,
                 ),
 
-                _egitimKartlari(
+                _buildKidEgitimCard(
                   context,
-                  title: "Video İzle",
-                  desc: "Eğlenceli videolarla en pratik ipuçlarını öğren.",
+                  title: "Video İzle 🎬",
+                  desc: "Harika ve renkli animasyonlarla en pratik ipuçlarını yakala.",
                   icon: Icons.play_circle_filled_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00B4DB), Color(0xFF0083B0)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  label: "İZLE",
+                  accentColor: const Color(0xFF3B82F6),
+                  label: "EĞLENCELİ VİDEO",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
-                  imagePath: "assets/videos.jpg",
-                  delay: 450.ms,
+                  delay: 550.ms,
                 ),
 
-                const SizedBox(height: 120),
+                const SizedBox(height: 130),
               ]),
             ),
           ),
@@ -102,22 +82,31 @@ class EgitimEkrani extends StatelessWidget {
     );
   }
 
-  // Kaydırıldığında küçülen veya sabitlenen esnek başlık çubuğu
-  Widget _buildSliverAppBar() {
+  Widget _buildSliverAppBar(Color bgColor) {
     return SliverAppBar(
-      expandedHeight: 80.0,
+      expandedHeight: 90.0,
       floating: true,
-      pinned: true,
-      backgroundColor: const Color(0xFFF8FAFF),
+      pinned: false,
+      backgroundColor: bgColor,
       elevation: 0,
       centerTitle: true,
-      title: const Text(
-        "KAHRAMANLIK AKADEMİSİ",
-        style: TextStyle(
-          color: AppColors.yaziRengi,
-          fontWeight: FontWeight.w900,
-          fontSize: 20,
-          letterSpacing: 1.5,
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        title: Text(
+          "KAHRAMANLIK AKADEMİSİ",
+          style: TextStyle(
+            color: const Color(0xFF2C3E50),
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 1,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.05),
+                offset: const Offset(0, 2),
+                blurRadius: 2,
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -127,129 +116,112 @@ class EgitimEkrani extends StatelessWidget {
     return Column(
       children: [
         const Text(
-          "Bugün Hangi Gücünü Geliştireceksin? 🛡️",
+          "Bugün hangi süper gücünü geliştirmek istersin? 🛡️",
           style: TextStyle(
             fontSize: 16,
-            color: Colors.blueGrey,
-            fontWeight: FontWeight.w800,
+            color: Color(0xFF475569),
+            fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
-        ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
-        const SizedBox(height: 8),
+        ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, curve: Curves.easeOut),
+        const SizedBox(height: 10),
         Container(
-          width: 20,
-          height: 4,
+          width: 35,
+          height: 5,
           decoration: BoxDecoration(
-            color: AppColors.anaMavi.withOpacity(0.3),
+            color: const Color(0xFF3B82F6).withOpacity(0.4),
             borderRadius: BorderRadius.circular(10),
           ),
-        ).animate().scaleX(duration: 800.ms),
+        ).animate().scaleX(duration: 600.ms, curve: Curves.easeOutBack),
       ],
     );
   }
 
-  Widget _egitimKartlari(
+  // Yenilenen, Beyaz ve Temiz Çocuksu Eğitim Kart Tasarımı
+  Widget _buildKidEgitimCard(
       BuildContext context, {
         required String title,
         required String desc,
         required IconData icon,
-        required Gradient gradient,
+        required Color accentColor,
         required String label,
         required VoidCallback onTap,
-        required String imagePath,
         required Duration delay,
       }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 22),
-      constraints: const BoxConstraints(minHeight: 160),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          // Gradyanın son rengine göre gölge oluşturarak derinlik algısı sağlar
           BoxShadow(
-            color: (gradient as LinearGradient).colors.last.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: accentColor.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            child: Stack(
-              children: [
-                // Arka plan gradyanı
-                Positioned.fill(child: Container(decoration: BoxDecoration(gradient: gradient))),
-
-                // Sağ üstteki dekoratif halka efekti
-                Positioned(
-                  top: -20, right: -20,
-                  child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.1)),
-                ),
-
-                // Hafifçe görünen arka plan görseli
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.1,
-                    child: imagePath.contains("assets/") ? Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox(),) : const SizedBox(),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 75,
+                    height: 75,
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 36,
+                      color: accentColor,
+                    ),
                   ),
-                ),
-
-                // Sağ alttaki büyük transparan ikon dekorasyonu
-                Positioned(
-                  bottom: -15, right: -10,
-                  child: Icon(icon, size: 110, color: Colors.white.withOpacity(0.15)),
-                ),
-
-                // Kart içeriği: Etiket, Başlık ve Açıklama
-                Padding(
-                  padding: const EdgeInsets.all(25.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white30),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                        child: Text(
-                          label,
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                        const SizedBox(height: 2),
+                        Text(
+                          desc,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        desc,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: accentColor.withOpacity(0.3),
+                    size: 14,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ).animate().fadeIn(delay: delay, duration: 600.ms).slideX(begin: 0.1, curve: Curves.easeOutBack);
+    ).animate().fadeIn(delay: delay, duration: 400.ms);
   }
 }

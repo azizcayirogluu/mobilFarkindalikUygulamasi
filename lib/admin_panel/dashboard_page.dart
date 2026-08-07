@@ -8,40 +8,22 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
-
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _header(),
-            const SizedBox(height: 35),
-
-            _summaryGrid(), // Üst istatistik kartları
-            const SizedBox(height: 35),
-
-            // Alt layout → sol analiz + sağ aksiyon
+            _buildProHeader(),
+            const SizedBox(height: 40),
+            _buildStatsGrid(),
+            const SizedBox(height: 40),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // SOL TARAF → analizler
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      _card(_systemAnalysis()), // içerik analizi
-                      const SizedBox(height: 25),
-                      _card(_userMetrics()), // kullanıcı istatistikleri
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 25),
-
-                // SAĞ TARAF → aksiyon merkezi
-                Expanded(flex: 2, child: _actionCenter(context)),
+                Expanded(flex: 3, child: _buildMetricsSection()),
+                const SizedBox(width: 30),
+                Expanded(flex: 2, child: _buildReportingCard(context)),
               ],
             ),
           ],
@@ -50,165 +32,67 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _header() {
+  Widget _buildProHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
+        const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Sistem Özeti",
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              "Platformun genel durumunu ve içerik istatistiklerini buradan takip edin.",
-              style: TextStyle(
-                color: Colors.blueGrey.shade400,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text("Sistem Operasyon Merkezi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            SizedBox(height: 4),
+            Text("Kahraman Dostum platformu genel performans ve içerik durumu.", style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
           ],
         ),
-        _statusChip(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.green.withOpacity(0.2))),
+          child: const Row(
+            children: [
+              CircleAvatar(radius: 4, backgroundColor: Colors.green),
+              SizedBox(width: 8),
+              Text("SİSTEM ÇEVRİMİÇİ", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _statusChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.green.withOpacity(0.3), width: 1.5),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
-          SizedBox(width: 8),
-          Text(
-            "Sistem Aktif",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryGrid() {
+  Widget _buildStatsGrid() {
     return Row(
       children: [
-        _premiumStatCard(
-          "Kahramanlar",
-          "users",
-          Icons.people_alt_rounded,
-          const Color(0xFF6366F1),
-          const Color(0xFF4338CA),
-        ),
+        _statBox("Toplam Kahraman", "users", Icons.people_outline_rounded, Colors.blue),
         const SizedBox(width: 20),
-        _premiumStatCard(
-          "Senaryolar",
-          "scenarios",
-          Icons.map_rounded,
-          const Color(0xFF8B5CF6),
-          const Color(0xFF6D28D9),
-        ),
+        _statBox("Yeni Olaylar", "reports", Icons.report_gmailerrorred_rounded, Colors.red),
         const SizedBox(width: 20),
-        _premiumStatCard(
-          "Hikayeler",
-          "stories",
-          Icons.menu_book_rounded,
-          const Color(0xFFF59E0B),
-          const Color(0xFFD97706),
-        ),
+        _statBox("Aktif Senaryolar", "scenarios", Icons.schema_outlined, Colors.indigo),
         const SizedBox(width: 20),
-        _premiumStatCard(
-          "Videolar",
-          "videos",
-          Icons.play_circle_fill_rounded,
-          const Color(0xFFEC4899),
-          const Color(0xFFBE185D),
-        ),
+        _statBox("Kütüphane Öyküsü", "stories", Icons.menu_book_rounded, Colors.orange),
       ],
     );
   }
 
-  Widget _premiumStatCard(
-    String title,
-    String col,
-    IconData icon,
-    Color color1,
-    Color color2,
-  ) {
+  Widget _statBox(String title, String col, IconData icon, Color color) {
     return Expanded(
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection(col).snapshots(),
         builder: (context, snapshot) {
           final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-
           return Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color1, color2],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: color1.withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: 20),
                 ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "$count",
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1.1,
-                      ),
-                    ),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 20),
+                Text("$count", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                Text(title, style: TextStyle(color: Colors.blueGrey.shade400, fontWeight: FontWeight.bold, fontSize: 12)),
               ],
             ),
           );
@@ -217,255 +101,81 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _systemAnalysis() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.analytics_rounded,
-                color: Colors.purple,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              "İçerik İstatistikleri",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 25),
-
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('scenarios')
-              .snapshots(),
-          builder: (context, snapshot) {
-            int senaryo = 0;
-            int soru = 0;
-
-            if (snapshot.hasData) {
-              senaryo = snapshot.data!.docs.length;
-              for (var doc in snapshot.data!.docs) {
-                final bolumler = (doc.data() as Map)['bolumler'] ?? [];
-                for (var b in bolumler) {
-                  soru += (b['sorular'] as List?)?.length ?? 0;
-                }
-              }
-            }
-
-            return Row(
-              children: [
-                _miniBox("Aktif Senaryo", senaryo, Colors.purple),
-                const SizedBox(width: 16),
-                _miniBox("Toplam Soru", soru, Colors.indigo),
-              ],
-            );
-          },
-        ),
-      ],
+  Widget _buildMetricsSection() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFE2E8F0))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.analytics_rounded, color: Colors.blueGrey),
+              SizedBox(width: 12),
+              Text("İçerik Derinliği", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            ],
+          ),
+          const SizedBox(height: 30),
+          _miniMetric("Platform üzerindeki toplam soru sayısı", "scenarios", "sorular"),
+          const Divider(height: 40),
+          _miniMetric("Toplam eğitim materyali hacmi", "videos", "sure"),
+        ],
+      ),
     );
   }
 
-  Widget _userMetrics() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _miniMetric(String label, String col, String field) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection(col).snapshots(),
+      builder: (context, snapshot) {
+        int val = 0;
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            if (col == "scenarios") {
+              final bolumler = (doc.data() as Map)['bolumler'] ?? [];
+              for (var b in bolumler) { val += (b['sorular'] as List?)?.length ?? 0; }
+            } else { val++; }
+          }
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.groups_rounded,
-                color: Colors.indigo,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              "Kullanıcı Metrikleri",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-              ),
-            ),
+            Text(label, style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+            Text("$val", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
           ],
-        ),
-        const SizedBox(height: 25),
-
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
-          builder: (context, snapshot) {
-            int total = 0;
-            if (snapshot.hasData) {
-              total = snapshot.data!.docs.length;
-            }
-
-            return Row(
-              children: [_miniBox("Kayıtlı Kahramanlar", total, Colors.indigo)],
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _actionCenter(BuildContext context) {
+  Widget _buildReportingCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        gradient: const LinearGradient(colors: [Color(0xFF1E293B), Color(0xFF334155)]),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.picture_as_pdf_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            "Verileri Raporla",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
+          const Icon(Icons.description_rounded, color: Colors.blueAccent, size: 40),
+          const SizedBox(height: 20),
+          const Text("Veri Raporlama", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          Text(
-            "Sistemdeki tüm gelişimi, kullanıcı verilerini ve içerik raporlarını tek tuşla PDF formatında dışa aktarın.",
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
-              fontSize: 14,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 32),
+          const Text("Tüm kullanıcı gelişimlerini ve içerik verilerini PDF olarak dışa aktarın.", style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5)),
+          const SizedBox(height: 30),
           ElevatedButton(
+            onPressed: () => ReportService().sistemRaporuOlustur(),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF6366F1),
+              foregroundColor: const Color(0xFF0F172A),
               minimumSize: const Size(double.infinity, 55),
-              elevation: 5,
-              shadowColor: Colors.black.withOpacity(0.2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () async {
-              await ReportService().sistemRaporuOlustur();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.download_rounded, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "PDF RAPORU OLUŞTUR",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
+            child: const Text("RAPOR HAZIRLA", style: TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _miniBox(String label, int value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.15), width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Text(
-              "$value",
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: color,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.blueGrey.shade600,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _card(Widget child) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 25,
-            color: Colors.black.withOpacity(0.04),
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade100, width: 2),
-      ),
-      child: child,
     );
   }
 }

@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Admin kontrolü: Önce Custom Claims'e bakar, yoksa dökümandan okur.
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.isAdmin == true ||
+        request.auth.token.admin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+      );
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      // Kullanıcı oluştururken isAdmin bayrağını true yapamaz.
+      allow create: if isAuthenticated() && request.auth.uid == userId 
+                    && (!request.resource.data.keys().hasAny(['isAdmin']) || request.resource.data.isAdmin == false);
+                    
+      // Kullanıcı kendi ismini/avatarını güncelleyebilir ama isAdmin yetkisini değiştiremez.
+      allow update: if isAuthenticated() && (
+                      (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']))
+                      || isAdmin()
+                    );
+                    
+      allow delete: if isAdmin();
+    }
+    
+    match /usersProgress/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Puan hilesini ve UID değişimini engelleyen gelişmiş koruma.
+      allow update: if isAuthenticated() && (
+                      isAdmin() || (
+                        request.auth.uid == userId &&
+                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid'])) &&
+                        (
+                          !request.resource.data.keys().hasAny(['toplam_puan']) || 
+                          (
+                            request.resource.data.toplam_puan >= (resource.data.toplam_puan != null ? resource.data.toplam_puan : 0) &&
+                            request.resource.data.toplam_puan <= (resource.data.toplam_puan != null ? resource.data.toplam_puan : 0) + 300
+                          )
+                        )
+                      )
+                    );
+                    
+      allow delete: if isAdmin();
+    }
+    
+    // Statik içerikler (Okuma herkese, Yazma sadece Admin'e)
+    match /scenarios/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /stories/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /videos/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /badges/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /detective_questions/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+
+    // Olay Bildirme Sistemi
+    match /reports/{reportId} {
+      // Sadece kendi adına rapor oluşturabilir
+      allow create: if isAuthenticated() &&
+                    request.auth.uid == request.resource.data.reporterId;
+
+      // Sadece Admin okuyabilir ve yönetebilir
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

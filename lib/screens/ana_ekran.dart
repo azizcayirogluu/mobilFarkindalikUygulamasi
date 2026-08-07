@@ -79,13 +79,11 @@ class _AnaSayfaState extends State<AnaSayfa> {
         setState(() {
           _toplamGorevSayisi = data['toplamGorevSayisi'];
           List<Map<String, dynamic>> rawHavuz = List<Map<String, dynamic>>.from(data['kesifHavuzu']);
-          
           _kesifHavuzu = rawHavuz.map((item) {
             item['renk'] = _hexToColor(item['renkStr']);
             item['ikon'] = _getIcon(item['ikonStr']);
             return item;
           }).toList();
-          
           _isLoading = false;
         });
       }
@@ -105,91 +103,88 @@ class _AnaSayfaState extends State<AnaSayfa> {
     if (_currentUser == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final size = MediaQuery.of(context).size;
     final paddingValue = size.width * 0.05;
-    final String uid = _currentUser!.uid;
+    final String uid = _currentUser.uid;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          // Dekoratif Arka Plan Daireleri
-          Positioned(top: -50, right: -50, child: Container(width: 200, height: 200, decoration: BoxDecoration(color: AppColors.anaMavi.withOpacity(0.05), shape: BoxShape.circle))),
-          Positioned(bottom: 100, left: -80, child: Container(width: 250, height: 250, decoration: BoxDecoration(color: Colors.orange.withOpacity(0.03), shape: BoxShape.circle))),
-          
-          SafeArea(
-            child: StreamBuilder<DocumentSnapshot>(
-              stream: _contentService.getUserProgressStream(uid),
-              builder: (context, snap) {
-                int puan = 0;
-                int tamamlananSayisi = 0;
-                if (snap.hasData && snap.data!.exists) {
-                  final data = snap.data!.data() as Map<String, dynamic>;
-                  puan = data['toplam_puan'] ?? 0;
-                  List bitti = data['tamamlanan_bolumler'] as List? ?? [];
-                  List okundu = data['okunan_hikayeler'] as List? ?? [];
-                  tamamlananSayisi = bitti.length + okundu.length;
-                }
+      body: SafeArea(
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: _contentService.getUserProgressStream(uid),
+          builder: (context, snap) {
+            int puan = 0;
+            int tamamlananSayisi = 0;
+            if (snap.hasData && snap.data!.exists) {
+              final data = snap.data!.data() as Map<String, dynamic>;
+              puan = data['toplam_puan'] ?? 0;
+              List bitti = data['tamamlanan_bolumler'] as List? ?? [];
+              List okundu = data['okunan_hikayeler'] as List? ?? [];
+              tamamlananSayisi = bitti.length + okundu.length;
+            }
+            double ilerleme = _toplamGorevSayisi > 0 
+                ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
+                : 0.0;
 
-                double ilerleme = _toplamGorevSayisi > 0 
-                    ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
-                    : 0.0;
-
-                return RefreshIndicator(
-                  onRefresh: _initData,
-                  color: AppColors.anaMavi,
-                  child: CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      _buildAppBar(_currentUser!.displayName ?? "Kahraman", paddingValue),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
-                          child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
+            return RefreshIndicator(
+              onRefresh: _initData,
+              color: AppColors.anaMavi,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  _buildAppBar(_currentUser.displayName ?? "Kahraman", paddingValue),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
+                      child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
+                    ),
+                  ),
+                  _buildSectionTitle("Günün Önerileri 🚀🎓", paddingValue),
+                  _isLoading 
+                    ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                    : SliverPadding(
+                        padding: EdgeInsets.symmetric(horizontal: paddingValue),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (c, i) => _buildModernContentCard(_kesifHavuzu[i], size).animate().fadeIn(delay: (i * 100).ms).slideX(begin: 0.1), 
+                            childCount: _kesifHavuzu.length
+                          ),
                         ),
                       ),
-                      _buildSectionTitle("Günün Keşifleri 🚀", paddingValue),
-                      _isLoading 
-                        ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-                        : SliverPadding(
-                            padding: EdgeInsets.symmetric(horizontal: paddingValue),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (c, i) => _buildModernContentCard(_kesifHavuzu[i], size).animate().fadeIn(delay: (i * 100).ms).slideX(begin: 0.1), 
-                                childCount: _kesifHavuzu.length
-                              ),
-                            ),
-                          ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildAppBar(String ad, double padding) {
     return SliverAppBar(
-      floating: true, backgroundColor: Colors.transparent, elevation: 0, toolbarHeight: 90,
+      floating: true, 
+      backgroundColor: Colors.transparent, 
+      elevation: 0, 
+      toolbarHeight: 100,
       title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("Hoş geldin,", style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 14, fontWeight: FontWeight.w500)),
-              Text(ad, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, 
+              children: [
+                Text("KAHRAMAN MERKEZİ 🏰", style: TextStyle(color: AppColors.anaMavi, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text("Merhaba, $ad 👋", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFF0F172A), letterSpacing: -0.8)),
+              ]
+            ),
           ),
-          Hero(
-            tag: 'profile_avatar',
-            child: GestureDetector(
-              onTap: widget.onProfileTap,
+          GestureDetector(
+            onTap: widget.onProfileTap,
+            child: Hero(
+              tag: 'profile_avatar',
               child: Container(
                 padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.anaGradient),
-                child: const CircleAvatar(radius: 28, backgroundColor: Colors.white, backgroundImage: AssetImage("assets/boy.png")),
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.anaMavi.withOpacity(0.2), width: 2)),
+                child: const CircleAvatar(radius: 26, backgroundColor: Colors.white, backgroundImage: AssetImage("assets/boy.png")),
               ),
             ),
           ),
@@ -202,18 +197,22 @@ class _AnaSayfaState extends State<AnaSayfa> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(35),
-        gradient: AppColors.anaGradient,
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.anaMavi.withOpacity(0.3),
-            blurRadius: 25,
+            color: const Color(0xFF6366F1).withOpacity(0.3),
+            blurRadius: 20,
             offset: const Offset(0, 10),
           )
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(32),
         child: Stack(
           children: [
             Positioned.fill(
@@ -227,123 +226,50 @@ class _AnaSayfaState extends State<AnaSayfa> {
             ),
             Positioned(
               right: -30,
-              top: -30,
+              bottom: -30,
               child: Icon(
-                Icons.shield_rounded,
-                size: 150,
+                Icons.emoji_events_rounded,
+                size: 160,
                 color: Colors.white.withOpacity(0.1),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(25),
+              padding: const EdgeInsets.all(28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "GELİŞİM MERKEZİ",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 10,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
+                      _buildMiniBadge("MACERA DURUMUN", Colors.white.withOpacity(0.2)),
                       Row(
                         children: [
-                          const Icon(Icons.stars_rounded, color: Colors.amber, size: 20),
-                          const SizedBox(width: 5),
+                          const Icon(Icons.stars_rounded, color: Colors.amber, size: 22),
+                          const SizedBox(width: 6),
                           Text(
-                            "$puan TP",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
+                            "$puan",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
                           ),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 25),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        "${(ilerleme * 100).toInt()}%",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 48,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -2,
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            _ilerlemeMesaji(ilerleme),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    "${(ilerleme * 100).toInt()}%",
+                    style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2),
                   ),
-                  const SizedBox(height: 20),
-                  Stack(
-                    children: [
-                      Container(
-                        height: 12,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(seconds: 1),
-                        height: 12,
-                        // Buradaki padding hesaplaması (90) tasarıma göre değişebilir,
-                        // LayoutBuilder kullanmak daha sağlıklı olabilir.
-                        width: (size.width - 90) * ilerleme,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.white, Color(0xFFB3E5FC)],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.5),
-                              blurRadius: 5,
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _ilerlemeMesaji(ilerleme),
+                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, fontWeight: FontWeight.w600),
                   ),
+                  const SizedBox(height: 25),
+                  _buildLinearProgress(ilerleme),
                   const SizedBox(height: 12),
                   Text(
-                    "$tamamlanan / $_toplamGorevSayisi Görev Tamamlandı",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    "$tamamlanan / $_toplamGorevSayisi GÖREV TAMAMLANDI",
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
                   ),
                 ],
               ),
@@ -354,45 +280,90 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
+  Widget _buildMiniBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1),
+      ),
+    );
+  }
+
+  Widget _buildLinearProgress(double value) {
+    return Stack(
+      children: [
+        Container(
+          height: 12,
+          width: double.infinity,
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        ),
+        LayoutBuilder(builder: (context, constraints) {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 1000),
+            height: 12,
+            width: constraints.maxWidth * value,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.5), blurRadius: 10)],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   Widget _buildModernContentCard(Map item, Size size) {
     final Color color = item['renk'];
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8))],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withOpacity(0.1), width: 1.5),
       ),
       child: InkWell(
         onTap: () => _route(item),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
-                width: 70, height: 70,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(22)),
-                child: Icon(item['ikon'], color: color, size: 32),
+                width: 64, height: 64,
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Icon(item['ikon'], color: color, size: 30),
               ),
-              const SizedBox(width: 15),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(item['tip'], style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
+                    Text(
+                      item['tip'],
+                      style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
                     ),
                     const SizedBox(height: 4),
-                    Text(item['baslik'], style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.yaziRengi, letterSpacing: -0.2)),
-                    Text(item['altBaslik'], style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade300, fontWeight: FontWeight.w500)),
+                    Text(
+                      item['baslik'],
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+                    ),
+                    Text(
+                      item['tip'] == "HİKAYE" 
+                          ? (item['data']['feedbackMessage'] != null && item['data']['feedbackMessage'].toString().isNotEmpty 
+                              ? item['data']['feedbackMessage']
+                              : "Kahramanlık yolunda yeni bir öykü! ✨")
+                          : item['altBaslik'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade300, fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, color: Colors.blueGrey.shade100, size: 16),
-              const SizedBox(width: 5),
+              Icon(Icons.arrow_forward_ios_rounded, color: color.withOpacity(0.2), size: 16),
             ],
           ),
         ),

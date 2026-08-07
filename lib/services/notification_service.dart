@@ -11,15 +11,16 @@ class NotificationService {
   NotificationService._internal();
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
-  // Bildirim kanalını tanımlıyoruz (Android için şart)
+  // Bildirim kanalını tanımlıyoruz (Android 8.0+ için şart)
   static const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'high_importance_channel', // id
-    'Yüksek Öncelikli Bildirimler', // title
-    description: 'Bu kanal önemli uygulama bildirimleri için kullanılır.',
-    importance: Importance.high,
+    'Kahraman Bildirimleri', // title
+    description: 'Önemli görev ve başarı bildirimleri.',
+    importance: Importance.max, // En yüksek öncelik (Anlık görünmesi için)
+    playSound: true,
+    enableVibration: true,
   );
 
   Future<void> initialize() async {
@@ -28,10 +29,11 @@ class NotificationService {
       alert: true,
       badge: true,
       sound: true,
+      provisional: false,
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('Kullanıcı bildirim izni verdi.');
+      debugPrint('Kullanıcı bildirim izni verdi. ✅');
     }
 
     // 2. Yerel bildirimleri ayarla
@@ -40,18 +42,25 @@ class NotificationService {
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
 
-    // Yeni sürümde named parameter (settings) kullanılıyor
-    await _localNotifications.initialize(settings: initializationSettings);
+    await _localNotifications.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (details) {
+        debugPrint("Bildirime tıklandı: ${details.payload}");
+      },
+    );
 
     // 3. Android için kanalı oluştur
     await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // 4. Token'ı al ve Firestore'a kaydet
+    // 4. Token Yönetimi
     _saveTokenToFirestore();
+    
+    // Token yenilendiğinde otomatik güncelle
+    _fcm.onTokenRefresh.listen((newToken) {
+      _updateTokenInFirestore(newToken);
+    });
 
     // 5. Uygulama Ön Plandayken gelen mesajları dinle
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -59,38 +68,87 @@ class NotificationService {
       AndroidNotification? android = message.notification?.android;
 
       if (notification != null && android != null && !kIsWeb) {
-        // Yeni sürümde named parameters (id, title, body, notificationDetails) kullanılıyor
         _localNotifications.show(
-          id: notification.hashCode,
-          title: notification.title,
-          body: notification.body,
-          notificationDetails: NotificationDetails(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
             android: AndroidNotificationDetails(
               channel.id,
               channel.name,
               channelDescription: channel.description,
-              icon: android.smallIcon,
+              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+              importance: Importance.max,
+              priority: Priority.high,
+              ticker: 'ticker',
             ),
           ),
+          payload: message.data.toString(),
         );
       }
     });
 
-    // 6. Uygulama kapalıyken bildirime tıklandığında açılma durumunu kontrol et
+    // 6. Arka planda bildirime tıklandığında açılma durumunu kontrol et
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('Bildirime tıklandı: ${message.data}');
+      debugPrint('Arka planda bildirime tıklandı: ${message.data}');
     });
+
+    // 7. Uygulama kapalıyken (Terminated) bildirimle açıldıysa yakala
+    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint('Uygulama bildirimle başlatıldı: ${initialMessage.data}');
+    }
   }
 
+  // Firestore'a Token kaydetme (Gecikmeli ve Güvenli)
   Future<void> _saveTokenToFirestore() async {
-    String? token = await _fcm.getToken();
-    User? user = FirebaseAuth.instance.currentUser;
-
-    if (token != null && user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'fcmToken': token, 'lastTokenUpdate': FieldValue.serverTimestamp()},
-      );
-      debugPrint("FCM Token kaydedildi: $token");
+    try {
+      // Servislerin ısınması için kısa bir bekleme (SERVICE_NOT_AVAILABLE hatasını önler)
+      await Future.delayed(const Duration(seconds: 3));
+      
+      String? token = await _fcm.getToken();
+      if (token != null) {
+        await _updateTokenInFirestore(token);
+      }
+    } catch (e) {
+      debugPrint("FCM ilk token alma hatası: $e");
     }
+  }
+
+  // Token güncelleme mantığı (Merkezi)
+  Future<void> _updateTokenInFirestore(String token) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+              'fcmToken': token,
+              'lastTokenUpdate': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+        debugPrint("FCM Token başarıyla mühürlendi. 🛡️");
+      }
+    } catch (e) {
+      debugPrint("Token Firestore'a kaydedilemedi: $e");
+    }
+  }
+
+  // Manuel bildirim tetikleme (Örn: Bir görev bittiğinde)
+  Future<void> showLocalNotification(String title, String body) async {
+    await _localNotifications.show(
+      DateTime.now().millisecond,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+    );
   }
 }

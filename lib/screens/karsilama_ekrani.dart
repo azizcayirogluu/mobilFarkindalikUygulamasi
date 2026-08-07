@@ -8,7 +8,7 @@ class HomePages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size; //responsive ekran icin
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7FF),
@@ -18,44 +18,70 @@ class HomePages extends StatelessWidget {
           Positioned(
             top: -size.width * 0.2,
             right: -size.width * 0.2,
-            child: _CircleDecorator(size: size.width * 0.8, color: Colors.blue.withOpacity(0.1)),
+            child: _CircleDecorator(
+              size: size.width * 0.8,
+              color: Colors.blue.withOpacity(0.1),
+            ),
           ),
           Positioned(
             bottom: size.height * 0.1,
             left: -size.width * 0.3,
-            child: _CircleDecorator(size: size.width * 0.9, color: Colors.orange.withOpacity(0.05)),
+            child: _CircleDecorator(
+              size: size.width * 0.9,
+              color: Colors.orange.withOpacity(0.05),
+            ),
           ),
+
+          // LayoutBuilder ve SingleChildScrollView ile küçük ekran güvencesi
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                _buildModernHeader(), // Uygulama logosu ve başlığı
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight:
+                          constraints.maxHeight, // Ekran büyükse tam kaplasın
+                    ),
+                    child: IntrinsicHeight(
+                      // İçeriklerin dikeyde düzgün yayılması için
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 24,
+                          ), // Küçük ekranlar için aralık biraz daraltıldı
+                          _buildModernHeader(),
 
-                const Spacer(),
+                          // Sabit Spacer yerine esnek bir boşluk yapısı
+                          Expanded(
+                            flex: 2,
+                            child: TweenAnimationBuilder(
+                              tween: Tween<double>(begin: 0, end: 15),
+                              duration: const Duration(seconds: 3),
+                              curve: Curves.easeInOutSine,
+                              builder: (context, double value, child) {
+                                return Transform.translate(
+                                  offset: Offset(0, value),
+                                  child: Container(
+                                    height: size.height * 0.25,
+                                    padding: const EdgeInsets.all(20),
+                                    child: Image.asset(
+                                      "assets/app_icon_two.png",
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
 
-                // Görselin yukarı-aşağı hafifçe süzülmesini sağlayan animasyon yapısı
-                TweenAnimationBuilder(
-                  tween: Tween<double>(begin: 0, end: 15),
-                  duration: const Duration(seconds: 3),
-                  curve: Curves.easeInOutSine,
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, value),
-                      child: Container(
-                        height: size.height * 0.30,
-                        padding: const EdgeInsets.all(20),
-                        child: Image.asset(
-                          "assets/team.png",
-                          fit: BoxFit.contain,
-                        ),
+                          const Expanded(flex: 1, child: SizedBox(height: 20)),
+                          _buildBottomPanel(context, size),
+                        ],
                       ),
-                    );
-                  },
-                ),
-
-                const Spacer(),
-                _buildBottomPanel(context, size),
-              ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -63,7 +89,6 @@ class HomePages extends StatelessWidget {
     );
   }
 
-  // Şık bir kalkan ikonu ve uygulama ismini içeren başlık tasarımı
   Widget _buildModernHeader() {
     return Column(
       children: [
@@ -73,16 +98,25 @@ class HomePages extends StatelessWidget {
             color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
-          child: const Icon(Icons.shield_outlined, color: Color(0xFF4A90E2), size: 32),
+          child: const Icon(
+            Icons.shield_outlined,
+            color: Color(0xFF4A90E2),
+            size: 32,
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         const Text(
           "Siber Kahraman",
           style: TextStyle(
-            fontSize: 28,
+            fontSize:
+                26, // Yazı boyutu çok küçük ekranlar için 28'den 26'ya çekildi
             fontWeight: FontWeight.w800,
             color: Color(0xFF2D3142),
             letterSpacing: -0.5,
@@ -96,21 +130,23 @@ class HomePages extends StatelessWidget {
             color: Colors.orangeAccent,
             borderRadius: BorderRadius.circular(10),
           ),
-        )
+        ),
       ],
     );
   }
 
-  // Kavisli beyaz alt panel: Kullanıcıyı karşılayan metinler ve aksiyon butonları
   Widget _buildBottomPanel(BuildContext context, Size size) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+      // Küçük ekranlarda padding'lerin taşma yapmaması için dikey padding 40'tan 30'a düşürüldü
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(50),
-          topRight: Radius.circular(50),
+          topLeft: Radius.circular(
+            40,
+          ), // Kavis minik telefonlarda kaba durmasın diye 50'den 40'a çekildi
+          topRight: Radius.circular(40),
         ),
         boxShadow: [
           BoxShadow(
@@ -126,49 +162,57 @@ class HomePages extends StatelessWidget {
           const Text(
             "Güvenli Bir Yolculuk! ✨",
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22, // 24'ten 22'ye çekildi
               fontWeight: FontWeight.bold,
               color: Color(0xFF2D3142),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           const Text(
             "Dijital dünyada nazik olmayı öğren, kendini koru ve topluluğumuzun bir parçası ol.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14, // 15'ten 14'e çekildi
               color: Color(0xFF9196A2),
-              height: 1.5,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 35),
-          // "Macerayı Başlat" butonu: Kullanıcıyı kayıt olma ekranına yönlendirir
+          const SizedBox(height: 25), // Boşluk 35'ten 25'e düşürüldü
+          // Buton tasarımı responsive yapıldı
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height:
+                56, // Standart modern buton yüksekliği (60 çok kaba kaçabiliyordu)
             child: ElevatedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KayitEkrani())),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const KayitEkrani()),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4A90E2),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
                 "Macerayı Başlat",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
 
-          const SizedBox(height: 16),
-          // Mevcut kullanıcılar için giriş yapma linki
+          const SizedBox(height: 10),
           TextButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GirisEkrani())),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const GirisEkrani()),
+            ),
             child: RichText(
               text: const TextSpan(
                 text: "Hesabın Var Mı? ",
-                style: TextStyle(color: Color(0xFF9196A2), fontSize: 16),
+                style: TextStyle(color: Color(0xFF9196A2), fontSize: 15),
                 children: [
                   TextSpan(
                     text: "Giriş Yap",
@@ -187,7 +231,6 @@ class HomePages extends StatelessWidget {
   }
 }
 
-// Arka plandaki dekoratif daireleri oluşturan yardımcı widget
 class _CircleDecorator extends StatelessWidget {
   final double size;
   final Color color;
@@ -198,10 +241,7 @@ class _CircleDecorator extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

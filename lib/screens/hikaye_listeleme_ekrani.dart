@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_detay_ekrani.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HikayeListelemeEkrani extends StatelessWidget {
   const HikayeListelemeEkrani({super.key});
@@ -9,41 +10,40 @@ class HikayeListelemeEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.zemin,
+      backgroundColor: const Color(0xFFF1F5F9), // Daha modern, açık bir zemin
       appBar: AppBar(
-        title: const Text("EĞİTİCİ HİKAYELER",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.yaziRengi)),
-        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        title: const Text("KAHRAMANLIK ÖYKÜLERİ",
+            style: TextStyle(fontSize: 18, color: Color(0xFF4A90E2), letterSpacing: 1.5)),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        //Veri trafiğini optimize etmek için hikaye sayısını 30 ile sınırlar
-        stream: FirebaseFirestore.instance.collection('stories').limit(30).snapshots(),
+        stream: FirebaseFirestore.instance.collection('stories').snapshots(),
         builder: (context, snapshot) {
-          // Veri yüklenirken gösterilecek yükleme göstergesi
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.anaMavi));
           }
-          // Koleksiyon boşsa veya hata oluşursa kullanıcıya bilgi verir
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("Henüz hikaye eklenmemiş."));
+            return _buildEmptyState();
           }
 
-          // Hikayeleri dikey listede verimli bir şekilde oluşturan builder
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-            physics: const BouncingScrollPhysics(),
+          return GridView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // Çocuklar için daha keşif odaklı 2'li grid
+              crossAxisSpacing: 15,
+              mainAxisSpacing: 15,
+              childAspectRatio: 0.85,
+            ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              // Her bir dökümanı Map formatına çevirerek kart oluşturucuya gönderir
-              var doc = snapshot.data!.docs[index];
-              var data = doc.data() as Map<String, dynamic>;
-              return _buildStoryCard(context, data, index);
+              var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+              return _buildHeroCard(context, data, index).animate().fadeIn(delay: (index * 50).ms).scale(begin: const Offset(0.8, 0.8));
             },
           );
         },
@@ -51,63 +51,71 @@ class HikayeListelemeEkrani extends StatelessWidget {
     );
   }
 
-  // Liste içerisindeki her bir hikaye kartının tasarımı ve yönlendirme mantığı
-  Widget _buildStoryCard(BuildContext context, Map<String, dynamic> data, int index) {
-    // Liste elemanlarına sırayla farklı renkler atayarak görsel çeşitlilik sağla
-    List<Color> renkler = [Colors.orangeAccent, Colors.blueAccent, Colors.purpleAccent];
-    Color anaRenk = renkler[index % renkler.length];
+  Widget _buildHeroCard(BuildContext context, Map<String, dynamic> data, int index) {
+    // Çocukların dikkatini çekecek canlı renk paleti
+    List<Color> kartRenkleri = [
+      const Color(0xFFFF9F1C), const Color(0xFF2EC4B6),
+      const Color(0xFFE71D36), const Color(0xFF3A86FF)
+    ];
+    Color renk = kartRenkleri[index % kartRenkleri.length];
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: anaRenk.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 8))],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (c) => HikayeDetayEkrani(
+            feedbackMessage: data['feedbackMessage'] ?? "",
+            baslik: data['baslik'] ?? "Eğitici Öykü",
+            gorselYolu: data['gorselYolu'] ?? "assets/books.png",
+            temaRengi: renk,
+            hikayeMetni: data['hikayeMetni'] ?? data['icerik'] ?? "",
+          ),
+        ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(25),
-        // Karta tıklandığında detay ekranına Firestore'dan gelen verileri gönderir
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (c) => HikayeDetayEkrani(
-              feedbackMessage: data['feedbackMessage'] ?? "",
-              baslik: data['baslik'] ?? "Eğitici Öykü",
-              gorselYolu: data['gorselYolu'] ?? "assets/books.png",
-              temaRengi: anaRenk,
-              hikayeMetni: data['hikayeMetni'] ?? data['icerik'] ?? "",
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: renk.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: renk.withOpacity(0.1), borderRadius: const BorderRadius.vertical(top: Radius.circular(30))),
+                child: Icon(Icons.auto_stories_rounded, size: 50, color: renk),
+              ),
             ),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(
-            children: [
-              Container(
-                width: 80, height: 80,
-                decoration: BoxDecoration(
-                  color: anaRenk.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(Icons.auto_stories_rounded, color: anaRenk, size: 35),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(data['baslik'] ?? "İsimsiz Hikaye",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppColors.yaziRengi)),
-                    const SizedBox(height: 4),
-                    Text("Okumak ve öğrenmek için dokun",
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
-                  ],
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  data['baslik'] ?? "Macera Başlıyor",
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF334155)),
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, color: anaRenk.withOpacity(0.3), size: 18),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.menu_book_rounded, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text("Henüz bir hikaye yok.\nKütüphanemiz hazırlanıyor!",
+              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

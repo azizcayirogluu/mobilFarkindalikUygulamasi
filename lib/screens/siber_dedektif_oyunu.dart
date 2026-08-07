@@ -184,8 +184,8 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
           icon: const Icon(Icons.close_rounded, color: AppColors.anaMavi, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("SİBER DEDEKTİF",
-            style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, letterSpacing: 1.5)),
+        title: const Text("KAHRAMAN DEDEKTİF",
+            style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, letterSpacing: 1.5 , fontSize: 18)),
         centerTitle: true,
       ),
       body: SafeArea(

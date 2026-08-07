@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 
 class ScenarioManager extends StatefulWidget {
@@ -344,7 +345,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
       child: (url != null && url.isNotEmpty)
           ? ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_rounded, size: 40, color: Colors.grey))))
+          child: CachedNetworkImage(imageUrl: url, fit: BoxFit.cover, errorWidget: (c, url, e) => const Center(child: Icon(Icons.broken_image_rounded, size: 40, color: Colors.grey))))
           : const Center(child: Icon(Icons.image_search_rounded, size: 40, color: Colors.grey)),
     );
   }

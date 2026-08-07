@@ -1,322 +1,142 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
 class ReportService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Tüm veritabanı verilerini toplayıp PDF raporu oluşturur ve yazdırma ekranını açar.
-  Future<void> sistemRaporuOlustur() async {
-    final pdf = pw.Document();
-
+  // --- YENİ ÖZELLİK: OLAY BİLDİRİMİ ---
+  Future<bool> olayBildir({
+    required String baslik,
+    required String detay,
+    required String konum,
+  }) async {
     try {
-      // Firestore'daki ilgili tüm koleksiyonlardan ham verileri çek
-      final progressSnap = await _db.collection('usersProgress').get();
-      final usersSnap = await _db.collection('users').get();
-      final storiesSnap = await _db.collection('stories').get();
-      final scenariosSnap = await _db.collection('scenarios').get();
-      final videosSnap = await _db.collection('videos').get();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
 
-      // SAYAÇLAR
-      int toplamHata = 0;
-      int toplamSure = 0;
-      int toplamPuan = 0;
-      int toplamRozet = 0;
-      int toplamEmpati = 0;
-      int toplamDikkat = 0;
-      int toplamYardim = 0;
-
-      int guvenliSayisi = 0;
-      int riskliSayisi = 0;
-      int tehlikedeSayisi = 0;
-
-      // Tehlikede olan kullanıcıların listesi
-      List<Map<String, dynamic>> tehlikeliKullanicilar = [];
-
-      // Performans için ilerleme verilerini UID üzerinden eşleşecek şekilde bir haritaya (Map) dönüştürür.
-      Map<String, dynamic> progressMap = {
-        for (var doc in progressSnap.docs) doc.id: doc.data()
-      };
-
-      // VERİ İŞLEME DÖNGÜSÜ
-      for (var userDoc in usersSnap.docs) {
-        final uid = userDoc.id;
-        final userData = userDoc.data();
-        final String kullaniciAdi = userData['kullaniciAdi'] ?? "Bilinmiyor";
-
-        final progressData = progressMap[uid] ?? {};
-        final stats = progressData['istatistikler'] ?? {};
-        final karar = stats['karar_yapisi'] ?? {};
-        final rozetler = progressData['rozetler'] as List? ?? [];
-
-        toplamHata += (stats['hatali_cevaplar'] as int? ?? 0);
-        toplamSure += (stats['toplam_sure_dk'] as int? ?? 0);
-        toplamPuan += (progressData['toplam_puan'] as int? ?? 0);
-        toplamRozet += rozetler.length;
-
-        toplamEmpati += (karar['empati'] as int? ?? 0);
-        toplamDikkat += (karar['dikkat'] as int? ?? 0);
-        toplamYardim += (karar['yardim'] as int? ?? 0);
-
-        // Risk Analizi
-        final riskDurumu = progressData['riskDurumu'] ?? 'BILINMIYOR';
-        final riskNedeni = progressData['riskNedeni'] ?? '-';
-
-        if (riskDurumu == 'GUVENLI') {
-          guvenliSayisi++;
-        } else if (riskDurumu == 'OLABILIR') {
-          riskliSayisi++;
-        } else if (riskDurumu == 'TEHLIKEDE') {
-          tehlikedeSayisi++;
-          tehlikeliKullanicilar.add({
-            'kullaniciAdi': kullaniciAdi,
-            'riskNedeni': riskNedeni,
-          });
-        }
-      }
-
-      // SENARYO ANALİZİ
-      int toplamSoruSayisi = 0;
-      for (var doc in scenariosSnap.docs) {
-        final bolumler = (doc.data()['bolumler'] as List? ?? []);
-        for (var bolum in bolumler) {
-          toplamSoruSayisi += (bolum['sorular'] as List? ?? []).length;
-        }
-      }
-
-      int userCount = usersSnap.docs.isNotEmpty ? usersSnap.docs.length : 1;
-
-      // Ortalama beceriler hesaplanıyor
-      double ortEmpati = (toplamEmpati / userCount);
-      double ortDikkat = (toplamDikkat / userCount);
-      double ortYardim = (toplamYardim / userCount);
-
-      // En zayıf yeteneği bulma
-      String zayifYetenek = "Siber Farkındalık (Dikkat)";
-      double minDeger = ortDikkat;
-
-      if (ortEmpati < minDeger) {
-        minDeger = ortEmpati;
-        zayifYetenek = "Empati ve İletişim";
-      }
-      if (ortYardim < minDeger) {
-        minDeger = ortYardim;
-        zayifYetenek = "Yardımseverlik (Müdahale)";
-      }
-
-      String zayifYonetimMesaji =
-          "Sistem genelinde öğrencilerin en çok zorlandığı alan **$zayifYetenek** becerisidir. Platforma bu konuyla alakalı daha fazla senaryo ve hikaye eklemeniz önerilir.";
-
-      // PDF SAYFA OLUŞTURMA
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          header: (pw.Context context) => _buildHeader(),
-          build: (pw.Context context) {
-            return [
-              _buildSectionTitle("1. SİSTEM GENEL ENVANTERİ"),
-              _buildInventoryTable(
-                usersSnap,
-                scenariosSnap,
-                storiesSnap,
-                videosSnap,
-                toplamSoruSayisi,
-              ),
-              pw.SizedBox(height: 20),
-
-              _buildSectionTitle("2. ETKİLEŞİM VE BAŞARI ANALİZİ"),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: _pdfStatBox(
-                      "Toplam Puan",
-                      "$toplamPuan TP",
-                      PdfColors.orange700,
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: _pdfStatBox(
-                      "Toplam Süre",
-                      "$toplamSure dk",
-                      PdfColors.blue700,
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: _pdfStatBox(
-                      "Dağıtılan Rozet",
-                      "$toplamRozet Adet",
-                      PdfColors.amber700,
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: _pdfStatBox(
-                      "Toplam Hata",
-                      "$toplamHata Kez",
-                      PdfColors.red700,
-                    ),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-              _pdfProgressBar("Ortalama Empati Yeteneği", ortEmpati / 100, PdfColors.pink),
-              _pdfProgressBar(
-                "Ortalama Siber Dikkat & Farkındalık",
-                ortDikkat / 100,
-                PdfColors.green,
-              ),
-              _pdfProgressBar("Ortalama Yardımseverlik", ortYardim / 100, PdfColors.orange),
-
-              // Zayıf yön çıkarımı (AI Insight)
-              pw.Container(
-                margin: const pw.EdgeInsets.only(top: 15),
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.blue50,
-                  border: pw.Border.all(color: PdfColors.blue200),
-                  borderRadius: pw.BorderRadius.circular(8),
-                ),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text("💡  ", style: const pw.TextStyle(fontSize: 14)),
-                    pw.Expanded(
-                      child: pw.Text(
-                        zayifYonetimMesaji,
-                        style: pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 30),
-
-              _buildSectionTitle("3. SİBER GÜVENLİK VE YAPAY ZEKA RİSK ÖZETİ"),
-              pw.Text(
-                "Siber Asistan (Yapay Zeka), tüm kullanıcıların uygulama içi hatalarını ve sohbet geçmişlerini analiz ederek aşağıdaki risk dağılımını tespit etmiştir:",
-                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: _pdfRiskBox("GÜVENLİ", "$guvenliSayisi öğrenci", PdfColors.green),
-                  ),
-                  pw.Expanded(
-                    child: _pdfRiskBox("OLABİLİR (RİSKLİ)", "$riskliSayisi öğrenci", PdfColors.orange),
-                  ),
-                  pw.Expanded(
-                    child: _pdfRiskBox("TEHLİKEDE!", "$tehlikedeSayisi öğrenci", PdfColors.red),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-
-              // Acil Müdahale Tablosu
-              if (tehlikeliKullanicilar.isNotEmpty) ...[
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.red50,
-                    border: pw.Border.all(color: PdfColors.red),
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        "⚠️ ACİL MÜDAHALE GEREKTİREN KULLANICILAR",
-                        style: pw.TextStyle(
-                          color: PdfColors.red900,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      pw.TableHelper.fromTextArray(
-                        headerStyle: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                          fontSize: 10,
-                        ),
-                        headerDecoration: const pw.BoxDecoration(color: PdfColors.red800),
-                        cellStyle: const pw.TextStyle(fontSize: 9),
-                        data: <List<String>>[
-                          ['Kullanıcı Adı', 'Yapay Zeka Risk Nedeni (Açıklama)'],
-                          for (var t in tehlikeliKullanicilar)
-                            [t['kullaniciAdi']!, t['riskNedeni']!],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-              ],
-
-              pw.NewPage(),
-              _buildSectionTitle("4. DETAYLI KULLANICI İZLEME RAPORU"),
-              _buildUserDetailTable(usersSnap, progressMap),
-
-              pw.SizedBox(height: 30),
-              pw.Divider(color: PdfColors.grey400),
-              pw.Align(
-                alignment: pw.Alignment.center,
-                child: pw.Text(
-                  "Zorbalık Farkındalık Platformu - Güncel Veritabanı Analiz Çıktısı: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}",
-                  style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-                ),
-              ),
-            ];
-          },
-          footer: (pw.Context context) => _buildFooter(context),
-        ),
-      );
-
-      // Oluşturulan PDF'i cihaza sunar.
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
-        name:
-            'SiberKahraman_Sistem_Analizi_${DateFormat('dd_MM_yyyy').format(DateTime.now())}.pdf',
-      );
+      await _db.collection('reports').add({
+        'uid': user.uid,
+        'kullaniciAdi': user.displayName ?? 'Bilinmiyor',
+        'baslik': baslik,
+        'detay': detay,
+        'konum': konum,
+        'tarih': FieldValue.serverTimestamp(),
+        'durum': 'YENİ',
+      });
+      return true;
     } catch (e) {
-      debugPrint("Rapor Hatası: $e");
+      debugPrint("Olay bildirme hatası: $e");
+      return false;
     }
   }
 
-  pw.Widget _buildHeader() {
+  // --- MEVCUT PDF RAPORU OLUŞTURMA ---
+  Future<void> sistemRaporuOlustur() async {
+    final pdf = pw.Document();
+    final DateTime now = DateTime.now();
+    final String formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(now);
+
+    final turkishFont = await PdfGoogleFonts.robotoRegular();
+    final turkishFontBold = await PdfGoogleFonts.robotoBold();
+
+    try {
+      final resultsCounts = await Future.wait([
+        _db.collection('users').count().get(),
+        _db.collection('scenarios').count().get(),
+        _db.collection('stories').count().get(),
+        _db.collection('videos').count().get(),
+      ]);
+
+      final int totalUsers = resultsCounts[0].count ?? 0;
+      final int totalScenarios = resultsCounts[1].count ?? 0;
+      final int totalStories = resultsCounts[2].count ?? 0;
+      final int totalVideos = resultsCounts[3].count ?? 0;
+
+      final dangerSnap = await _db.collection('usersProgress').where('riskDurumu', isEqualTo: 'TEHLİKELİ').get();
+      final riskySnap = await _db.collection('usersProgress').where('riskDurumu', isEqualTo: 'RİSKLİ').get();
+      
+      final activeUsersSnap = await _db.collection('users').orderBy('sonGorulme', descending: true).limit(50).get();
+      final List<String> uids = activeUsersSnap.docs.map((d) => d.id).toList();
+      
+      Map<String, dynamic> progressMap = {};
+      if (uids.isNotEmpty) {
+        final progressSnap = await _db.collection('usersProgress').where(FieldPath.documentId, whereIn: uids).get();
+        for (var doc in progressSnap.docs) {
+          progressMap[doc.id] = doc.data();
+        }
+      }
+
+      int totalPoints = 0;
+      int totalBadges = 0;
+      int totalErrors = 0;
+      
+      for (var data in progressMap.values) {
+        totalPoints += (data['toplam_puan'] as int? ?? 0);
+        totalBadges += (data['rozetler'] as List? ?? []).length;
+        totalErrors += (data['istatistikler']?['hatali_cevaplar'] as int? ?? 0);
+      }
+
+      pdf.addPage(
+        pw.MultiPage(
+          theme: pw.ThemeData.withFont(base: turkishFont, bold: turkishFontBold),
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          header: (context) => _buildHeader(formattedDate),
+          footer: (context) => _buildFooter(context),
+          build: (context) => [
+            _buildSectionTitle("1. YÖNETİCİ ÖZETİ"),
+            _buildSummaryGrid(totalUsers, totalScenarios, totalStories, totalVideos),
+            pw.SizedBox(height: 30),
+            _buildSectionTitle("2. PERFORMANS METRİKLERİ (Son 50 Kullanıcı)"),
+            _buildStatRow(totalPoints, totalBadges, totalErrors),
+            pw.SizedBox(height: 30),
+            _buildSectionTitle("3. GÜVENLİK VE RİSK ANALİZİ"),
+            _buildRiskDistribution(totalUsers, dangerSnap.docs.length, riskySnap.docs.length),
+            pw.SizedBox(height: 20),
+            if (dangerSnap.docs.isNotEmpty) _buildDangerTable(dangerSnap.docs),
+            pw.SizedBox(height: 30),
+            pw.NewPage(),
+            _buildSectionTitle("4. DETAYLI KULLANICI İZLEME LİSTESİ"),
+            _buildUserTable(activeUsersSnap.docs, progressMap),
+            pw.SizedBox(height: 40),
+            _buildFinalNote(formattedDate),
+          ],
+        ),
+      );
+
+      await Printing.layoutPdf(onLayout: (format) async => pdf.save(), name: 'KahramanDostum_Rapor.pdf');
+    } catch (e) {
+      debugPrint("PDF Rapor Hatası: $e");
+    }
+  }
+
+  pw.Widget _buildHeader(String date) {
     return pw.Container(
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: PdfColors.indigo900, width: 2)),
-      ),
       padding: const pw.EdgeInsets.only(bottom: 10),
       margin: const pw.EdgeInsets.only(bottom: 20),
+      decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.blue900, width: 2.5))),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
-                "SİBER KAHRAMAN YÖNETİM RAPORU",
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 18,
-                  color: PdfColors.indigo900,
-                ),
-              ),
-              pw.Text(
-                "Kapsamlı Sistem & Psikolojik Analiz Çıktısı",
-                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-              ),
+              pw.Text("KAHRAMAN DOSTUM", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+              pw.Text("Sistem Operasyon ve Güvenlik Analizi Raporu", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
             ],
           ),
-          pw.Text(
-            DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
-            style: const pw.TextStyle(fontSize: 10),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text("Rapor Tarihi", style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              pw.Text(date, style: const pw.TextStyle(fontSize: 10)),
+            ],
           ),
         ],
       ),
@@ -325,188 +145,148 @@ class ReportService {
 
   pw.Widget _buildSectionTitle(String title) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 12),
-      child: pw.Text(
-        title,
-        style: pw.TextStyle(
-          fontWeight: pw.FontWeight.bold,
-          fontSize: 14,
-          color: PdfColors.indigo800,
-        ),
+      padding: const pw.EdgeInsets.symmetric(vertical: 10),
+      child: pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: const pw.BoxDecoration(color: PdfColors.blue50, borderRadius: pw.BorderRadius.all(pw.Radius.circular(4))),
+        child: pw.Text(title, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
       ),
     );
   }
 
-  pw.Widget _buildInventoryTable(
-    QuerySnapshot users,
-    QuerySnapshot scenarios,
-    QuerySnapshot stories,
-    QuerySnapshot videos,
-    int soruCount,
-  ) {
-    return pw.TableHelper.fromTextArray(
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo700),
-      cellHeight: 25,
-      data: <List<String>>[
-        ['Varlık Tipi', 'Sistemdeki Toplam Miktar'],
-        ['Kayıtlı öğrenciler / Kahramanlar', '${users.docs.length} Kişi'],
-        ['Eğitim Senaryoları', '${scenarios.docs.length} Senaryo'],
-        ['Toplam Soru Havuzu', '$soruCount Soru'],
-        ['Eğitici Hikayeler', '${stories.docs.length} Hikaye'],
-        ['Eğitim Videoları', '${videos.docs.length} Video'],
+  pw.Widget _buildSummaryGrid(int u, int s, int st, int v) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        _summaryBox("Toplam Kahraman", "$u", PdfColors.blue700),
+        _summaryBox("Aktif Senaryo", "$s", PdfColors.indigo700),
+        _summaryBox("Hikaye Sayısı", "$st", PdfColors.orange700),
+        _summaryBox("Eğitim Videosu", "$v", PdfColors.pink700),
       ],
     );
   }
 
-  pw.Widget _buildUserDetailTable(QuerySnapshot usersSnap, Map<String, dynamic> progressMap) {
-    return pw.TableHelper.fromTextArray(
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo800),
-      cellStyle: const pw.TextStyle(fontSize: 8),
-      data: <List<String>>[
-        ['Kullanıcı Adı', 'YZ Risk Durumu', 'Kazanılan Rozet', 'Toplam Puan', 'Süre', 'Son Görülme'],
-        for (var userDoc in usersSnap.docs) _generateUserRow(userDoc, progressMap[userDoc.id]),
-      ],
-    );
-  }
-
-  List<String> _generateUserRow(DocumentSnapshot userDoc, dynamic progressData) {
-    final userData = userDoc.data() as Map<String, dynamic>;
-    final String kullaniciAdi = userData['kullaniciAdi'] ?? "Bilinmiyor";
-    final dynamic rawLastSeen = userData['sonGorulme'];
-
-    final String risk =
-        progressData != null ? (progressData['riskDurumu'] ?? "BILINMIYOR") : "BILINMIYOR";
-    final String rozet = progressData != null ? "${(progressData['rozetler'] as List? ?? []).length}" : "0";
-    final String puan = progressData != null ? "${progressData['toplam_puan'] ?? 0}" : "0";
-    final String sure =
-        progressData != null ? "${progressData['istatistikler']?['toplam_sure_dk'] ?? 0} dk" : "0 dk";
-
-    String sonHareketStr = "Bilinmiyor";
-
-    if (rawLastSeen != null) {
-      try {
-        DateTime date;
-        if (rawLastSeen is Timestamp) {
-          date = rawLastSeen.toDate();
-        } else if (rawLastSeen is String) {
-          date = DateTime.parse(rawLastSeen);
-        } else {
-          throw Exception("Bilinmeyen tip");
-        }
-        sonHareketStr = DateFormat('dd/MM HH:mm').format(date);
-      } catch (e) {
-        sonHareketStr = "Hata";
-      }
-    }
-
-    return [kullaniciAdi, risk, rozet, puan, sure, sonHareketStr];
-  }
-
-  pw.Widget _pdfStatBox(String label, String value, PdfColor color) {
+  pw.Widget _summaryBox(String label, String value, PdfColor color) {
     return pw.Container(
-      margin: const pw.EdgeInsets.all(4),
-      padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.white,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: color, width: 1.5),
-      ),
-      child: pw.Column(
-        children: [
-          pw.Text(
-            value,
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: color),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            label,
-            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800, fontWeight: pw.FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _pdfRiskBox(String label, String value, PdfColor color) {
-    return pw.Container(
-      margin: const pw.EdgeInsets.all(4),
-      padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      width: 110, padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(color: color, borderRadius: pw.BorderRadius.circular(8)),
       child: pw.Column(
         children: [
-          pw.Text(
-            value,
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            label,
-            style: pw.TextStyle(fontSize: 9, color: PdfColors.white, fontWeight: pw.FontWeight.bold),
-          ),
+          pw.Text(value, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+          pw.SizedBox(height: 4),
+          pw.Text(label, style: const pw.TextStyle(fontSize: 8, color: PdfColors.white), textAlign: pw.TextAlign.center),
         ],
       ),
     );
   }
 
-  pw.Widget _pdfProgressBar(String label, double val, PdfColor color) {
-    final double clampedVal = val.clamp(0.0, 1.0);
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 6),
+  pw.Widget _buildStatRow(int p, int b, int e) {
+    return pw.Row(
+      children: [
+        pw.Expanded(child: _detailStatBox("Toplam Puan", "$p TP", PdfColors.amber700)),
+        pw.SizedBox(width: 15),
+        pw.Expanded(child: _detailStatBox("Kazanılan Rozet", "$b Adet", PdfColors.purple700)),
+        pw.SizedBox(width: 15),
+        pw.Expanded(child: _detailStatBox("Toplam Hata", "$e Kez", PdfColors.red700)),
+      ],
+    );
+  }
+
+  pw.Widget _detailStatBox(String l, String v, PdfColor c) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(15),
+      decoration: pw.BoxDecoration(border: pw.Border.all(color: c, width: 1.5), borderRadius: pw.BorderRadius.circular(10)),
+      child: pw.Column(
+        children: [
+          pw.Text(v, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: c)),
+          pw.Text(l, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildRiskDistribution(int total, int danger, int risky) {
+    int safe = total - danger - risky;
+    return pw.Row(
+      children: [
+        pw.Expanded(child: _riskBar("GÜVENLİ", safe, total, PdfColors.green700)),
+        pw.SizedBox(width: 10),
+        pw.Expanded(child: _riskBar("RİSKLİ", risky, total, PdfColors.orange700)),
+        pw.SizedBox(width: 10),
+        pw.Expanded(child: _riskBar("TEHLİKELİ", danger, total, PdfColors.red700)),
+      ],
+    );
+  }
+
+  pw.Widget _riskBar(String l, int v, int t, PdfColor c) {
+    double percent = t > 0 ? v / t : 0;
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(6)),
+      child: pw.Column(
+        children: [
+          pw.Text(l, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: c)),
+          pw.SizedBox(height: 5),
+          pw.Text("$v Kişi", style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.Text("%${(percent * 100).toInt()}", style: const pw.TextStyle(fontSize: 8)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildDangerTable(List<DocumentSnapshot> docs) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 10),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(color: PdfColors.red50, borderRadius: pw.BorderRadius.circular(8)),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text(
-                label,
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.grey800,
-                ),
-              ),
-              pw.Text(
-                "${(clampedVal * 100).toInt()}%",
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: color),
-              ),
+          pw.Text("⚠️ ACİL MÜDAHALE GEREKTİREN VAKALAR", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.red900)),
+          pw.SizedBox(height: 10),
+          pw.TableHelper.fromTextArray(
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 8),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.red800),
+            cellStyle: const pw.TextStyle(fontSize: 7),
+            data: [
+              ['Kahraman Adı', 'Risk Nedeni'],
+              for (var doc in docs) [doc.get('kullaniciAdi') ?? 'Bilinmiyor', doc.get('riskNedeni') ?? '-'],
             ],
-          ),
-          pw.SizedBox(height: 4),
-          pw.Container(
-            height: 8,
-            width: double.infinity,
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey200,
-              borderRadius: pw.BorderRadius.circular(4),
-            ),
-            child: pw.Align(
-              alignment: pw.Alignment.centerLeft,
-              child: pw.Container(
-                width: 480.0 * clampedVal, // Sayfa genişliğine göre orantılanmış genişlik.
-                height: 8,
-                decoration: pw.BoxDecoration(
-                  color: color,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  pw.Widget _buildFooter(pw.Context context) {
-    return pw.Container(
-      alignment: pw.Alignment.centerRight,
-      margin: const pw.EdgeInsets.only(top: 10),
-      child: pw.Text(
-        "Sayfa ${context.pageNumber} / ${context.pagesCount}",
-        style: const pw.TextStyle(color: PdfColors.grey, fontSize: 8),
-      ),
+  pw.Widget _buildUserTable(List<DocumentSnapshot> users, Map<String, dynamic> progress) {
+    return pw.TableHelper.fromTextArray(
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey900),
+      cellStyle: const pw.TextStyle(fontSize: 8),
+      data: [
+        ['Adı', 'Risk Durumu', 'Puan', 'Rozet', 'Son Görülme'],
+        for (var user in users) _buildUserRow(user, progress[user.id]),
+      ],
     );
+  }
+
+  List<String> _buildUserRow(DocumentSnapshot user, dynamic prog) {
+    final name = user.get('kullaniciAdi') ?? 'İsimsiz';
+    String lastSeen = '-';
+    if (user.get('sonGorulme') != null) {
+      try {
+        lastSeen = DateFormat('dd/MM HH:mm').format((user.get('sonGorulme') as Timestamp).toDate());
+      } catch (e) {}
+    }
+    if (prog == null) return [name, 'Veri Yok', '0', '0', lastSeen];
+    return [name, prog['riskDurumu'] ?? 'BELİRSİZ', "${prog['toplam_puan'] ?? 0}", "${(prog['rozetler'] as List? ?? []).length}", lastSeen];
+  }
+
+  pw.Widget _buildFinalNote(String date) {
+    return pw.Align(alignment: pw.Alignment.center, child: pw.Column(children: [pw.Divider(color: PdfColors.grey300), pw.Text("Bu rapor Kahraman Dostum CMS tarafından otomatik olarak oluşturulmuştur.", style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600)), pw.Text("Oluşturma Tarihi: $date", style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600))]));
+  }
+
+  pw.Widget _buildFooter(pw.Context context) {
+    return pw.Container(alignment: pw.Alignment.centerRight, margin: const pw.EdgeInsets.only(top: 20), child: pw.Text("Sayfa ${context.pageNumber} / ${context.pagesCount}", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)));
   }
 }

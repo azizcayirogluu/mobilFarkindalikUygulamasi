@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 class AnalyticsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // MERKEZİ GÖREV SİSTEMİ (Yeni Standart)
   Future<void> gorevTamamla({
     required String uid,
     required int puan,
@@ -62,7 +61,6 @@ class AnalyticsService {
     } catch (e) { debugPrint("Süre Ekleme Hatası: $e"); }
   }
 
-  // -------------------------------------------------------------
 
   Future<void> rozetKontrolEt(String uid) async {
     try {

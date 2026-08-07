@@ -4,18 +4,32 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'senaryo_bolum_listeleme_ekrani.dart';
 
-class SenaryoListelemeEkrani extends StatelessWidget {
+class SenaryoListelemeEkrani extends StatefulWidget {
   const SenaryoListelemeEkrani({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+  State<SenaryoListelemeEkrani> createState() => _SenaryoListelemeEkraniState();
+}
 
+class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
+  final String? _uid = FirebaseAuth.instance.currentUser?.uid;
+  Future<DocumentSnapshot>? _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_uid != null) {
+      _userFuture = FirebaseFirestore.instance.collection('users').doc(_uid).get();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.zemin,
       appBar: AppBar(
         title: const Text("SENARYOLAR", 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.yaziRengi)),
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.anaMavi , letterSpacing: 1.5)),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -24,11 +38,11 @@ class SenaryoListelemeEkrani extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: uid == null 
+      body: _uid == null || _userFuture == null
         ? const Center(child: Text("Lütfen giriş yapın."))
         : FutureBuilder<DocumentSnapshot>(
             // Önce kullanıcının yaş grubunu öğreniyoruz
-            future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+            future: _userFuture,
             builder: (context, userSnap) {
               if (userSnap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -132,11 +146,11 @@ class SenaryoListelemeEkrani extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      baslik.toUpperCase(),
+                      baslik,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900, 
                         fontSize: 18, 
-                        color: AppColors.yaziRengi,
+                        color: AppColors.anaMavi,
                         letterSpacing: 0.5,
                       ),
                     ),

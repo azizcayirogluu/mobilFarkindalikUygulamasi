@@ -1,111 +1,86 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../core/ai/offline_ai_engine.dart';
 
 class AiAnalysisService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final OfflineAIEngine _offlineEngine = OfflineAIEngine();
 
-  /// Kullanıcının yanlış yaptığı bir konuyu (örn: "Şifre Paylaşımı") veritabanına ekler.
-  Future<void> logMistake(String uid, String topic) async {
+  // Cloud Function referansı (API anahtarı sunucuda)
+  final HttpsCallable _analysisFn =
+      FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('geminiAnalysis');
+
+  // Kullanıcının hata kayıtlarını Firestore'a ekler
+  Future<void> logMistake(String uid, String mistake) async {
     try {
-      final docRef = _firestore.collection('usersProgress').doc(uid);
-
-      // FieldValue.arrayUnion ile aynı konunun tekrar tekrar eklenmesini önleyebiliriz.
-      await docRef.set({
-        'son_hatalar': FieldValue.arrayUnion([topic]),
+      // update yerine set + merge kullanıyoruz, böylece doküman yoksa bile hata almaz.
+      await _firestore.collection('usersProgress').doc(uid).set({
+        'son_hatalar': FieldValue.arrayUnion([mistake]),
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint("AiAnalysisService: Hata loglama başarısız: $e");
+      debugPrint("Hata kaydedilemedi: $e");
     }
   }
 
-  /// Yapay zekaya vermek üzere kullanıcının son hatalarını getirir.
+  // Son hataları getirir
   Future<List<String>> getMistakes(String uid) async {
     try {
-      final docSnap = await _firestore.collection('usersProgress').doc(uid).get();
-      if (docSnap.exists) {
-        List data = docSnap.data()?['son_hatalar'] ?? [];
-        return List<String>.from(data);
+      // GetOptions(source: Source.serverAndCache) kullanarak çevrimdışıyken cache'den okumasına izin verdik
+      final doc =
+          await _firestore.collection('usersProgress').doc(uid).get(const GetOptions(source: Source.serverAndCache));
+      if (doc.exists) {
+        return List<String>.from(doc.data()?['son_hatalar'] ?? []);
       }
     } catch (e) {
-      debugPrint("AiAnalysisService: Hata listesi alınamadı: $e");
+      debugPrint("Hatalar getirilemedi: $e");
     }
     return [];
   }
 
-  /// Asistan bu konuları işlediğinde veya temizlenmesi gerektiğinde çağrılır.
+  // Hataları temizler
   Future<void> clearMistakes(String uid) async {
     try {
-      await _firestore.collection('usersProgress').doc(uid).update({
-        'son_hatalar': FieldValue.delete(),
-      });
+      await _firestore.collection('usersProgress').doc(uid).set({
+        'son_hatalar': [],
+      }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint("AiAnalysisService: Hatalar temizlenemedi: $e");
+      debugPrint("Hatalar temizlenemedi: $e");
     }
   }
 
-  /// Yöneticiler için kullanıcının risk durumunu (GUVENLI, OLABILIR, TEHLIKEDE) analiz eder
+  // Yapay Zeka Risk Analizi — Cloud Function üzerinden çalışır
+  // API anahtarı sunucuda, admin kontrolü sunucuda yapılır
   Future<Map<String, String>?> kullaniciyiAnalizEt(String uid) async {
     try {
-      final progressDoc = await _firestore.collection('usersProgress').doc(uid).get();
-      if (!progressDoc.exists) return null;
-
-      final data = progressDoc.data()!;
-      List sohbetGecmisi = data['sohbet_gecmisi'] ?? [];
-      List sonHatalar = data['son_hatalar'] ?? [];
-
-      String chatText = sohbetGecmisi.map((m) => "${m['rol']}: ${m['metin']}").join("\n");
-      String hatalarText = sonHatalar.join(", ");
-
-      String apiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-      if (apiKey.isEmpty) {
-        debugPrint("YZ Analiz Hatası: API KEY yok.");
-        return null;
-      }
-
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: apiKey,
-        systemInstruction: Content.system(
-          "Sen bir uzman psikolog ve siber güvenlik analistisin. "
-          "Sana verilen çocuğun sohbet geçmişini ve eğitimde yaptığı hataları incele. "
-          "Amacın çocuğun bir siber zorbalığa uğrayıp uğramadığını, şantaj/tehdit altında olup olmadığını veya riskli davranışlarda bulunup bulunmadığını tespit etmek. "
-          "Dönüş formatı SADECE şu şekilde olmalı: DURUM|Açıklama "
-          "DURUM sadece şu 3 kelimeden biri olabilir: GÜVENLİ, OLABİLİR, TEHLİKEDE. "
-          "Açıklama ise neden bu duruma karar verdiğini belirten tek bir cümle olmalı.",
-        ),
-      );
-
-      String prompt = "Veri Yok";
-      if (chatText.isEmpty && hatalarText.isEmpty) {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      bool hasInternet = connectivityResult.any((r) => r != ConnectivityResult.none);
+                         
+      if (!hasInternet) {
+        debugPrint("Çevrimdışı mod: Gemini yerine Kural Tabanlı Motor çalışıyor.");
+        final mistakes = await getMistakes(uid);
+        final offlineResult = await _offlineEngine.analyzeMistakes(mistakes);
         return {
-          "durum": "GÜVENLİ",
-          "neden": "Kullanıcının henüz bir etkileşimi veya hatası bulunmuyor.",
+          "durum": offlineResult?["durum"] ?? "GÜVENLİ",
+          "neden": "Çevrimdışı analiz: " + (offlineResult?["neden"] ?? "Sorun tespit edilmedi.")
         };
-      } else {
-        prompt =
-            "Sohbet Geçmişi:\n$chatText\n\nEğitim Hataları:\n$hatalarText\n\nLütfen bu veriyi analiz et.";
       }
 
-      final response = await model.generateContent([Content.text(prompt)]);
+      // 15 saniye içinde cevap gelmezse timeout olur ve catch'e düşer
+      final result = await _analysisFn.call({'uid': uid}).timeout(const Duration(seconds: 15));
 
-      if (response.text != null && response.text!.contains('|')) {
-        final parts = response.text!.split('|');
-        final durum = parts[0].trim().toUpperCase();
-        final neden = parts[1].trim();
+      final durum = result.data['durum'] ?? 'BİLİNMİYOR';
+      final neden = result.data['neden'] ?? 'Analiz sonucu okunamadı.';
 
-        await _firestore.collection('usersProgress').doc(uid).update({
-          'riskDurumu': durum,
-          'riskNedeni': neden,
-          'sonRiskAnalizi': FieldValue.serverTimestamp(),
-        });
-
-        return {"durum": durum, "neden": neden};
-      }
+      return {"durum": durum, "neden": neden};
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint("YZ Analiz Hatası: ${e.code} - ${e.message}");
+      return {"durum": "HATA", "neden": "Sunucu şu an çok meşgul, lütfen biraz sonra tekrar dene."};
     } catch (e) {
-      debugPrint("YZ Analiz Hatası: $e");
+      debugPrint("Bağlantı Hatası: $e");
+      return {"durum": "HATA", "neden": "Bağlantı çok yavaş veya koptu. Lütfen internetini kontrol et."};
     }
-    return null;
   }
 }
