@@ -15,7 +15,7 @@
 ---
 
 ## 📝 Proje Vizyonu
-**Siber Dost**, 6-18 yaş aralığındaki bireylerin dijital ve sosyal ekosistemlerde karşılaşabilecekleri zorbalık türlerine karşı "aktif korunma" ve "farkındalık" kazanmaları için geliştirilmiş bir **EdTech (Eğitim Teknolojisi)** çözümüdür.
+**Siber Dost**, 6-18 yaş aralığındaki bireylerin dijital ve sosyal ekosistemlerde karşılaşabilecekleri zorbalık türlerine karşı "aktif korunma" ve "farkındalık" kazanmaları için geliştirilmiş bir eğitici çözümdür.
 
 Sıradan rehberlik uygulamalarının aksine, **Siber Dost**; kullanıcı davranışlarını analiz eden, zayıf noktaları saptayan ve tehlike anında otomatik aksiyon alan hibrit bir yapay zeka mimarisi üzerine kurulmuştur.
 
