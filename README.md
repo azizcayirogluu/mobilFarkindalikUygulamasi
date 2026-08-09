@@ -55,19 +55,24 @@ Proje, sürdürülebilirlik ve test edilebilirlik için **Clean Architecture** p
 <div align="center">
   <table border="0">
     <tr>
-      <td><img width="1080" height="2400" alt="uygulama-ana-ekran" src="https://github.com/user-attachments/assets/b0521664-51ae-41ba-a355-b7d6aeebf104" />
+      <td><img width="1080" height="2400" alt="uygulama-ana-ekran" src="https://github.com/user-attachments/assets/99218e75-1c55-4e1c-b585-26d59e9dee54" />
 </td>
-      <td><img width="1080" height="2400" alt="senaryo-detay-ekranı" src="https://github.com/user-attachments/assets/6b193dc8-f925-4a8c-ba64-10c0f20189ef" />
+      <td><img width="1080" height="2400" alt="uygulama-senaryo-ekran" src="https://github.com/user-attachments/assets/0389573d-eb3d-479e-9bb4-a48cde9dad55" />
+
 </td>
-      <td><img width="1080" height="2400" alt="siber-dedektif-oyunu" src="https://github.com/user-attachments/assets/09e0f245-5384-4d73-b8fa-818dbea16971" />
+      <td><img width="1080" height="2400" alt="uygulama-dedektif-ekran" src="https://github.com/user-attachments/assets/0800738b-33a3-4634-b09b-e8a4c830ec33" />
+
 </td>
-      <td><img width="1080" height="2400" alt="siber-dost-ekranı" src="https://github.com/user-attachments/assets/b5773ba0-dea6-4658-bcd8-93862f569e6f" />
+      <td><img width="1080" height="2400" alt="uygulama-siber-dost-ekran" src="https://github.com/user-attachments/assets/6918573a-0206-4aa5-9386-ebf5d6ab0e7d" />
+
 </td>
     </tr>
     <tr>
-      <td><img width="1080" height="2400" alt="kullanıcı-rozet-ekranı" src="https://github.com/user-attachments/assets/477ac49f-92f6-4144-9ba2-d3c824f3a60a" />
+      <td><img width="1080" height="2400" alt="uygulama-rozet-ekran" src="https://github.com/user-attachments/assets/9afbf129-35e3-4ea4-9ae9-bd142d29cadb" />
+
 </td>
-      <td><img width="1080" height="2400" alt="acil-durum-ekranı" src="https://github.com/user-attachments/assets/56172ce0-6cc6-4683-8021-3c8b5e418e65" />
+      <td><img width="1080" height="2400" alt="uygulama-güvenlik-ekran" src="https://github.com/user-attachments/assets/3568e6d6-d156-4767-ae3f-0a162182b383" />
+
 </td>
       <td><img width="1080" height="2400" alt="güvenlik-rehberi-ekranı" src="https://github.com/user-attachments/assets/6289aefc-58c0-4298-92e5-d69329cacfe7" />
 </td>
