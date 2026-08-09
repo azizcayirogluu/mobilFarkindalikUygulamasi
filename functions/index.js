@@ -14,12 +14,28 @@ const {
     getAuth
 } = require("firebase-admin/auth");
 
-if (getApps().length === 0) {
-    initializeApp();
+let _db;
+let _auth;
+
+function getDb() {
+    if (!_db) {
+        if (getApps().length === 0) {
+            initializeApp();
+        }
+        _db = getFirestore();
+    }
+    return _db;
 }
 
-const db = getFirestore();
-const auth = getAuth();
+function getAuthService() {
+    if (!_auth) {
+        if (getApps().length === 0) {
+            initializeApp();
+        }
+        _auth = getAuth();
+    }
+    return _auth;
+}
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -222,7 +238,7 @@ exports.geminiChat = onCall(
                 );
             }
 
-            const progressRef = db
+            const progressRef = getDb()
                 .collection("usersProgress")
                 .doc(uid);
 
@@ -424,12 +440,12 @@ exports.setAdminRole = onCall(
 
         try {
             const targetUser =
-                await auth.getUser(targetUid);
+                await getAuthService().getUser(targetUid);
 
             const existingClaims =
                 targetUser.customClaims || {};
 
-            await auth.setCustomUserClaims(
+            await getAuthService().setCustomUserClaims(
                 targetUid,
                 {
                     ...existingClaims,
@@ -473,7 +489,7 @@ exports.deleteSelfAccount = onCall(
     {
         region: REGION,
         memory: "256MiB",
-        timeoutSeconds: 30,
+        timeoutSeconds: 120, // Timeout süresi veri temizliği için artırıldı
         enforceAppCheck: true
     },
     async (request) => {
@@ -485,14 +501,55 @@ exports.deleteSelfAccount = onCall(
         }
 
         const uid = request.auth.uid;
+        const db = getDb();
+        const auth = getAuthService();
 
         try {
-            await db
-                .collection("usersProgress")
-                .doc(uid)
-                .delete();
+            // 1. Raporları 500'lük chunk'lar halinde sil
+            while (true) {
+                const reportsSnapshot = await db
+                    .collection("reports")
+                    .where("gonderenUid", "==", uid)
+                    .limit(500)
+                    .get();
 
-            await auth.deleteUser(uid);
+                if (reportsSnapshot.empty) {
+                    break;
+                }
+
+                const batch = db.batch();
+                reportsSnapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+            }
+
+            // 2. Kullanıcı verilerini sil (users ve usersProgress)
+            const userBatch = db.batch();
+            
+            const progressRef = db.collection("usersProgress").doc(uid);
+            userBatch.delete(progressRef);
+            
+            const userRef = db.collection("users").doc(uid);
+            userBatch.delete(userRef);
+
+            // Veritabanı temizliği commit edilir (hata olursa exception fırlar)
+            await userBatch.commit();
+
+            // 3. Firestore temizliği BAŞARILI ise Auth kullanıcısını sil
+            // Eğer buraya kadar geldiysek, orphan data kalmamıştır.
+            try {
+                await auth.deleteUser(uid);
+            } catch (authError) {
+                if (authError.code === "auth/user-not-found") {
+                    // Kullanıcı zaten silinmişse idempotent olarak başarılı kabul edilir.
+                    console.log(`User ${uid} not found in Auth, but Firestore is clean.`);
+                } else {
+                    // Diğer auth silme hataları
+                    throw authError;
+                }
+            }
 
             return {
                 success: true
@@ -508,19 +565,11 @@ exports.deleteSelfAccount = onCall(
                 }
             );
 
-            if (
-                error?.code ===
-                "auth/user-not-found"
-            ) {
-                throw new HttpsError(
-                    "not-found",
-                    "Kullanıcı bulunamadı."
-                );
-            }
-
+            // Veritabanı temizliği aşamasında hata alırsak Auth silinmeyeceği için
+            // orphan data (kısmi silme hariç) kalmaz, kullanıcı tekrar deneyebilir.
             throw new HttpsError(
                 "internal",
-                "Hesap silinemedi."
+                "Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin."
             );
         }
     }

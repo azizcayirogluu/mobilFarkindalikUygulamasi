@@ -88,4 +88,10 @@ class StorageService {
     int current = getRemainingMessages();
     await _prefs.setInt('chat_limit', current + count);
   }
+
+  Future<void> clearUserData() async {
+    await _secureStorage.delete(key: 'auth_token');
+    await _prefs.remove('chat_limit');
+    await clearLoginSecurityData();
+  }
 }

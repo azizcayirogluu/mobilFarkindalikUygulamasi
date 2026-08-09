@@ -12,6 +12,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'guvenlik_rehberi_ekrani.dart';
 import 'hakkinda_ekrani.dart';
 import 'gizlilik_politikasi_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 
 class ProfilEkrani extends StatefulWidget {
   final String kullaniciAdi;
@@ -227,6 +228,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         final deleteFn = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('deleteSelfAccount');
         await deleteFn.call();
         await FirebaseAuth.instance.signOut();
+        await StorageService().clearUserData();
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
       } catch (e) {
