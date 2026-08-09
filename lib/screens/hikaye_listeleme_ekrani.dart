@@ -43,7 +43,10 @@ class HikayeListelemeEkrani extends StatelessWidget {
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-              return _buildHeroCard(context, data, index).animate().fadeIn(delay: (index * 50).ms).scale(begin: const Offset(0.8, 0.8));
+              return _buildHeroCard(context, data, index)
+                  .animate(delay: (index * 25).ms)
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: 0.05, curve: Curves.easeOutQuad);
             },
           );
         },

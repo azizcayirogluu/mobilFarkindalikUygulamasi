@@ -37,7 +37,7 @@ class EgitimEkrani extends StatelessWidget {
                   accentColor: const Color(0xFF6366F1),
                   label: "KAHRAMANLUK GÖREVİ",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
-                  delay: 250.ms,
+                  delay: 0.ms,
                 ),
 
                 _buildKidEgitimCard(
@@ -48,7 +48,7 @@ class EgitimEkrani extends StatelessWidget {
                   accentColor: const Color(0xFF10B981),
                   label: "SÜPER OYUN",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SiberDedektifOyunu())),
-                  delay: 100.ms,
+                  delay: 30.ms,
                 ),
 
                 _buildKidEgitimCard(
@@ -59,7 +59,7 @@ class EgitimEkrani extends StatelessWidget {
                   accentColor: const Color(0xFFF59E0B),
                   label: "GÜÇLÜ BİLGİLER",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HikayeListelemeEkrani())),
-                  delay: 400.ms,
+                  delay: 60.ms,
                 ),
 
                 _buildKidEgitimCard(
@@ -70,7 +70,7 @@ class EgitimEkrani extends StatelessWidget {
                   accentColor: const Color(0xFF3B82F6),
                   label: "EĞLENCELİ VİDEO",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
-                  delay: 550.ms,
+                  delay: 90.ms,
                 ),
 
                 const SizedBox(height: 130),
@@ -123,7 +123,7 @@ class EgitimEkrani extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
-        ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, curve: Curves.easeOut),
+        ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
         const SizedBox(height: 10),
         Container(
           width: 35,
@@ -132,7 +132,7 @@ class EgitimEkrani extends StatelessWidget {
             color: const Color(0xFF3B82F6).withOpacity(0.4),
             borderRadius: BorderRadius.circular(10),
           ),
-        ).animate().scaleX(duration: 600.ms, curve: Curves.easeOutBack),
+        ).animate().scaleX(duration: 400.ms, curve: Curves.easeOutQuad),
       ],
     );
   }
@@ -222,6 +222,6 @@ class EgitimEkrani extends StatelessWidget {
           ),
         ),
       ),
-    ).animate().fadeIn(delay: delay, duration: 400.ms);
+    ).animate(delay: delay).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
   }
 }

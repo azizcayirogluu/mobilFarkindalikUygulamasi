@@ -33,16 +33,29 @@ class UserProgressModel {
   }
 
   factory UserProgressModel.fromMap(Map<String, dynamic> map) {
-    return UserProgressModel(
-      uid: map['uid'] ?? '',
-      toplamPuan: map['toplam_puan'] ?? 0,
-      riskDurumu: map['riskDurumu'],
-      riskNedeni: map['riskNedeni'],
-      sonHatalar: List<String>.from(map['sonHatalar'] ?? []),
-      rozetler: List<String>.from(map['rozetler'] ?? []),
-      istatistikler: map['istatistikler'] != null ? StatisticsModel.fromMap(map['istatistikler']) : null,
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
-    );
+    try {
+      final rawStats = map['istatistikler'];
+      return UserProgressModel(
+        uid: map['uid'] is String ? map['uid'] as String : '',
+        toplamPuan: (map['toplam_puan'] as num?)?.toInt() ?? 0,
+        riskDurumu: map['riskDurumu'] is String ? map['riskDurumu'] as String : null,
+        riskNedeni: map['riskNedeni'] is String ? map['riskNedeni'] as String : null,
+        sonHatalar: (map['sonHatalar'] as List? ?? const [])
+            .whereType<String>()
+            .toList(growable: false),
+        rozetler: (map['rozetler'] as List? ?? const [])
+            .whereType<String>()
+            .toList(growable: false),
+        istatistikler: rawStats is Map
+            ? StatisticsModel.fromMap(Map<String, dynamic>.from(rawStats))
+            : null,
+        updatedAt: map['updatedAt'] == null
+            ? null
+            : DateTime.tryParse(map['updatedAt'].toString()),
+      );
+    } catch (_) {
+      return UserProgressModel(uid: '');
+    }
   }
 }
 
@@ -73,11 +86,11 @@ class StatisticsModel {
 
   factory StatisticsModel.fromMap(Map<String, dynamic> map) {
     return StatisticsModel(
-      toplamSureDk: map['toplamSureDk'] ?? 0,
-      hataliCevaplar: map['hataliCevaplar'] ?? 0,
-      empati: map['empati'] ?? 0,
-      dikkat: map['dikkat'] ?? 0,
-      yardim: map['yardim'] ?? 0,
+      toplamSureDk: (map['toplamSureDk'] as num?)?.toInt() ?? 0,
+      hataliCevaplar: (map['hataliCevaplar'] as num?)?.toInt() ?? 0,
+      empati: (map['empati'] as num?)?.toInt() ?? 0,
+      dikkat: (map['dikkat'] as num?)?.toInt() ?? 0,
+      yardim: (map['yardim'] as num?)?.toInt() ?? 0,
     );
   }
 }

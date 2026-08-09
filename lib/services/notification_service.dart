@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +13,11 @@ class NotificationService {
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
+  StreamSubscription<RemoteMessage>? _messageOpenedSubscription;
+  bool _initialized = false;
 
   // Bildirim kanalını tanımlıyoruz (Android 8.0+ için şart)
   static const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -24,6 +30,13 @@ class NotificationService {
   );
 
   Future<void> initialize() async {
+    if (_initialized) {
+      // Farklı bir kullanıcı giriş yapmış olabilir, token'ı tazeleyelim.
+      await _saveTokenToFirestore();
+      return;
+    }
+    _initialized = true;
+
     // 1. İzin iste (iOS ve Android 13+)
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,
@@ -33,7 +46,7 @@ class NotificationService {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('Kullanıcı bildirim izni verdi. ✅');
+      if (kDebugMode) debugPrint('Bildirim izni verildi. ✅');
     }
 
     // 2. Yerel bildirimleri ayarla
@@ -45,7 +58,7 @@ class NotificationService {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        debugPrint("Bildirime tıklandı: ${details.payload}");
+        if (kDebugMode) debugPrint("Bildirime tıklandı: ${details.payload}");
       },
     );
 
@@ -58,12 +71,12 @@ class NotificationService {
     _saveTokenToFirestore();
     
     // Token yenilendiğinde otomatik güncelle
-    _fcm.onTokenRefresh.listen((newToken) {
+    _tokenRefreshSubscription = _fcm.onTokenRefresh.listen((newToken) {
       _updateTokenInFirestore(newToken);
     });
 
     // 5. Uygulama Ön Plandayken gelen mesajları dinle
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
@@ -89,14 +102,14 @@ class NotificationService {
     });
 
     // 6. Arka planda bildirime tıklandığında açılma durumunu kontrol et
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('Arka planda bildirime tıklandı: ${message.data}');
+    _messageOpenedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (kDebugMode) debugPrint('Arka plandaki bildirime tıklandı: ${message.data}');
     });
 
     // 7. Uygulama kapalıyken (Terminated) bildirimle açıldıysa yakala
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('Uygulama bildirimle başlatıldı: ${initialMessage.data}');
+      if (kDebugMode) debugPrint('Uygulama bildirimle başlatıldı.');
     }
   }
 
@@ -111,7 +124,7 @@ class NotificationService {
         await _updateTokenInFirestore(token);
       }
     } catch (e) {
-      debugPrint("FCM ilk token alma hatası: $e");
+      if (kDebugMode) debugPrint("FCM ilk token alma hatası: $e");
     }
   }
 
@@ -127,10 +140,10 @@ class NotificationService {
               'fcmToken': token,
               'lastTokenUpdate': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
-        debugPrint("FCM Token başarıyla mühürlendi. 🛡️");
+        if (kDebugMode) debugPrint("FCM token güncellendi.");
       }
     } catch (e) {
-      debugPrint("Token Firestore'a kaydedilemedi: $e");
+      if (kDebugMode) debugPrint("Token Firestore'a kaydedilemedi: $e");
     }
   }
 
@@ -150,5 +163,12 @@ class NotificationService {
         ),
       ),
     );
+  }
+
+  Future<void> dispose() async {
+    await _tokenRefreshSubscription?.cancel();
+    await _foregroundMessageSubscription?.cancel();
+    await _messageOpenedSubscription?.cancel();
+    _initialized = false;
   }
 }

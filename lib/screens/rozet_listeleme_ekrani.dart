@@ -147,89 +147,158 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
-  // Kullanıcının ilerlemesini gösteren Neon Gradyanlı Kart
+  // Kullanıcının ilerlemesini gösteren Oyunbaz Cam Kart
   Widget _buildEnhancedHeader(int current, int total) {
     double progress = total > 0 ? (current / total) : 0;
     return Container(
       margin: const EdgeInsets.fromLTRB(22, 15, 22, 20),
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      height: 180,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(35),
+        color: Colors.white.withOpacity(0.45),
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1D4ED8).withOpacity(0.25),
-            blurRadius: 20,
+            color: Colors.blue.withOpacity(0.08),
+            blurRadius: 25,
             offset: const Offset(0, 10),
-          ),
+          )
         ],
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: Stack(
+          children: [
+            // Arka plandaki renkli "Oyun Bulutları"
+            _buildBlob(right: -20, top: -20, color: Colors.blue.shade100, size: 120),
+            _buildBlob(left: -30, bottom: -40, color: Colors.purple.shade100, size: 140),
+            _buildBlob(right: 40, bottom: -20, color: Colors.pink.shade100, size: 80),
+
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Koleksiyon Durumu 🌟",
-                    style: TextStyle(color: Color(0xFFBFDBFE), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                  Row(
+                    children: [
+                      // Başarı İkonu
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.2), blurRadius: 8)],
+                        ),
+                        child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 24)
+                            .animate(onPlay: (c) => c.repeat())
+                            .shimmer(duration: 1800.ms),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "KOLEKSİYON DURUMU",
+                              style: TextStyle(
+                                color: Colors.indigo.shade900.withOpacity(0.5),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            Text(
+                              "Süper Kahraman! ✨",
+                              style: TextStyle(
+                                color: Colors.indigo.shade900,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Yüzde Rozeti
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade900,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "%${(progress * 100).toInt()}",
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    "Süper Kahraman!",
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.3),
+                  const SizedBox(height: 20),
+                  _buildLinearProgress(progress),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Kazanılan: $current / $total Rozet",
+                        style: TextStyle(
+                          color: Colors.indigo.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 24)
-                    .animate(onPlay: (c) => c.repeat())
-                    .shimmer(duration: 1800.ms),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Kazanılan: $current / $total Rozet",
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
-                child: Text(
-                  "%${(progress * 100).toInt()}",
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.white.withOpacity(0.15),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 8,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.96, 0.96), curve: Curves.easeOutBack);
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
+  }
+
+  Widget _buildBlob({double? top, double? bottom, double? left, double? right, required Color color, required double size}) {
+    return Positioned(
+      top: top, bottom: bottom, left: left, right: right,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withOpacity(0.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLinearProgress(double value) {
+    return Container(
+      height: 14,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        return Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.elasticOut,
+              height: 14,
+              width: constraints.maxWidth * value.clamp(0.05, 1.0),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
   }
 
   // 3D Hissiyatlı, İnteraktif Rozet Yuvaları
@@ -282,33 +351,52 @@ class RozetlerEkrani extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                isEarned ? (data['ad'] ?? "???") : "Kilitli",
+                data['ad'] ?? "Gizemli",
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w900,
                     color: isEarned ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
                     letterSpacing: -0.2
                 ),
               ),
             ),
+            const SizedBox(height: 4),
+            // Kriter Bilgisi (Küçük İpucu)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isEarned 
+                  ? badgeColor.withOpacity(0.1) 
+                  : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                data['kriter_tipi'] == 'puan' 
+                  ? "${data['hedef_deger'] ?? '100'} Puan" 
+                  : "Görev",
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800,
+                  color: isEarned ? badgeColor : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
           ],
         ),
-      ).animate(delay: (index * 40).ms).fadeIn(duration: 400.ms).slideY(begin: 0.08, curve: Curves.easeOutBack),
+      ).animate(delay: (index * 25).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
     );
   }
 
   // Rozet Detay Alt Penceresi (Modal Bottom Sheet)
   void _showBadgeInfo(BuildContext context, Map<String, dynamic> data, bool isEarned, Color color, IconData icon) {
     String kriterMetni = "";
-    if (!isEarned) {
-      if (data['kriter_tipi'] == 'puan') {
-        kriterMetni = "${data['hedef_deger'] ?? '100'} Puan toplayarak";
-      } else {
-        kriterMetni = "Daha fazla siber senaryo tamamlayarak";
-      }
+    if (data['kriter_tipi'] == 'puan') {
+      kriterMetni = "${data['hedef_deger'] ?? '100'} Puan toplayarak";
+    } else {
+      kriterMetni = "Daha fazla siber senaryo tamamlayarak";
     }
 
     showModalBottomSheet(
@@ -348,7 +436,7 @@ class RozetlerEkrani extends StatelessWidget {
             const SizedBox(height: 18),
 
             Text(
-              isEarned ? (data['ad'] ?? "Gizemli Rozet") : "Gizemli Rozet Kalkanı",
+              data['ad'] ?? "Gizemli Rozet",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
             ),
             const SizedBox(height: 12),

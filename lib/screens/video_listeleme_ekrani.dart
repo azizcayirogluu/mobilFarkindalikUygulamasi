@@ -257,7 +257,7 @@ class VideoListelemeEkrani extends StatelessWidget {
           ),
         ),
       ),
-    ).animate(delay: (index * 120).ms).fadeIn(duration: 450.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
+    ).animate(delay: (index * 25).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
   }
 
   Widget _buildThumbnail(String yId, String? kapakYolu) {

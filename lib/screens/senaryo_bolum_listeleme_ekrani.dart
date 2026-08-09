@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'senaryo_detay_ekrani.dart';
 
 class SenaryoBolumListelemeEkrani extends StatefulWidget {
@@ -101,21 +102,11 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                               bool sonMu = index == filtrelenmisBolumler.length - 1;
                               bool suAnkiGorevMi = acikMi && !bittiMi;
 
-                              // Bölümlerin liste akışında aşağıdan yukarıya süzülerek gelmesi için animasyon
-                              return TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                duration: Duration(milliseconds: 300 + (index * 100)),
-                                curve: Curves.easeOutCubic,
-                                builder: (context, value, child) {
-                                  return Opacity(
-                                    opacity: value,
-                                    child: Transform.translate(
-                                      offset: Offset(0, 30 * (1 - value)),
-                                      child: _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi),
-                                    ),
-                                  );
-                                },
-                              );
+                              // Bölümlerin liste akışında snappy animasyonu
+                              return _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi)
+                                  .animate(delay: (index * 25).ms)
+                                  .fadeIn(duration: 300.ms)
+                                  .slideY(begin: 0.05, curve: Curves.easeOutQuad);
                             },
                           ),
                         ),

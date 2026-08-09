@@ -49,6 +49,7 @@ dependencies:
   # PDF & Yazdırma
   pdf: ^3.12.0
   printing: ^5.14.3
+  firebase_app_check: ^0.4.6
 
 dev_dependencies:
   flutter_test:

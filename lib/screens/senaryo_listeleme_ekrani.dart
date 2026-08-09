@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'senaryo_bolum_listeleme_ekrani.dart';
 
 class SenaryoListelemeEkrani extends StatefulWidget {
@@ -86,7 +87,10 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                     itemBuilder: (context, index) {
                       var doc = snapshot.data!.docs[index];
                       var data = doc.data() as Map<String, dynamic>;
-                      return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index);
+                      return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index)
+                          .animate(delay: (index * 30).ms)
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.05, curve: Curves.easeOutQuad);
                     },
                   );
                 },

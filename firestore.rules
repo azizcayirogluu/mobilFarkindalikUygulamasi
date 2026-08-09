@@ -20,12 +20,16 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
       // Kullanıcı oluştururken isAdmin bayrağını true yapamaz.
-      allow create: if isAuthenticated() && request.auth.uid == userId 
-                    && (!request.resource.data.keys().hasAny(['isAdmin']) || request.resource.data.isAdmin == false);
+      allow create: if isAuthenticated()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && (!request.resource.data.keys().hasAny(['isAdmin']) || request.resource.data.isAdmin == false)
+                    && (!request.resource.data.keys().hasAny(['isPremium']) || request.resource.data.isPremium == false);
                     
       // Kullanıcı kendi ismini/avatarını güncelleyebilir ama isAdmin yetkisini değiştiremez.
       allow update: if isAuthenticated() && (
-                      (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']))
+                      (request.auth.uid == userId &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'isAdmin', 'isPremium']))
                       || isAdmin()
                     );
                     
@@ -34,13 +38,17 @@ service cloud.firestore {
     
     match /usersProgress/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && (!request.resource.data.keys().hasAny(['toplam_puan']) || request.resource.data.toplam_puan == 0)
+                    && !request.resource.data.keys().hasAny(['riskDurumu', 'riskNedeni']);
       
       // Puan hilesini ve UID değişimini engelleyen gelişmiş koruma.
       allow update: if isAuthenticated() && (
                       isAdmin() || (
                         request.auth.uid == userId &&
-                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid'])) &&
+                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'riskDurumu', 'riskNedeni'])) &&
                         (
                           !request.resource.data.keys().hasAny(['toplam_puan']) || 
                           (
@@ -65,7 +73,27 @@ service cloud.firestore {
     match /reports/{reportId} {
       // Sadece kendi adına rapor oluşturabilir
       allow create: if isAuthenticated() &&
-                    request.auth.uid == request.resource.data.reporterId;
+                    request.resource.data.uid == request.auth.uid &&
+                    request.resource.data.keys().hasOnly([
+                      'reporterId', 'uid', 'kullaniciAdi', 'baslik', 'detay',
+                      'konum', 'tarih', 'durum'
+                    ]) &&
+                    request.resource.data.baslik is string &&
+                    request.resource.data.baslik.size() <= 120 &&
+                    request.resource.data.detay is string &&
+                    request.resource.data.detay.size() <= 2000 &&
+                    request.resource.data.konum is string &&
+                    request.resource.data.konum.size() <= 120 &&
+                    request.resource.data.durum == 'YENİ' &&
+                    (
+                      // Güncel istemci: ayrı reporterId alanı zorunlu olarak UID'ye bağlıdır.
+                      (request.resource.data.keys().hasAll(['reporterId']) &&
+                       request.resource.data.reporterId is string &&
+                       request.resource.data.reporterId == request.auth.uid)
+                      ||
+                      // Legacy istemci: reporterId göndermese bile uid sahipliği doğrulanır.
+                      !request.resource.data.keys().hasAny(['reporterId'])
+                    );
 
       // Sadece Admin okuyabilir ve yönetebilir
       allow read, update, delete: if isAdmin();

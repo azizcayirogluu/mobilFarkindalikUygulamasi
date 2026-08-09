@@ -109,49 +109,66 @@ class _AnaSayfaState extends State<AnaSayfa> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<DocumentSnapshot>(
-          stream: _contentService.getUserProgressStream(uid),
-          builder: (context, snap) {
-            int puan = 0;
-            int tamamlananSayisi = 0;
-            if (snap.hasData && snap.data!.exists) {
-              final data = snap.data!.data() as Map<String, dynamic>;
-              puan = data['toplam_puan'] ?? 0;
-              List bitti = data['tamamlanan_bolumler'] as List? ?? [];
-              List okundu = data['okunan_hikayeler'] as List? ?? [];
-              tamamlananSayisi = bitti.length + okundu.length;
-            }
-            double ilerleme = _toplamGorevSayisi > 0 
-                ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
-                : 0.0;
+          stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+          builder: (context, userSnap) {
+            String aktifAd = widget.kullaniciAdi;
+            String aktifAvatar = "assets/boy.png";
 
-            return RefreshIndicator(
-              onRefresh: _initData,
-              color: AppColors.anaMavi,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildAppBar(_currentUser.displayName ?? "Kahraman", paddingValue),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
-                      child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
-                    ),
-                  ),
-                  _buildSectionTitle("Günün Önerileri 🚀🎓", paddingValue),
-                  _isLoading 
-                    ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-                    : SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: paddingValue),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (c, i) => _buildModernContentCard(_kesifHavuzu[i], size).animate().fadeIn(delay: (i * 100).ms).slideX(begin: 0.1), 
-                            childCount: _kesifHavuzu.length
-                          ),
+            if (userSnap.hasData && userSnap.data!.exists) {
+              final uData = userSnap.data!.data() as Map<String, dynamic>;
+              aktifAd = uData['kullaniciAdi'] ?? aktifAd;
+              aktifAvatar = uData['avatarUrl'] ?? aktifAvatar;
+            }
+
+            return StreamBuilder<DocumentSnapshot>(
+              stream: _contentService.getUserProgressStream(uid),
+              builder: (context, snap) {
+                int puan = 0;
+                int tamamlananSayisi = 0;
+                if (snap.hasData && snap.data!.exists) {
+                  final data = snap.data!.data() as Map<String, dynamic>;
+                  puan = data['toplam_puan'] ?? 0;
+                  List bitti = data['tamamlanan_bolumler'] as List? ?? [];
+                  List okundu = data['okunan_hikayeler'] as List? ?? [];
+                  tamamlananSayisi = bitti.length + okundu.length;
+                }
+                double ilerleme = _toplamGorevSayisi > 0 
+                    ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
+                    : 0.0;
+
+                return RefreshIndicator(
+                  onRefresh: _initData,
+                  color: AppColors.anaMavi,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      _buildAppBar(aktifAd, aktifAvatar, paddingValue),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
+                          child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
                         ),
                       ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
-              ),
+                      _buildSectionTitle("Günün Önerileri 🚀🎓", paddingValue),
+                      _isLoading 
+                        ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                        : SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: paddingValue),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (c, i) => _buildModernContentCard(_kesifHavuzu[i], size)
+                                    .animate(delay: (i * 30).ms)
+                                    .fadeIn(duration: 300.ms)
+                                    .slideY(begin: 0.05, curve: Curves.easeOutQuad),
+                                childCount: _kesifHavuzu.length
+                              ),
+                            ),
+                          ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),
@@ -159,21 +176,37 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
-  Widget _buildAppBar(String ad, double padding) {
+  Widget _buildAppBar(String ad, String avatarPath, double padding) {
     return SliverAppBar(
       floating: true, 
       backgroundColor: Colors.transparent, 
       elevation: 0, 
-      toolbarHeight: 100,
+      toolbarHeight: 110,
       title: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, 
               children: [
-                Text("KAHRAMAN MERKEZİ 🏰", style: TextStyle(color: AppColors.anaMavi, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(
+                  "KAHRAMAN GÜNLÜĞÜ 🧾",
+                  style: TextStyle(
+                    color: Colors.indigo.shade300,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text("Merhaba, $ad 👋", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFF0F172A), letterSpacing: -0.8)),
+                Text(
+                  "Selam, $ad! ✨",
+                  style: TextStyle(
+                    color: Colors.indigo.shade900,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
               ]
             ),
           ),
@@ -181,10 +214,29 @@ class _AnaSayfaState extends State<AnaSayfa> {
             onTap: widget.onProfileTap,
             child: Hero(
               tag: 'profile_avatar',
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.anaMavi.withOpacity(0.2), width: 2)),
-                child: const CircleAvatar(radius: 26, backgroundColor: Colors.white, backgroundImage: AssetImage("assets/boy.png")),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.indigo.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    )
+                  ],
+                  border: Border.all(
+                    color: Colors.indigo.shade50,
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 28, // Biraz büyüttük
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage(avatarPath),
+                ),
               ),
             ),
           ),
@@ -196,80 +248,89 @@ class _AnaSayfaState extends State<AnaSayfa> {
   Widget _buildProgressCard(int tamamlanan, int puan, double ilerleme, Size size) {
     return Container(
       width: double.infinity,
+      height: 180, // Yüksekliği sabitledik, daha derli toplu
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        borderRadius: BorderRadius.circular(35),
+        color: Colors.white.withOpacity(0.45),
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6366F1).withOpacity(0.3),
-            blurRadius: 20,
+            color: Colors.purple.withOpacity(0.08),
+            blurRadius: 25,
             offset: const Offset(0, 10),
           )
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(35),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.15,
-                child: Image.asset(
-                  'assets/isilti.jpg',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            Positioned(
-              right: -30,
-              bottom: -30,
-              child: Icon(
-                Icons.emoji_events_rounded,
-                size: 160,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
+            // Arka plandaki renkli "Oyun Bulutları"
+            _buildBlob(right: -20, top: -20, color: Colors.pink.shade100, size: 120),
+            _buildBlob(left: -30, bottom: -40, color: Colors.yellow.shade100, size: 140),
+            _buildBlob(right: 40, bottom: -20, color: Colors.blue.shade100, size: 80),
+            
             Padding(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(22),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMiniBadge("MACERA DURUMUN", Colors.white.withOpacity(0.2)),
-                      Row(
-                        children: [
-                          const Icon(Icons.stars_rounded, color: Colors.amber, size: 22),
-                          const SizedBox(width: 6),
-                          Text(
-                            "$puan",
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-                          ),
-                        ],
+                      // Seviye Rozeti
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.2), blurRadius: 8)],
+                        ),
+                        child: const Icon(Icons.auto_awesome, color: Colors.orangeAccent, size: 24),
                       ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "MACERA SEVİYESİ",
+                              style: TextStyle(
+                                color: Colors.indigo.shade900.withOpacity(0.5),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            Text(
+                              "${(ilerleme * 100).toInt()}% Tamamlandı! ✨",
+                              style: TextStyle(
+                                color: Colors.indigo.shade900,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Puan Kutusu
+                      _buildPointBadge(puan),
                     ],
                   ),
-                  const SizedBox(height: 25),
-                  Text(
-                    "${(ilerleme * 100).toInt()}%",
-                    style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _ilerlemeMesaji(ilerleme),
-                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 20),
                   _buildLinearProgress(ilerleme),
                   const SizedBox(height: 12),
-                  Text(
-                    "$tamamlanan / $_toplamGorevSayisi GÖREV TAMAMLANDI",
-                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _ilerlemeMesaji(ilerleme),
+                        style: TextStyle(
+                          color: Colors.indigo.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -280,38 +341,67 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
-  Widget _buildMiniBadge(String label, Color color) {
+  Widget _buildBlob({double? top, double? bottom, double? left, double? right, required Color color, required double size}) {
+    return Positioned(
+      top: top, bottom: bottom, left: left, right: right,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withOpacity(0.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPointBadge(int puan) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade900,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.stars, color: Colors.amber, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            "$puan",
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLinearProgress(double value) {
-    return Stack(
-      children: [
-        Container(
-          height: 12,
-          width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-        ),
-        LayoutBuilder(builder: (context, constraints) {
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 1000),
-            height: 12,
-            width: constraints.maxWidth * value,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.5), blurRadius: 10)],
+    return Container(
+      height: 14,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        return Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.elasticOut, // Zıplayan çocuksu bir efekt
+              height: 14,
+              width: constraints.maxWidth * value.clamp(0.1, 1.0),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF818CF8), Color(0xFFC084FC)], // Soft mor-pembe
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
-          );
-        }),
-      ],
+          ],
+        );
+      }),
     );
   }
 

@@ -21,6 +21,8 @@ class ReportService {
       if (user == null) return false;
 
       await _db.collection('reports').add({
+        // Security rules bind this immutable reporter identity to the signed-in user.
+        'reporterId': user.uid,
         'uid': user.uid,
         'kullaniciAdi': user.displayName ?? 'Bilinmiyor',
         'baslik': baslik,
@@ -66,9 +68,17 @@ class ReportService {
       
       Map<String, dynamic> progressMap = {};
       if (uids.isNotEmpty) {
-        final progressSnap = await _db.collection('usersProgress').where(FieldPath.documentId, whereIn: uids).get();
-        for (var doc in progressSnap.docs) {
-          progressMap[doc.id] = doc.data();
+        // Firestore `whereIn` supports at most 30 values. Keep the admin PDF
+        // report resilient when the active-user window is larger than that.
+        for (var start = 0; start < uids.length; start += 30) {
+          final end = (start + 30 < uids.length) ? start + 30 : uids.length;
+          final progressSnap = await _db
+              .collection('usersProgress')
+              .where(FieldPath.documentId, whereIn: uids.sublist(start, end))
+              .get();
+          for (final doc in progressSnap.docs) {
+            progressMap[doc.id] = doc.data();
+          }
         }
       }
 

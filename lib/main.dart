@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
@@ -13,7 +14,6 @@ import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/services/notification_service.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb için eklendi
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-// ... (diğer importlar aynı)
 import 'injection_container.dart' as di;
 
 
@@ -30,6 +30,7 @@ void main() async {
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await _activateAppCheck();
     
     // 2. Diğer servisleri başlat
     await di.init();
@@ -63,6 +64,24 @@ void main() async {
   }
 
   runApp(MyApp(isFirstRun: isFirstRun));
+}
+
+/// App Check is enabled only on the supported store targets. Web/desktop need
+/// their own provider registration before enforcement can safely be enabled.
+Future<void> _activateAppCheck() async {
+  if (kIsWeb ||
+      (defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS)) {
+    return;
+  }
+
+  await FirebaseAppCheck.instance.activate(
+    androidProvider:
+        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode
+        ? AppleProvider.debug
+        : AppleProvider.appAttestWithDeviceCheckFallback,
+  );
 }
 
 void _applyPostInitSettings() {

@@ -286,22 +286,25 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           'rozetSayisi': _anlikRozet,
           'sonHatalar': _sonHatalar,
         },
-      });
+      }).timeout(const Duration(seconds: 20));
 
       if (!mounted) return;
 
       final data = result.data as Map?;
-      String botCevabi = data?['cevap'] ?? '';
-      botCevabi = _sanitizeBotResponse(botCevabi);
+      String botCevabi = data?['cevap']?.toString() ?? '';
 
       // TEHLİKE TESPİTİ (Gelişmiş Regex: [TEHLIKE_TESPIT], [TEHLİKETESPİT] vb. hepsini yakalar)
       final dangerRegex = RegExp(r'\[TEHL[Iİ]KE_?TESP[Iİ]T\]', caseSensitive: false);
-      bool tehlikeVarMi = dangerRegex.hasMatch(botCevabi);
+      final bool tehlikeVarMi =
+          data?['riskLevel'] == 'IMMINENT' || dangerRegex.hasMatch(botCevabi);
 
       if (tehlikeVarMi) {
         // Etiketi kullanıcı görmeden tertemiz siliyoruz
         botCevabi = botCevabi.replaceAll(dangerRegex, "").trim();
       }
+
+      // Sunucunun ayrı risk alanı metin filtresinden önce değerlendirildi.
+      botCevabi = _sanitizeBotResponse(botCevabi);
 
       if (botCevabi.isEmpty) {
         botCevabi = "Sana yardımcı olamıyorum, ama bir yetişkine veya öğretmene danışabilirsin. 💙";
@@ -486,43 +489,39 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Widget _buildStatsHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+    final int enerji = StorageService().getRemainingMessages();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 0.5)),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _badgeChip(Icons.stars, "$_anlikPuan TP", Colors.orange),
-          const SizedBox(width: 10),
-          _badgeChip(
-            Icons.emoji_events,
-            "$_anlikRozet Rozet",
-            Colors.deepPurpleAccent,
-          ),
+          _badgeChip(Icons.stars_rounded, "$_anlikPuan TP", Colors.orange),
+          _badgeChip(Icons.emoji_events_rounded, "$_anlikRozet", Colors.deepPurpleAccent),
+          if (!_isExempt)
+            _badgeChip(Icons.bolt_rounded, "$enerji", Colors.amber.shade700),
         ],
       ),
     );
   }
 
-  Widget _badgeChip(IconData i, String l, Color c) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: c,
-      borderRadius: BorderRadius.circular(15),
-    ),
-    child: Row(
-      children: [
-        Icon(i, color: Colors.white, size: 16),
-        const SizedBox(width: 5),
-        Text(
-          l,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
+  Widget _badgeChip(IconData i, String l, Color c) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(i, color: c, size: 14),
+      const SizedBox(width: 4),
+      Text(
+        l,
+        style: TextStyle(
+          color: Colors.blueGrey.shade800,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
         ),
-      ],
-    ),
+      ),
+    ],
   );
 
   Widget _buildGameBubble(Map<String, String> m) {
@@ -587,9 +586,9 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   Widget _buildQuickActions() {
     List<String> sorular = [
       "Hadi oyun oynayalım! 🎮",
-      "Zorbalık nedir? ❔",
+      "Zorbalık nedir ❔",
       "Siber zorbalık nedir? 💻",
-      "Zorbalığa uğradığımda ne yapabilirim? ❓",
+      "Zorbalığa uğradığımda ne yapabilirim ❓",
       "İnternette nasıl güvende kalırım? 🛡️",
       "Puanım nasıl? 🏆",
     ];

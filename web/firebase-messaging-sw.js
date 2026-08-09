@@ -13,5 +13,5 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Arka plan mesajı alındı:', payload);
+  // Do not log notification payloads: they can contain child-related data.
 });
