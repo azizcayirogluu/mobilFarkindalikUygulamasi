@@ -487,10 +487,41 @@ exports.deleteSelfAccount = onCall(
         const uid = request.auth.uid;
 
         try {
-            await db
-                .collection("usersProgress")
-                .doc(uid)
-                .delete();
+            // Delete every user-owned Firestore document known to this app
+            // before deleting the Auth account. Auth deletion is deliberately
+            // last: if this cleanup fails, the user can retry instead of being
+            // left with an inaccessible account and orphaned personal data.
+            const [reportsByReporter, reportsByUid] = await Promise.all([
+                db.collection("reports")
+                    .where("reporterId", "==", uid)
+                    .get(),
+                db.collection("reports")
+                    .where("uid", "==", uid)
+                    .get()
+            ]);
+
+            const documentsToDelete = new Map();
+            documentsToDelete.set(
+                db.collection("users").doc(uid).path,
+                db.collection("users").doc(uid)
+            );
+            documentsToDelete.set(
+                db.collection("usersProgress").doc(uid).path,
+                db.collection("usersProgress").doc(uid)
+            );
+
+            for (const report of [
+                ...reportsByReporter.docs,
+                ...reportsByUid.docs
+            ]) {
+                documentsToDelete.set(report.ref.path, report.ref);
+            }
+
+            const writer = db.bulkWriter();
+            for (const ref of documentsToDelete.values()) {
+                writer.delete(ref);
+            }
+            await writer.close();
 
             await auth.deleteUser(uid);
 
