@@ -72,6 +72,16 @@ class StorageService {
     await _prefs.remove('lockout_until');
   }
 
+  /// Removes data kept only on this device after the account is deleted.
+  /// Firebase Auth owns the session itself; this covers app-managed values.
+  Future<void> clearAccountLocalData() async {
+    await _secureStorage.delete(key: 'auth_token');
+    await _secureStorage.delete(key: 'user_data');
+    await _prefs.remove('failed_attempts');
+    await _prefs.remove('lockout_until');
+    await _prefs.remove('chat_limit');
+  }
+
   // --- MESAJ HAKKI / ENERJİ SİSTEMİ ---
   int getRemainingMessages() {
     return _prefs.getInt('chat_limit') ?? 10; // Tekrar 10'a çıkardım

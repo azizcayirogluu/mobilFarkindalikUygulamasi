@@ -9,6 +9,7 @@ import 'package:zorbalik_uygulamasi/admin_panel/admin_home.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/admin_guard.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'guvenlik_rehberi_ekrani.dart';
 import 'hakkinda_ekrani.dart';
 import 'gizlilik_politikasi_ekrani.dart';
@@ -226,6 +227,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       try {
         final deleteFn = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('deleteSelfAccount');
         await deleteFn.call();
+        await StorageService().clearAccountLocalData();
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
