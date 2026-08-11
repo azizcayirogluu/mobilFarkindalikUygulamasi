@@ -75,37 +75,7 @@ Uygulama; öğretici içerikleri, etkileşimli senaryoları, güvenlik rehberini
     <td><img width="220" alt="Hakkında" src="https://github.com/user-attachments/assets/eb3bfecd-8992-4df0-acfd-a9c7b0963eb5" /></td>
   </tr>
 </table>
-## Teknik Yapı
 
-| Katman | Kullanılan teknoloji |
-| --- | --- |
-| Mobil uygulama | Flutter / Dart |
-| Kimlik doğrulama | Firebase Authentication |
-| Veritabanı | Cloud Firestore |
-| Sunucu işlevleri | Firebase Cloud Functions (Node.js) |
-| Yapay zekâ | Google Gemini, yalnızca Cloud Functions üzerinden |
-| Güvenlik | Firebase App Check, Firestore Rules, Storage Rules |
-| Bildirimler | Firebase Cloud Messaging ve yerel bildirimler |
-| Reklam | Google Mobile Ads rewarded ads |
-| Ses | `just_audio` ile uygulama içi MP3 oynatma |
-
-Proje; `data`, `domain`, `services`, `screens` ve `admin_panel` klasörleriyle sorumlulukları ayrıştıran katmanlı bir Flutter yapısı kullanır.
-
-```text
-lib/
-├── admin_panel/       # Yönetici ekranları ve yönetim araçları
-├── core/              # Uygulama çekirdeği ve yardımcı altyapı
-├── data/              # Modeller, veri kaynakları ve repository implementasyonları
-├── domain/            # Repository sözleşmeleri
-├── screens/           # Kullanıcı ekranları
-├── services/          # Firestore, bildirim, analiz, raporlama ve reklam servisleri
-├── app_theme.dart
-├── firebase_options.dart
-└── main.dart
-
-functions/
-└── index.js           # Gemini ve kullanıcı hesabı işlemleri için Cloud Functions
-```
 ## Güvenlik ve gizlilik ilkeleri
 
 - Gemini anahtarı istemciye eklenmez; yalnızca sunucu ortamında kullanılır.
