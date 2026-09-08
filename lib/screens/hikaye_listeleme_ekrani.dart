@@ -44,7 +44,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
             itemBuilder: (context, index) {
               var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
               return _buildHeroCard(context, data, index)
-                  .animate(delay: (index * 25).ms)
+                  .animate(delay: (index * 15).ms)
                   .fadeIn(duration: 300.ms)
                   .slideY(begin: 0.05, curve: Curves.easeOutQuad);
             },
@@ -69,7 +69,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
           builder: (c) => HikayeDetayEkrani(
             feedbackMessage: data['feedbackMessage'] ?? "",
             baslik: data['baslik'] ?? "Eğitici Öykü",
-            gorselYolu: data['gorselYolu'] ?? "assets/books.png",
+            gorselYolu: data['gorselYolu'] ?? "assets/image/books.png",
             temaRengi: renk,
             hikayeMetni: data['hikayeMetni'] ?? data['icerik'] ?? "",
           ),

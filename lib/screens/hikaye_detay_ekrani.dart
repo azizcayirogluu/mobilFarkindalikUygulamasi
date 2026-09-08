@@ -42,7 +42,6 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
     // Merkezi servis üzerinden görev tamamlama (Kusursuz Rozet Sistemi)
     await AnalyticsService().gorevTamamla(
       uid: uid,
-      puan: 15,
       gorevId: widget.baslik,
       gorevTipi: 'hikaye',
     );

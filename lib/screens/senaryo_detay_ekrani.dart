@@ -35,10 +35,13 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   int _dogruCevapSayisi = 0;
   int _currentReadingSession = 0; // Seslendirme çakışmalarını önlemek için session ID
 
+  // KANIT: Bölüm boyunca verilen tüm cevapları tutar (SEC-01 & SEC-02 Fix)
+  final List<Map<String, dynamic>> _userAnswersProof = [];
+
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiController = ConfettiController(duration: const Duration(seconds: 1));
     _verileriYukle();
   }
 
@@ -57,12 +60,8 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     }
 
     try {
-      // Session kontrolü: Eğer bu sırada başka bir soruya geçildiyse okuma
       if (_currentReadingSession != sessionId) return;
-
-      // Tek bir istek, tek bir uzun ses dosyası
       await _ttsService.speak(tamMetin);
-
     } catch (e) {
       debugPrint("Seslendirme hatası: $e");
     }
@@ -88,6 +87,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             Map<String, dynamic> soruMap = Map<String, dynamic>.from(s);
             if (soruMap['secenekler'] != null) {
               List secList = List.from(soruMap['secenekler']);
+              // Client tarafında şıklar karıştırılır ama doğru cevap bilgisi saklı kalır
               secList.shuffle();
               soruMap['secenekler'] = secList;
             }
@@ -99,7 +99,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             _isLoading = false;
           });
 
-          // Fotoğrafları arka planda önceden yükle (Precache)
           for (var s in hazirSorular) {
             if (s['imageUrl'] != null && s['imageUrl'].toString().isNotEmpty) {
               precacheImage(CachedNetworkImageProvider(s['imageUrl']), context);
@@ -119,12 +118,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       debugPrint("Veri yükleme hatası: $e");
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text("Görev dosyaları yolda bir yerlerde takıldı! Sayfayı yenileyerek tekrar çağıralım mı? 🔄", style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.blueAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ));
       }
     }
   }
@@ -138,10 +131,16 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       _cevapVerildiMi = true;
     });
 
+    // KANIT: Her soru için seçilen cevabı ekle (Backend doğrulaması için)
+    _userAnswersProof.add({
+      'soruId': _sorular[_currentIndex]['id'], // Eğer varsa ID'yi ekle
+      'soru': _sorular[_currentIndex]['soru'],
+      'secenek': secenek['metin'],
+    });
+
     if (secenek['dogru'] == true) {
       _dogruCevapSayisi++;
-      _confettiController.play();
-      Future.delayed(const Duration(milliseconds: 1500), () {
+      Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) _sonraki();
       });
     } else {
@@ -154,7 +153,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   void _sonraki() {
-    _currentReadingSession++; // Önceki session'ı geçersiz kıl
+    _currentReadingSession++; 
     _ttsService.stop();
 
     if (_currentIndex < _sorular.length - 1) {
@@ -163,7 +162,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         _cevapVerildiMi = false;
         _secilenIndeks = null;
       });
-      // Kısa bir gecikme ver ki UI güncellensin, sonra oku
       Future.delayed(const Duration(milliseconds: 300), () {
         if (_sesAcik && mounted) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
       });
@@ -300,12 +298,12 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
-          memCacheWidth: 800, // Bellek verimliliği ve hız için genişliği sınırla
-          maxWidthDiskCache: 1200, // Disk önbelleği için kaliteyi koru
-          fadeInDuration: const Duration(milliseconds: 500),
+          memCacheWidth: 800,
+          maxWidthDiskCache: 1200,
+          fadeInDuration: const Duration(milliseconds: 250),
           placeholder: (context, url) => Container(
             color: Colors.grey[200],
-          ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1500.ms),
+          ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 200.ms),
           errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.grey),
         ),
       ),
@@ -381,7 +379,15 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
 
-    if (basarili) await _bolumuTamamlaVeSenkronizeEt();
+    if (basarili) {
+      _confettiController.play();
+      try {
+        await _bolumuTamamlaVeSenkronizeEt();
+      } catch (e) {
+        debugPrint("Senaryo senkronizasyon hatası: $e");
+      }
+    }
+
     if (!mounted) return;
 
     showDialog(
@@ -402,8 +408,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-
-              /// 🏆 İKON
               CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.white,
@@ -413,61 +417,36 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   color: basarili ? Colors.orange : Colors.blue,
                 ),
               ),
-
               const SizedBox(height: 15),
-
-              /// 🎉 BAŞLIK
               Text(
                 basarili ? "LEVEL TAMAMLANDI!" : "HADİ BİR DAHA!",
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 10),
-
-              /// 💬 ALT MESAJ
               Text(
-                basarili
-                    ? "Harika gidiyorsun! 🚀"
-                    : "Denemeye devam et, başaracaksın! 💪",
+                basarili ? "Harika gidiyorsun! 🚀" : "Denemeye devam et, başaracaksın! 💪",
                 style: const TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 20),
-
-              /// 📊 PUAN KARTI
               Container(
                 padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
                 child: Column(
                   children: [
                     _statItem("Doğru", _dogruCevapSayisi, Colors.green),
-                    _statItem("Yanlış",
-                        _sorular.length - _dogruCevapSayisi, Colors.red),
-                    _statItem(
-                        "Puan", oran.toStringAsFixed(0), Colors.orange),
+                    _statItem("Yanlış", _sorular.length - _dogruCevapSayisi, Colors.red),
+                    _statItem("Puan", oran.toStringAsFixed(0), Colors.orange),
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              /// 🚀 BUTON
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 onPressed: () {
                   Navigator.pop(c);
@@ -475,10 +454,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                 },
                 child: Text(
                   basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
-                  style: TextStyle(
-                    color: basarili ? Colors.green : Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: basarili ? Colors.green : Colors.blue, fontWeight: FontWeight.bold),
                 ),
               )
             ],
@@ -488,7 +464,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     );
   }
 
-  /// 📊 Küçük stat widgetı
   Widget _statItem(String title, dynamic value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -498,17 +473,8 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              "$value",
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+            child: Text("$value", style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -516,28 +482,39 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Future<void> _bolumuTamamlaVeSenkronizeEt() async {
-    if (_currentUser == null) return;
-    final String uid = _currentUser!.uid;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      debugPrint("Hata: Oturum kapalı!");
+      return;
+    }
+    
+    final String uid = user.uid;
     final String buBolumId = "${widget.docId}_${widget.bolumIndex}";
 
     try {
-      final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(uid);
-      final userSnap = await progressRef.get();
-      
-      // Dinamik Puan Hesaplama: Doğru Cevap Sayısı * 20
-      int toplamKazanilanPuan = _dogruCevapSayisi * 20;
-
-      if (userSnap.exists) {
-        List bitti = List.from(userSnap.data()?['tamamlanan_bolumler'] ?? []);
-        if (!bitti.contains(buBolumId)) {
-          // Eğer bölüm ilk kez tamamlanıyorsa dinamik puanı ver
-          await _analyticsService.bolumTamamla(uid, toplamKazanilanPuan, buBolumId);
-        }
-      } else {
-        await _analyticsService.bolumTamamla(uid, toplamKazanilanPuan, buBolumId);
-      }
+      // Kanıt listesini de (proof) gönderiyoruz
+      await _analyticsService.bolumTamamla(uid, 0, buBolumId, proof: List.from(_userAnswersProof));
+      debugPrint("Senkronizasyon başarılı: $buBolumId");
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
+      if (mounted) {
+        String mesaage = "İlerlemen sunucuya kaydedilemedi! 🌐";
+        if (e.toString().contains("unauthenticated")) {
+          mesaage = "Oturum doğrulanamadı, lütfen tekrar dene. 🔐";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(mesaage),
+            backgroundColor: Colors.redAccent,
+            action: SnackBarAction(
+              label: "TEKRAR",
+              textColor: Colors.white,
+              onPressed: _bolumuTamamlaVeSenkronizeEt,
+            ),
+          ),
+        );
+      }
+      rethrow;
     }
   }
 

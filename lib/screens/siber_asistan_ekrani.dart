@@ -1,5 +1,4 @@
 import 'package:zorbalik_uygulamasi/injection_container.dart';
-import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/services/ad_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +7,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:zorbalik_uygulamasi/services/tts_service.dart';
 import 'package:zorbalik_uygulamasi/services/ai_analysis_service.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class SiberAsistanEkrani extends StatefulWidget {
   const SiberAsistanEkrani({super.key});
@@ -21,31 +19,24 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final AdManager _adManager = AdManager();
-  bool _isAdReady = false;
-
-  // MERKEZİ SİSTEMDEN ÇEKİLEN SERVİSLER
   final TtsService _ttsService = sl<TtsService>();
   final AiAnalysisService _aiAnalysisService = sl<AiAnalysisService>();
   final User? _currentUser = sl<FirebaseAuth>().currentUser;
 
   List<Map<String, String>> _mesajlar = [];
   bool _yukleniyor = false;
-  bool _sesAcik = true;
+  bool _sesAcik = false;
 
   int _anlikPuan = 0;
   int _anlikRozet = 0;
   int _gorevSayisi = 0;
+  int _kalanHak = 5;
   String _kullaniciAdi = "Kahraman";
   String _yasGrubu = "6-12";
   List<String> _sonHatalar = [];
-  bool _isExempt = false; // Limitlerden muaf mı? (Admin/Premium)
+  bool _isExempt = false;
 
   Color _seciliRenk = const Color(0xFF009688);
-
-  // Cloud Functions referansı (API anahtarları sunucuda)
-  final HttpsCallable _geminiChatFn = FirebaseFunctions.instanceFor(
-    region: 'europe-west1',
-  ).httpsCallable('geminiChat');
 
   @override
   void initState() {
@@ -55,7 +46,11 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   void _reklamYukle() {
-    _adManager.loadRewardedAd(onAdLoaded: () => setState(() => _isAdReady = true));
+    _adManager.loadRewardedAd(
+      onAdLoaded: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   void _enerjiBittiUyarisi() {
@@ -63,19 +58,45 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text("Enerjin Azaldı! ⚡", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("Kahraman Dostum ile daha fazla konuşmak için kısa bir video izleyip +5 enerji kazanmak ister misin? ✨"),
+        title: const Text(
+          "Enerjin Azaldı! ⚡",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Kahraman Dostum ile daha fazla konuşmak için kısa bir video izleyip +5 enerji kazanmak ister misin? ✨",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Sonra")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Sonra"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _seciliRenk, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _seciliRenk,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               Navigator.pop(context);
               _adManager.showRewardedAd(
                 onUserEarnedReward: () async {
-                  await StorageService().addRewardedMessages(5);
-                  setState(() {});
-                  _showSnack("Harika! +5 Mesaj kazandın. 🎉");
+                  _showSnack(
+                    "Enerjin yolda! Kısa bir süre içinde hesabına tanımlanacak. ⚡",
+                  );
+
+                  try {
+                    // Sunucudaki ödül verme fonksiyonunu çağır
+                    final HttpsCallable grantRewardFn = FirebaseFunctions
+                        .instanceFor(region: 'europe-west1')
+                        .httpsCallable('grantAdReward');
+                    await grantRewardFn.call();
+
+                    // Firestore'daki değişikliği görmek için kısa bir süre bekleyip yenileyebiliriz.
+                    await Future.delayed(const Duration(seconds: 1));
+                    await _verileriYukle();
+                  } catch (e) {
+                    debugPrint("Ödül işleme hatası: $e");
+                    _showSnack("Enerji eklenirken bir sorun oluştu.");
+                  }
                 },
                 onAdClosed: () => _reklamYukle(),
               );
@@ -88,7 +109,9 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   void _showSnack(String m) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: _seciliRenk));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(m), backgroundColor: _seciliRenk));
   }
 
   Future<void> _verileriYukle() async {
@@ -121,13 +144,21 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           _anlikRozet = (pData['rozetler'] as List? ?? []).length;
           _gorevSayisi = (pData['tamamlanan_bolumler'] as List? ?? []).length;
           _kullaniciAdi = _currentUser!.displayName ?? "Kahraman";
+          _kalanHak = pData['gemini_hakki'] ?? 5;
 
           if (pData.containsKey('sohbet_gecmisi')) {
-            _mesajlar = List<Map<String, String>>.from(
-              (pData['sohbet_gecmisi'] as List).map(
-                (item) => Map<String, String>.from(item),
-              ),
-            );
+            final rawHistory = pData['sohbet_gecmisi'] as List? ?? [];
+            _mesajlar = rawHistory.map((item) {
+              final map = item as Map<String, dynamic>;
+
+              // Rol normalizasyonu: Sadece 'user' veya 'assistant' olacak
+              String rol = map['rol']?.toString().toLowerCase() ?? 'user';
+              if (rol == 'kullanici') rol = 'user';
+              if (rol == 'model' || rol == 'bot' || rol == 'robot')
+                rol = 'assistant';
+
+              return {'rol': rol, 'metin': map['metin']?.toString() ?? ''};
+            }).toList();
           }
         });
       }
@@ -166,21 +197,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         .trim();
   }
 
-  List<Map<String, String>> _recentMessagesForAi() {
-    final List<Map<String, String>> recent = _mesajlar.length > 12
-        ? _mesajlar.sublist(_mesajlar.length - 12)
-        : List<Map<String, String>>.from(_mesajlar);
-    return recent
-        .map(
-          (m) => {
-            'rol': m['rol'] ?? '',
-            'metin': _sanitizeForAi(m['metin'] ?? ''),
-          },
-        )
-        .where((m) => m['metin']?.isNotEmpty == true)
-        .toList();
-  }
-
   String _sanitizeBotResponse(String metin) {
     final filtered = _sanitizeForAi(metin);
     final yasakli = [
@@ -213,61 +229,26 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     return metin.replaceAll(regex, '').replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  Future<void> _mesajKaydet(Map<String, String> mesaj) async {
-    if (_currentUser == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('usersProgress')
-          .doc(_currentUser!.uid);
-
-      // Sohbet geçmişini son 20 mesajla sınırla (daha az veri, daha az maliyet)
-      const int maxMesaj = 20;
-
-      // update yerine set + merge kullanarak 'permission-denied' ve 'missing document' hatalarını önlüyoruz.
-      if (_mesajlar.length > maxMesaj) {
-        await docRef.set({
-          'sohbet_gecmisi': _mesajlar.sublist(_mesajlar.length - maxMesaj),
-          'son_mesaj_tarihi': FieldValue.serverTimestamp(),
-          'uid': _currentUser!.uid,
-        }, SetOptions(merge: true));
-      } else {
-        await docRef.set({
-          'sohbet_gecmisi': FieldValue.arrayUnion([mesaj]),
-          'son_mesaj_tarihi': FieldValue.serverTimestamp(),
-          'uid': _currentUser!.uid,
-        }, SetOptions(merge: true));
-      }
-    } catch (e) {
-      debugPrint("Kayıt hatası: $e");
-    }
-  }
-
   Future<void> _mesajGonder(String metin) async {
     if (metin.trim().isEmpty || _yukleniyor) return;
 
-    // LİMİT KONTROLÜ (Sadece muaf olmayan normal kullanıcılar için)
-    if (!_isExempt) {
-      if (StorageService().getRemainingMessages() <= 0) {
-        _enerjiBittiUyarisi();
-        return;
-      }
-      // Hakkı kullan
-      await StorageService().useMessage();
+    // LİMİT KONTROLÜ (Client-side hızlı kontrol)
+    if (!_isExempt && _kalanHak <= 0) {
+      _enerjiBittiUyarisi();
+      return;
     }
 
-    final Map<String, String> kullaniciMesaji = {
-      "rol": "kullanici",
-      "metin": metin,
-    };
+    final Map<String, String> kullaniciMesaji = {"rol": "user", "metin": metin};
 
     setState(() {
       _mesajlar.add(kullaniciMesaji);
       _yukleniyor = true;
+      if (!_isExempt) _kalanHak--; // İyimser güncelleme
     });
 
     _controller.clear();
     _scrollToBottom();
-    _mesajKaydet(kullaniciMesaji);
+    // _mesajKaydet sunucuya devredildi
 
     try {
       // Fonksiyonu tam çağrıldığı anda, europe-west1 bölgesi ile oluşturalım
@@ -275,26 +256,27 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         region: 'europe-west1',
       ).httpsCallable('geminiChat');
 
-      final result = await callable.call({
-        'mesaj': _sanitizeForAi(metin),
-        'gecmis': _recentMessagesForAi(),
-        'kullaniciBilgileri': {
-          'kullaniciAdi': _sanitizeForAi(_kullaniciAdi),
-          'yasGrubu': _sanitizeForAi(_yasGrubu),
-          'puan': _anlikPuan,
-          'gorevSayisi': _gorevSayisi,
-          'rozetSayisi': _anlikRozet,
-          'sonHatalar': _sonHatalar,
-        },
-      }).timeout(const Duration(seconds: 20));
+      final result = await callable
+          .call({'mesaj': _sanitizeForAi(metin)})
+          .timeout(const Duration(seconds: 20));
 
       if (!mounted) return;
 
       final data = result.data as Map?;
       String botCevabi = data?['cevap']?.toString() ?? '';
 
+      if (data?.containsKey('newLimit') == true) {
+        final nl = data!['newLimit'];
+        if (nl is int && nl >= 0) {
+          setState(() => _kalanHak = nl);
+        }
+      }
+
       // TEHLİKE TESPİTİ (Gelişmiş Regex: [TEHLIKE_TESPIT], [TEHLİKETESPİT] vb. hepsini yakalar)
-      final dangerRegex = RegExp(r'\[TEHL[Iİ]KE_?TESP[Iİ]T\]', caseSensitive: false);
+      final dangerRegex = RegExp(
+        r'\[TEHL[Iİ]KE_?TESP[Iİ]T\]',
+        caseSensitive: false,
+      );
       final bool tehlikeVarMi =
           data?['riskLevel'] == 'IMMINENT' || dangerRegex.hasMatch(botCevabi);
 
@@ -307,21 +289,25 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       botCevabi = _sanitizeBotResponse(botCevabi);
 
       if (botCevabi.isEmpty) {
-        botCevabi = "Sana yardımcı olamıyorum, ama bir yetişkine veya öğretmene danışabilirsin. 💙";
+        botCevabi =
+            "Sana yardımcı olamıyorum, ama bir yetişkine veya öğretmene danışabilirsin. 💙";
       }
 
-      final Map<String, String> botMesaji = {"rol": "bot", "metin": botCevabi};
+      final Map<String, String> botMesaji = {
+        "rol": "assistant",
+        "metin": botCevabi,
+      };
 
       setState(() {
         _mesajlar.add(botMesaji);
         _yukleniyor = false;
       });
 
-      _mesajKaydet(botMesaji);
+      // _mesajKaydet sunucuya devredildi
       if (_sesAcik) _ttsService.speak(_emojileriTemizle(botCevabi));
 
       if (tehlikeVarMi) {
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             Navigator.push(
               context,
@@ -332,11 +318,11 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       }
     } on FirebaseFunctionsException catch (e) {
       debugPrint("Cloud Function Hatası: ${e.code} - ${e.message}");
-      setState(() => _yukleniyor = false);
+      if (mounted) setState(() => _yukleniyor = false);
       _hataMesajiGoster(e.message ?? "Bir hata oluştu.");
     } catch (e) {
       debugPrint("Siber Asistan Hatası: $e");
-      setState(() => _yukleniyor = false);
+      if (mounted) setState(() => _yukleniyor = false);
       _hataMesajiGoster("Bağlantı hatası. İnternetini kontrol et.");
     }
     _scrollToBottom();
@@ -352,7 +338,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       mesaj = "Bir şeyler karıştı, lütfen sohbeti temizleyip tekrar dene. 🛠️";
     } else if (error.contains("not found") || error.contains("404")) {
       mesaj =
-          "Kahraman Dostum'a şu an ulaşılamıyor, API anahtarını kontrol edelim. 🔑";
+          "Kahraman Dostum'a şu an ulaşılamıyor. Lütfen biraz sonra tekrar dene. 💙";
     }
 
     if (!mounted) return;
@@ -374,7 +360,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
       }
@@ -383,65 +369,48 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildStatsHeader(),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              itemCount: _mesajlar.length,
-              itemBuilder: (context, index) =>
-                  _buildGameBubble(_mesajlar[index]),
-            ),
-          ),
-          if (_yukleniyor) _buildTypingIndicator(),
-          _buildQuickActions(),
-          _buildModernInput(),
-        ],
-      ),
-    );
-  }
+    if (_currentUser == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-  Widget _buildVolumeIndicator() {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _ttsService.isSpeaking,
-      builder: (context, isSpeaking, _) {
-        if (!isSpeaking) return const SizedBox.shrink();
-        return Positioned(
-          top: 100,
-          right: 20,
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _seciliRenk,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.volume_up_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('usersProgress')
+          .doc(_currentUser!.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          _anlikPuan = data['toplam_puan'] ?? 0;
+          _anlikRozet = (data['rozetler'] as List? ?? []).length;
+          _gorevSayisi = (data['tamamlanan_bolumler'] as List? ?? []).length;
+          _kalanHak = data['gemini_hakki'] ?? 5;
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF0F4F8),
+          appBar: _buildAppBar(),
+          body: Column(
+            children: [
+              _buildStatsHeader(),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  itemCount: _mesajlar.length,
+                  itemBuilder: (context, index) =>
+                      _buildGameBubble(_mesajlar[index]),
+                ),
+              ),
+              if (_yukleniyor) _buildTypingIndicator(),
+              _buildQuickActions(),
+              _buildModernInput(),
+            ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildStaticBackground() {
-    return Positioned.fill(
-      child: Opacity(
-        opacity: 0.05,
-        child: CustomPaint(
-          painter: StaticBackgroundPainter(color: _seciliRenk),
-        ),
-      ),
     );
   }
 
@@ -452,22 +421,35 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
       ),
-      title: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: _seciliRenk.withOpacity(0.1),
-            child: Icon(Icons.smart_toy_rounded, color: _seciliRenk),
+      title: InkWell(
+        onTap: _showKahramanDostumInfo,
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                backgroundColor: _seciliRenk.withOpacity(0.1),
+                child: Icon(Icons.smart_toy_rounded, color: _seciliRenk),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  "Kahraman Dostum",
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade900,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              Icon(Icons.info_outline_rounded, size: 14, color: Colors.blueGrey.withOpacity(0.5)),
+            ],
           ),
-          const SizedBox(width: 10),
-          Text(
-            "Kahraman Dostum",
-            style: TextStyle(
-              color: Colors.blueGrey.shade900,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-        ],
+        ),
       ),
       actions: [
         IconButton(
@@ -489,20 +471,25 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Widget _buildStatsHeader() {
-    final int enerji = StorageService().getRemainingMessages();
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 0.5)),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 0.5),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _badgeChip(Icons.stars_rounded, "$_anlikPuan TP", Colors.orange),
-          _badgeChip(Icons.emoji_events_rounded, "$_anlikRozet", Colors.deepPurpleAccent),
+          _badgeChip(
+            Icons.emoji_events_rounded,
+            "$_anlikRozet",
+            Colors.deepPurpleAccent,
+          ),
           if (!_isExempt)
-            _badgeChip(Icons.bolt_rounded, "$enerji", Colors.amber.shade700),
+            _badgeChip(Icons.bolt_rounded, "$_kalanHak", Colors.amber.shade700),
         ],
       ),
     );
@@ -525,7 +512,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   );
 
   Widget _buildGameBubble(Map<String, String> m) {
-    bool isMe = m["rol"] == "kullanici";
+    bool isMe = m["rol"] == "user" || m["rol"] == "kullanici";
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
@@ -675,29 +662,39 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   void _sohbetiTemizle() async {
     if (_currentUser == null) return;
     try {
-      await FirebaseFirestore.instance
-          .collection('usersProgress')
-          .doc(_currentUser!.uid)
-          .update({'sohbet_gecmisi': FieldValue.delete()});
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(
+        region: 'europe-west1',
+      ).httpsCallable('clearGeminiHistory');
+      await callable.call();
+
       if (!mounted) return;
       setState(() {
         _mesajlar.clear();
       });
       _ilkMesaj();
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Sohbet temizleme hatası: $e");
+      _showSnack("Sohbet temizlenemedi.");
     }
   }
 
   void _ilkMesaj() {
     String m =
         "Selam $_kullaniciAdi! 🤖 Ben senin Kahraman Dostunum. Her türlü zorbalığa karşı birlikte güçlenmeye hazır mısın? ✨ İstersen seninle eğitici bir oyun oynayabiliriz, 'Hadi oyun oynayalım' demen yeterli! 🎮";
-    final Map<String, String> botMesaji = {"rol": "bot", "metin": m};
+    final Map<String, String> botMesaji = {"rol": "assistant", "metin": m};
     setState(() {
       _mesajlar.add(botMesaji);
     });
     if (_sesAcik) _ttsService.speak(_emojileriTemizle(m));
-    _mesajKaydet(botMesaji);
+  }
+
+  void _showKahramanDostumInfo() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _KahramanDostumInfoSheet(seciliRenk: _seciliRenk),
+    );
   }
 
   @override
@@ -705,6 +702,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     _controller.dispose();
     _scrollController.dispose();
     _ttsService.stop();
+    _adManager.dispose();
     super.dispose();
   }
 }
@@ -722,4 +720,241 @@ class StaticBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _KahramanDostumInfoSheet extends StatelessWidget {
+  final Color seciliRenk;
+  const _KahramanDostumInfoSheet({required this.seciliRenk});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Üst Bölüm
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: seciliRenk.withOpacity(0.1),
+                child: Icon(Icons.smart_toy_rounded, size: 45, color: seciliRenk),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Kahraman Dostum",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.blueGrey.shade900,
+                ),
+              ),
+              Text(
+                "Senin öğrenme arkadaşın! 🌟",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: seciliRenk,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  "Kahraman Dostum; sorularını cevaplamak, birlikte eğitici oyunlar oynamak ve öğrenirken sana eşlik etmek için tasarlanmış yapay zeka destekli arkadaşındır.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.blueGrey.shade700,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Neler Yapabilirim?
+              _buildSectionTitle("✨ Neler yapabilirim?"),
+              const SizedBox(height: 12),
+              _buildFeatureGrid(),
+              const SizedBox(height: 30),
+              // Yapay Zeka Altyapısı
+              _buildSectionTitle("🧠 Yapay zekâ altyapısı"),
+              const SizedBox(height: 12),
+              _buildAiCard(),
+              const SizedBox(height: 30),
+              // Güvenli Öğrenme
+              _buildSectionTitle("🛡️ Güvenli öğrenme"),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  "Kahraman Dostum, eğitici, güvenli ve yaşa uygun bir öğrenme deneyimi sunmak üzere tasarlanmıştır.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.blueGrey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // Kapat butonu
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: seciliRenk,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Tamam, anladım",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: Colors.blueGrey.shade400,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureGrid() {
+    final features = [
+      {"icon": Icons.menu_book_rounded, "text": "Derslerinde yardımcı olur"},
+      {"icon": Icons.sports_esports_rounded, "text": "Eğitici oyunlar oynar"},
+      {"icon": Icons.lightbulb_rounded, "text": "Konuları daha kolay anlamanı sağlar"},
+      {"icon": Icons.extension_rounded, "text": "Mini bulmacalar ve sorular hazırlar"},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: features.map((f) => Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Row(
+            children: [
+              Icon(f["icon"] as IconData, color: seciliRenk, size: 20),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  f["text"] as String,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blueGrey.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
+  Widget _buildAiCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [seciliRenk.withOpacity(0.05), Colors.blue.withOpacity(0.05)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: seciliRenk.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                )
+              ],
+            ),
+            child: Icon(Icons.auto_awesome, color: seciliRenk, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Gemini",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.blueGrey.shade900,
+                  ),
+                ),
+                Text(
+                  "Google'ın yapay zekâ teknolojisiyle desteklenmektedir.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blueGrey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

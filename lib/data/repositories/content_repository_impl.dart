@@ -29,6 +29,8 @@ class ContentRepositoryImpl implements ContentRepository {
         _firestore.collection('videos').limit(5).get(GetOptions(source: source)),
         _safeCount('scenarios'),
         _safeCount('stories'),
+        _safeCount('detective_questions'),
+        _safeCount('videos'),
       ]);
 
       final sSnap = results[0] as QuerySnapshot<Map<String, dynamic>>;
@@ -36,6 +38,8 @@ class ContentRepositoryImpl implements ContentRepository {
       final vSnap = results[2] as QuerySnapshot<Map<String, dynamic>>;
       final scenarioCount = results[3] as int;
       final storyCount = results[4] as int;
+      final detectiveCount = results[5] as int;
+      final videoCount = results[6] as int;
 
       List<Map<String, dynamic>> pool = [];
 
@@ -52,7 +56,7 @@ class ContentRepositoryImpl implements ContentRepository {
       pool.shuffle();
       
       final result = {
-        'toplamGorevSayisi': scenarioCount + storyCount,
+        'toplamGorevSayisi': scenarioCount + storyCount + detectiveCount,
         'kesifHavuzu': pool.take(4).toList(),
       };
 

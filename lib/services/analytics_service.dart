@@ -1,114 +1,131 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AnalyticsService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(
+    region: 'europe-west1',
+  );
 
+  /// Görevi tamamlar ve puanı/rozetleri sunucu tarafında doğrulanmış şekilde işler.
   Future<void> gorevTamamla({
     required String uid,
-    required int puan,
     required String gorevId,
-    required String gorevTipi, 
+    required String gorevTipi,
+    dynamic
+    verificationData, // KANIT: Senaryo için cevaplar, Dedektif için kararlar
   }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      debugPrint("AnalyticsService: Kullanıcı oturum açmamış! (UID: $uid)");
+      throw Exception("Oturum bulunamadı.");
+    }
+
     try {
-      final ref = _db.collection('usersProgress').doc(uid);
-      
-      String listeAdi = '';
-      if (gorevTipi == 'senaryo') listeAdi = 'tamamlanan_bolumler';
-      else if (gorevTipi == 'hikaye') listeAdi = 'okunan_hikayeler';
-      else if (gorevTipi == 'video') listeAdi = 'izlenen_videolar';
-      else if (gorevTipi == 'dedektif') listeAdi = 'bilinen_dedektif_sorulari';
+      // Sadece "senaryo" ve "dedektif" görevleri Cloud Function çağırır (Puan kazanır).
+      if (gorevTipi == 'senaryo' || gorevTipi == 'dedektif') {
+        debugPrint("Bulut fonksiyonu çağrılıyor: completeTask ($gorevId)");
 
-      // Kazanılan puana göre becerileri orantısal/rastgele artır
-      int eklenecekEmpati = (puan * 0.3).ceil() + (DateTime.now().millisecond % 3);
-      int eklenecekDikkat = (puan * 0.4).ceil() + (DateTime.now().millisecond % 2);
-      int eklenecekYardim = (puan * 0.3).ceil() + (DateTime.now().millisecond % 4);
+        final result = await _functions.httpsCallable('completeTask').call({
+          'taskId': gorevId,
+          'taskType': gorevTipi,
+          'proof': verificationData ?? [],
+        });
 
-      await ref.set({
-        'toplam_puan': FieldValue.increment(puan),
-        if (listeAdi.isNotEmpty) listeAdi: FieldValue.arrayUnion([gorevId]),
-        'istatistikler': {
-          'karar_yapisi': {
-            'empati': FieldValue.increment(eklenecekEmpati),
-            'dikkat': FieldValue.increment(eklenecekDikkat),
-            'yardim': FieldValue.increment(eklenecekYardim),
-          }
-        },
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+        if (kDebugMode) print("Görev tamamlandı sonucu: ${result.data}");
+      } else {
+        // Hikaye ve Video için sadece ilerleme listesi güncellenir, puan verilmez.
+        String? listeAdi;
+        if (gorevTipi == 'hikaye') {
+          listeAdi = 'okunan_hikayeler';
+        } else if (gorevTipi == 'video') {
+          listeAdi = 'izlenen_videolar';
+        }
 
-      await rozetKontrolEt(uid);
+        if (listeAdi != null) {
+          await FirebaseFirestore.instance
+              .collection('usersProgress')
+              .doc(uid)
+              .update({
+                listeAdi: FieldValue.arrayUnion([gorevId]),
+                'sonGuncelleme': FieldValue.serverTimestamp(),
+              });
+          if (kDebugMode)
+            print("İlerleme kaydedildi (Puan verilmedi): $gorevId");
+        }
+      }
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+        "Görev İşleme Hatası (Functions): ${e.code} - ${e.message} - ${e.details}",
+      );
+      // Eğer unauthenticated hatası alıyorsak token yenilemeyi deneyebiliriz
+      if (e.code == 'unauthenticated') {
+        debugPrint("Oturum hatası tespit edildi, token yenileniyor...");
+        await user.getIdToken(true);
+      }
+      rethrow;
     } catch (e) {
-      debugPrint("Görev Tamamlama Hatası: $e");
+      debugPrint("Görev İşleme Hatası (Genel): $e");
+      rethrow;
     }
   }
 
-  Future<void> bolumTamamla(String uid, int puan, String bolumId) async {
-    await gorevTamamla(uid: uid, puan: puan, gorevId: bolumId, gorevTipi: 'senaryo');
+  Future<void> bolumTamamla(
+    String uid,
+    int ignoredPuan,
+    String bolumId, {
+    dynamic proof,
+  }) async {
+    await gorevTamamla(
+      uid: uid,
+      gorevId: bolumId,
+      gorevTipi: 'senaryo',
+      verificationData: proof,
+    );
   }
 
-  Future<void> aktiviteGuncelle(String uid, int puan) async {
-    // Genel aktiviteler veya dedektif oyunu puanları için
-    await gorevTamamla(uid: uid, puan: puan, gorevId: 'aktivite_${DateTime.now().millisecondsSinceEpoch}', gorevTipi: 'genel');
+  Future<void> aktiviteGuncelle(
+    String uid,
+    int ignoredPuan, {
+    dynamic proof,
+  }) async {
+    // Dedektif oyunu için Cloud Function üzerinden puanlı işlem yapılır.
+    await gorevTamamla(
+      uid: uid,
+      gorevId: 'dedektif_oyunu',
+      gorevTipi: 'dedektif',
+      verificationData: proof,
+    );
   }
 
   Future<void> sureEkle(String uid, int dakika) async {
     try {
-      await _db.collection('usersProgress').doc(uid).set({
-        'istatistikler': {'toplam_sure_dk': FieldValue.increment(dakika)},
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (e) { debugPrint("Süre Ekleme Hatası: $e"); }
-  }
-
-
-  Future<void> rozetKontrolEt(String uid) async {
-    try {
-      final progressRef = _db.collection('usersProgress').doc(uid);
-      final snap = await progressRef.get();
-      if (!snap.exists) return;
-
-      final data = snap.data()!;
-      final int mevcutPuan = data['toplam_puan'] ?? 0;
-      final List bitti = data['tamamlanan_bolumler'] as List? ?? [];
-      final List mevcutRozetler = data['rozetler'] as List? ?? [];
-
-      final int bitenSenaryoSayisi = bitti.length;
-
-      final badgesSnap = await _db.collection('badges').get();
-      List<String> yeniKazanilanIds = [];
-
-      for (var doc in badgesSnap.docs) {
-        if (mevcutRozetler.contains(doc.id)) continue;
-
-        final bData = doc.data();
-        final String tip = bData['kriter_tipi']?.toString() ?? "";
-        final dynamic hedef = bData['hedef_deger'];
-        int hedefVal = (hedef is num) ? hedef.toInt() : (int.tryParse(hedef.toString()) ?? 999);
-
-        bool sartSaglandi = false;
-        if (tip == "puan" && mevcutPuan >= hedefVal) sartSaglandi = true;
-        else if (tip == "senaryo_sayisi" && bitenSenaryoSayisi >= hedefVal) sartSaglandi = true;
-
-        if (sartSaglandi) yeniKazanilanIds.add(doc.id);
-      }
-
-      if (yeniKazanilanIds.isNotEmpty) {
-        await progressRef.update({
-          'rozetler': FieldValue.arrayUnion(yeniKazanilanIds),
-        });
-      }
+      // Audit CRIT-02 Fix: Use dot notation to avoid overwriting nested 'karar_yapisi'
+      await FirebaseFirestore.instance
+          .collection('usersProgress')
+          .doc(uid)
+          .update({
+            'istatistikler.toplam_sure_dk': FieldValue.increment(dakika),
+            'sonGuncelleme': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
-      debugPrint("Rozet Sistemi Hatası: $e");
+      debugPrint("Süre Ekleme Hatası: $e");
     }
   }
 
   Future<void> hataKaydet(String uid) async {
     try {
-      await _db.collection('usersProgress').doc(uid).set({
-        'istatistikler': {'hatali_cevaplar': FieldValue.increment(1)},
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (e) { debugPrint("Hata Kaydetme Hatası: $e"); }
+      // Audit CRIT-02 Fix: Use dot notation to avoid overwriting nested 'karar_yapisi'
+      await FirebaseFirestore.instance
+          .collection('usersProgress')
+          .doc(uid)
+          .update({
+            'istatistikler.hatali_cevaplar': FieldValue.increment(1),
+            'sonGuncelleme': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      debugPrint("Hata Kaydetme Hatası: $e");
+    }
   }
 }

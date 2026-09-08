@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/video_detay_ekrani.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
@@ -257,7 +256,7 @@ class VideoListelemeEkrani extends StatelessWidget {
           ),
         ),
       ),
-    ).animate(delay: (index * 25).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
+    ).animate(delay: (index * 15).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
   }
 
   Widget _buildThumbnail(String yId, String? kapakYolu) {
@@ -268,7 +267,7 @@ class VideoListelemeEkrani extends StatelessWidget {
       fit: BoxFit.cover,
       errorWidget: (context, url, error) {
         if (kapakYolu != null && kapakYolu.isNotEmpty) {
-          if (kapakYolu.startsWith('assets/')) {
+          if (kapakYolu.startsWith('assets/image/')) {
             return Image.asset(kapakYolu, height: 175, width: double.infinity, fit: BoxFit.cover);
           } else {
             return CachedNetworkImage(
@@ -336,7 +335,7 @@ class VideoListelemeEkrani extends StatelessWidget {
               ),
             ],
           ),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 1200.ms, color: Colors.grey.shade100);
+        ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 200.ms, color: Colors.grey.shade100);
       },
     );
   }

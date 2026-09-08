@@ -12,7 +12,7 @@ import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/onboarding_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/services/notification_service.dart';
-import 'package:flutter/foundation.dart'; // kIsWeb için eklendi
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'injection_container.dart' as di;
 
@@ -32,11 +32,9 @@ void main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     await _activateAppCheck();
     
-    // 2. Diğer servisleri başlat
     await di.init();
     await StorageService().init();
 
-    // 3. AdMob sadece mobil cihazlarda başlatılır (Web'de hata vermemesi için)
     if (!kIsWeb) {
       try {
         await MobileAds.instance.initialize();
@@ -66,38 +64,27 @@ void main() async {
   runApp(MyApp(isFirstRun: isFirstRun));
 }
 
-/// App Check is enabled only on the supported store targets. Web/desktop need
-/// their own provider registration before enforcement can safely be enabled.
 Future<void> _activateAppCheck() async {
-  if (kIsWeb ||
-      (defaultTargetPlatform != TargetPlatform.android &&
-          defaultTargetPlatform != TargetPlatform.iOS)) {
+  if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
     return;
   }
 
   await FirebaseAppCheck.instance.activate(
-    androidProvider:
-        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode
-        ? AppleProvider.debug
-        : AppleProvider.appAttestWithDeviceCheckFallback,
+    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttestWithDeviceCheckFallback,
   );
 }
 
 void _applyPostInitSettings() {
-  // Görüntü önbelleğini optimize et
   PaintingBinding.instance.imageCache.maximumSizeBytes = 20 * 1024 * 1024;
-
-  // Firestore ayarlarını güvenli bir şekilde uygula
   try {
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
-      cacheSizeBytes: 100 * 1024 * 1024, // Sınırlandırıldı: 100MB (Cihaz dostu)
+      cacheSizeBytes: 100 * 1024 * 1024,
     );
   } catch (e) {
     debugPrint("Firestore ayar hatası: $e");
   }
-
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 }
 
@@ -117,21 +104,11 @@ class _InitErrorApp extends StatelessWidget {
               children: [
                 const Icon(Icons.wifi_off_rounded, size: 80, color: Colors.redAccent),
                 const SizedBox(height: 24),
-                const Text(
-                  "Bağlantı Sorunu! 📡",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
-                ),
+                const Text("Bağlantı Sorunu! 📡", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
                 const SizedBox(height: 12),
-                const Text(
-                  "Kahramanlık profilini hazırlayamadık.\nİnternetini kontrol edip uygulamayı\nyeniden açar mısın?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.blueGrey, height: 1.5),
-                ),
+                const Text("Kahramanlık profilini hazırlayamadık.\nİnternetini kontrol edip uygulamayı\nyeniden açar mısın?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, height: 1.5)),
                 const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: () => main(), // Tekrar deneme butonu
-                  child: const Text("TEKRAR DENE"),
-                )
+                ElevatedButton(onPressed: () => main(), child: const Text("TEKRAR DENE")),
               ],
             ),
           ),
@@ -149,7 +126,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Kahraman Dostum', // İsim güncellendi
+      title: 'Kahraman Dostum',
       theme: AppTheme.lightTheme,
       home: isFirstRun ? const OnboardingEkrani() : const AuthGate(),
     );
@@ -170,13 +147,13 @@ class AuthGate extends StatelessWidget {
         if (snapshot.hasData) {
           return UserDataGate(uid: snapshot.data!.uid);
         }
-        return const HomePages();
+        return const KarsilamaEkrani();
       },
     );
   }
 }
 
-enum _UserDataStatus { loading, recovering, ready, error }
+enum _UserDataStatus { loading, ready, error }
 
 class UserDataGate extends StatefulWidget {
   final String uid;
@@ -188,6 +165,7 @@ class UserDataGate extends StatefulWidget {
 
 class _UserDataGateState extends State<UserDataGate> {
   _UserDataStatus _status = _UserDataStatus.loading;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -195,70 +173,32 @@ class _UserDataGateState extends State<UserDataGate> {
     _checkUserProfile();
   }
 
+  /// SEC-03: Kullanıcı verilerinin Cloud Function (onUserCreated) tarafından oluşturulmasını bekler.
+  /// Client-side veri oluşturma (recovery) kaldırıldı, güvenli hale getirildi.
   Future<void> _checkUserProfile() async {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
+    if (!mounted) return;
+    
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.uid)
-          .get(const GetOptions(source: Source.serverAndCache)) // Önce cache'e bak (Hız!)
+          .get(const GetOptions(source: Source.serverAndCache))
           .timeout(const Duration(seconds: 10));
 
-      if (!mounted) return;
-
       if (doc.exists) {
-        setState(() => _status = _UserDataStatus.ready);
+        if (mounted) setState(() => _status = _UserDataStatus.ready);
       } else {
-        await _recoverProfile(user);
+        // Cloud Function veriyi henüz oluşturmamış olabilir, 2 saniye sonra tekrar dene.
+        if (_retryCount < 5) {
+          _retryCount++;
+          await Future.delayed(const Duration(seconds: 1));
+          _checkUserProfile();
+        } else {
+          if (mounted) setState(() => _status = _UserDataStatus.error);
+        }
       }
     } catch (e) {
       debugPrint("Profil kontrol hatası: $e");
-      if (mounted) setState(() => _status = _UserDataStatus.error);
-    }
-  }
-
-  Future<void> _recoverProfile(User user) async {
-    if (!mounted) return;
-    setState(() => _status = _UserDataStatus.recovering);
-
-    try {
-      final String email = user.email ?? "";
-      final String username = email.contains('@') ? email.split('@')[0] : "Kahraman";
-
-      final batch = FirebaseFirestore.instance.batch();
-      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      final progressRef = FirebaseFirestore.instance.collection('usersProgress').doc(user.uid);
-
-      batch.set(userRef, {
-        'uid': user.uid,
-        'kullaniciAdi': username,
-        'yasGrubu': '6-12',
-        'isAdmin': false,
-        'isOnline': true,
-        'emailAlias': email,
-        'sonGorulme': FieldValue.serverTimestamp(),
-        'kayitTarihi': FieldValue.serverTimestamp(),
-      });
-
-      batch.set(progressRef, {
-        'uid': user.uid,
-        'kullaniciAdi': username,
-        'tamamlanan_bolumler': [],
-        'okunan_hikayeler': [],
-        'rozetler': [],
-        'toplam_puan': 0,
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      });
-
-      await batch.commit();
-      await user.updateDisplayName(username);
-
-      if (mounted) setState(() => _status = _UserDataStatus.ready);
-    } catch (e) {
-      debugPrint("Profil kurtarma hatası: $e");
-      await FirebaseAuth.instance.signOut();
       if (mounted) setState(() => _status = _UserDataStatus.error);
     }
   }
@@ -267,24 +207,14 @@ class _UserDataGateState extends State<UserDataGate> {
   Widget build(BuildContext context) {
     switch (_status) {
       case _UserDataStatus.loading:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
-
-      case _UserDataStatus.recovering:
-        return const Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 15),
-                Text(
-                  "Profilin kurtarılıyor, lütfen bekle...",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                ),
-              ],
-            ),
-          ),
-        );
+        return const Scaffold(body: Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text("Kahraman profili yükleniyor...", style: TextStyle(color: Colors.blueGrey)),
+          ],
+        )));
 
       case _UserDataStatus.error:
         return Scaffold(
@@ -296,19 +226,19 @@ class _UserDataGateState extends State<UserDataGate> {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
                   const SizedBox(height: 12),
-                  const Text(
-                    "Bağlantı kurulamadı. Lütfen internetini kontrol et.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text("Bağlantı kurulamadı veya profil henüz hazır değil.", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () {
-                      setState(() => _status = _UserDataStatus.loading);
+                      setState(() {
+                        _status = _UserDataStatus.loading;
+                        _retryCount = 0;
+                      });
                       _checkUserProfile();
                     },
                     child: const Text("YENİDEN DENE"),
                   ),
+                  TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text("Giriş Sayfasına Dön")),
                 ],
               ),
             ),
@@ -348,7 +278,7 @@ class _AppInitializerState extends State<AppInitializer> {
     if (user == null) return;
     try {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-        {'sonGorulme': FieldValue.serverTimestamp()},
+        {'sonGorulme': FieldValue.serverTimestamp(), 'isOnline': true},
         SetOptions(merge: true),
       );
     } catch (e) {

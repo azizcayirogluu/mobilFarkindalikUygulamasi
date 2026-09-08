@@ -10,6 +10,7 @@ import 'package:zorbalik_uygulamasi/admin_panel/detective_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/incident_manager.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/report_service.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -143,6 +144,8 @@ class _AdminHomeState extends State<AdminHome> {
     );
   }
 
+
+
   Widget _buildBottomActions() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -164,7 +167,7 @@ class _AdminHomeState extends State<AdminHome> {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (!mounted) return;
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (r) => false);
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const KarsilamaEkrani()), (r) => false);
             },
             icon: const Icon(Icons.power_settings_new_rounded, size: 16),
             label: const Text("GÜVENLİ ÇIKIŞ"),

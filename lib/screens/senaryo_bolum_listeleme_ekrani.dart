@@ -104,7 +104,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
 
                               // Bölümlerin liste akışında snappy animasyonu
                               return _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi)
-                                  .animate(delay: (index * 25).ms)
+                                  .animate(delay: (index * 15).ms)
                                   .fadeIn(duration: 300.ms)
                                   .slideY(begin: 0.05, curve: Curves.easeOutQuad);
                             },

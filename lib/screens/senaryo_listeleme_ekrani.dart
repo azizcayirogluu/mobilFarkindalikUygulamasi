@@ -88,7 +88,7 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                       var doc = snapshot.data!.docs[index];
                       var data = doc.data() as Map<String, dynamic>;
                       return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index)
-                          .animate(delay: (index * 30).ms)
+                          .animate(delay: (index * 15).ms)
                           .fadeIn(duration: 300.ms)
                           .slideY(begin: 0.05, curve: Curves.easeOutQuad);
                     },

@@ -2,103 +2,72 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Admin kontrolü: Önce Custom Claims'e bakar, yoksa dökümandan okur.
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.isAdmin == true ||
-        request.auth.token.admin == true ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
-      );
-    }
-    
+
+    function isAuthenticated() { return request.auth != null; }
+    function isAdmin() { return isAuthenticated() && request.auth.token.admin == true; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+
+    // ============================================================
+    // USERS COLLECTION
+    // ============================================================
+
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      
-      // Kullanıcı oluştururken isAdmin bayrağını true yapamaz.
-      allow create: if isAuthenticated()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && (!request.resource.data.keys().hasAny(['isAdmin']) || request.resource.data.isAdmin == false)
-                    && (!request.resource.data.keys().hasAny(['isPremium']) || request.resource.data.isPremium == false);
-                    
-      // Kullanıcı kendi ismini/avatarını güncelleyebilir ama isAdmin yetkisini değiştiremez.
-      allow update: if isAuthenticated() && (
-                      (request.auth.uid == userId &&
-                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'isAdmin', 'isPremium']))
-                      || isAdmin()
-                    );
-                    
+      allow read: if isOwner(userId) || isAdmin();
+
+      // İlk kayıt (uid ve isAdmin/isPremium kontrolü)
+      allow create: if isOwner(userId) &&
+                    !(request.resource.data.diff({}).affectedKeys().hasAny(['isAdmin', 'isPremium']));
+
+      allow update: if (isOwner(userId) || isAdmin()) &&
+                    // Hassas alanlar ASLA client tarafından değiştirilemez
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isPremium', 'uid', 'kayitTarihi']) &&
+                    (isAdmin() || isOwner(userId));
+
       allow delete: if isAdmin();
     }
-    
+
+    // ============================================================
+    // USERS PROGRESS COLLECTION
+    // ============================================================
+
     match /usersProgress/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && (!request.resource.data.keys().hasAny(['toplam_puan']) || request.resource.data.toplam_puan == 0)
-                    && !request.resource.data.keys().hasAny(['riskDurumu', 'riskNedeni']);
-      
-      // Puan hilesini ve UID değişimini engelleyen gelişmiş koruma.
-      allow update: if isAuthenticated() && (
-                      isAdmin() || (
-                        request.auth.uid == userId &&
-                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'riskDurumu', 'riskNedeni'])) &&
-                        (
-                          !request.resource.data.keys().hasAny(['toplam_puan']) || 
-                          (
-                            request.resource.data.toplam_puan >= (resource.data.toplam_puan != null ? resource.data.toplam_puan : 0) &&
-                            request.resource.data.toplam_puan <= (resource.data.toplam_puan != null ? resource.data.toplam_puan : 0) + 300
-                          )
-                        )
-                      )
-                    );
-                    
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow create: if isOwner(userId) &&
+                    !(request.resource.data.diff({}).affectedKeys().hasAny([
+                      'toplam_puan', 'rozetler', 'gemini_hakki', 'riskDurumu'
+                    ]));
+
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        // Puan, Rozet, Enerji gibi kritik alanlar korunur
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'uid', 'toplam_puan', 'rozetler', 'gemini_hakki',
+          'riskDurumu', 'riskNedeni', 'sohbet_gecmisi', 'ssv_verify',
+          'tamamlanan_bolumler', 'bilinen_dedektif_sorulari'
+        ])
+      );
+
       allow delete: if isAdmin();
     }
-    
-    // Statik içerikler (Okuma herkese, Yazma sadece Admin'e)
-    match /scenarios/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /stories/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /videos/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /badges/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
-    match /detective_questions/{document=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
 
-    // Olay Bildirme Sistemi
+    // ============================================================
+    // STATIC CONTENT & SYSTEM
+    // ============================================================
+
+    match /scenarios/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /stories/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /videos/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /badges/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /detective_questions/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+
     match /reports/{reportId} {
-      // Sadece kendi adına rapor oluşturabilir
-      allow create: if isAuthenticated() &&
-                    request.resource.data.uid == request.auth.uid &&
-                    request.resource.data.keys().hasOnly([
-                      'reporterId', 'uid', 'kullaniciAdi', 'baslik', 'detay',
-                      'konum', 'tarih', 'durum'
-                    ]) &&
-                    request.resource.data.baslik is string &&
-                    request.resource.data.baslik.size() <= 120 &&
-                    request.resource.data.detay is string &&
-                    request.resource.data.detay.size() <= 2000 &&
-                    request.resource.data.konum is string &&
-                    request.resource.data.konum.size() <= 120 &&
-                    request.resource.data.durum == 'YENİ' &&
-                    (
-                      // Güncel istemci: ayrı reporterId alanı zorunlu olarak UID'ye bağlıdır.
-                      (request.resource.data.keys().hasAll(['reporterId']) &&
-                       request.resource.data.reporterId is string &&
-                       request.resource.data.reporterId == request.auth.uid)
-                      ||
-                      // Legacy istemci: reporterId göndermese bile uid sahipliği doğrulanır.
-                      !request.resource.data.keys().hasAny(['reporterId'])
-                    );
-
-      // Sadece Admin okuyabilir ve yönetebilir
       allow read, update, delete: if isAdmin();
+      allow create: if isAdmin();
     }
 
+    match /admobRewardTransactions/{id} { allow read, write: if isAdmin(); }
+    match /deletedAccounts/{id} { allow read, write: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }

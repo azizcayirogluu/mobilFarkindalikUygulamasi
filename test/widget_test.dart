@@ -6,13 +6,13 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 void main() {
   group('AppColors Testleri', () {
     test('Ana renkler doğru tanımlanmış olmalı', () {
-      expect(AppColors.anaMavi, const Color(0xFF4A90E2));
-      expect(AppColors.accentMavi, const Color(0xFF00D2FF));
-      expect(AppColors.yaziRengi, const Color(0xFF2C3E50));
+      expect(AppColors.anaMavi, const Color(0xFF6C63FF));
+      expect(AppColors.accentMavi, const Color(0xFF38EF7D));
+      expect(AppColors.yaziRengi, const Color(0xFF2D3142));
     });
 
     test('Zemin rengi açık tonlu olmalı', () {
-      expect(AppColors.zemin, const Color(0xFFF0F7FF));
+      expect(AppColors.zemin, const Color(0xFFF6F8FF));
     });
 
     test('Gradient tanımları null olmamalı', () {

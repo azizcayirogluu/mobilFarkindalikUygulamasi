@@ -116,7 +116,7 @@ class HakkindaEkrani extends StatelessWidget {
                       ],
                     ),
                     child: const Icon(Icons.shield_rounded, size: 55, color: Color(0xFF3B82F6)),
-                  ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -6, end: 6, duration: 2200.ms, curve: Curves.easeInOut),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -6, end: 6, duration: 1000.ms, curve: Curves.easeInOut),
 
                   const SizedBox(height: 16),
                   Text(
@@ -198,7 +198,7 @@ class HakkindaEkrani extends StatelessWidget {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
+    ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
   }
 
   Widget _buildSectionHeader(String title) {
@@ -277,7 +277,7 @@ class HakkindaEkrani extends StatelessWidget {
           ),
         ),
       ),
-    ).animate(delay: delay.ms).fadeIn(duration: 450.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
+    ).animate(delay: delay.ms).fadeIn(duration: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
   }
 
   // Sayfanın en altındaki motive edici footer alanı
@@ -287,7 +287,7 @@ class HakkindaEkrani extends StatelessWidget {
         const SizedBox(height: 10),
         const Text("🤝", style: TextStyle(fontSize: 44))
             .animate(onPlay: (c) => c.repeat(reverse: true))
-            .scale(begin: const Offset(1, 1), end: const Offset(1.15, 1.15), duration: 1500.ms, curve: Curves.easeInOut),
+            .scale(begin: const Offset(1, 1), end: const Offset(1.15, 1.15), duration: 200.ms, curve: Curves.easeInOut),
         const SizedBox(height: 12),
         const Text(
           "Gelecek, Senin Cesaretinle Güzel!",
@@ -300,7 +300,7 @@ class HakkindaEkrani extends StatelessWidget {
           style: TextStyle(color: Colors.blueGrey.shade300, fontSize: 11, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
         ),
       ],
-    ).animate().fadeIn(delay: 550.ms);
+    ).animate().fadeIn(delay: 200.ms);
   }
 
   // AppBar'daki baloncukların ölçeklenme ve hareket animasyonlarını yöneten yardımcı widget

@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:math' as math;
+import '../app_theme.dart';
 
 class GizlilikPolitikasiEkrani extends StatelessWidget {
   const GizlilikPolitikasiEkrani({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    const Color backgroundSubtle = Color(0xFFF0F9FF); // Akıcı bulut mavisi zemin
-
     return Scaffold(
-      backgroundColor: backgroundSubtle,
+      backgroundColor: AppColors.zemin,
       appBar: AppBar(
         title: const Text(
-          "GÜVENLİK MERKEZİ",
+          "🛡️ Güvenlik & Gizlilik",
           style: TextStyle(
-            color: Color(0xFF0F172A),
+            color: AppColors.yaziRengi,
             fontWeight: FontWeight.w900,
-            fontSize: 18,
-            letterSpacing: -0.5,
+            fontSize: 20,
+            letterSpacing: -0.3,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -34,11 +31,19 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3)),
+                BoxShadow(
+                  color: AppColors.anaMavi.withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF334155)),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                size: 22,
+                color: AppColors.anaMavi,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -46,128 +51,136 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Arka plan sevimli dekoratif halkalar
-          Positioned(
-            top: -20,
-            right: -40,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF3B82F6).withOpacity(0.04)),
-            ),
-          ),
-          Positioned(
-            bottom: -30,
-            left: -30,
-            child: Transform.rotate(
-              angle: math.pi / 4,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: Colors.lightGreenAccent.withOpacity(0.03)),
-              ),
-            ),
-          ),
+          // Background Decorative Colorful Bubbles
+          _buildBackgroundDecorations(),
 
           SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 30),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
             child: Column(
               children: [
-                // Üst Kısım: Güven Veren Kahramanlık Rozet Alanı
-                _buildHeaderArea(),
-                const SizedBox(height: 25),
+                // Hero Header Banner
+                _buildHeroHeader(),
+                const SizedBox(height: 20),
 
-                // Akordeon Tasarımlı Gizlilik Maddeleri
+                // Categorized Interactive Accordion Sections
                 _buildAccordionSection(
+                  icon: Icons.info_rounded,
                   title: "📋 Genel Bilgi",
-                  content: "Siber Kahraman, çocuk ve ergenlere yönelik zorbalık farkındalığı oluşturmak amacıyla geliştirilmiş eğitici bir mobil uygulamadır. Bu gizlilik politikası, uygulamamızın kullanıcılardan hangi verileri topladığını, bu verilerin nasıl kullanıldığını ve korunduğunu açıklamaktadır.",
-                  accentColor: const Color(0xFF3B82F6),
+                  content:
+                  "Siber Kahraman, çocuk ve ergenlere yönelik zorbalık farkındalığı oluşturmak amacıyla geliştirilmiş neşeli ve eğitici bir mobil uygulamadır.\n\n"
+                      "Bu gizlilik politikası, uygulamamızın Seni ve verilerini nasıl koruduğunu anlatır!",
+                  accentColor: AppColors.anaMavi,
                   delay: 100.ms,
                 ),
 
                 _buildAccordionSection(
+                  icon: Icons.face_rounded,
                   title: "👤 Toplanan Veriler",
-                  content: "• Kullanıcı Adı (takma ad — gerçek isim değil)\n"
+                  content:
+                  "• Kullanıcı Adı (Sadece takma ad — gerçek adın değil! 🎭)\n"
                       "• Yaş grubu bilgisi (6-12 veya 13-18)\n"
-                      "• Uygulama içi ilerleme verileri (puan, rozet, tamamlanan görevler)\n"
-                      "• Yapay zeka asistanı ile yapılan sohbet geçmişi\n"
-                      "• Eğitim modüllerindeki cevaplar ve hatalar\n"
-                      "• Cihaz bildirim token'ı (push bildirimler için)\n\n"
-                      "🚨 Gerçek isim, e-posta adresi, telefon numarası veya konum bilgisi KESİNLİKLE TOPLANMAZ.",
-                  accentColor: const Color(0xFF6366F1),
+                      "• Oyundaki Puanların, Rozetlerin ve Görevlerin 🏆\n"
+                      "• Yapay Zeka Siber Asistan ile sohbet geçmişin 💬\n"
+                      "• Eğitim modüllerindeki tatlı cevapların 🎯\n\n"
+                      "🚨 Gerçek adın, e-posta adresin, telefon numaran veya evinin adresi KESİNLİKLE ALINMAZ!",
+                  accentColor: AppColors.eglencePembesi,
+                  delay: 150.ms,
+                ),
+
+                _buildAccordionSection(
+                  icon: Icons.lock_rounded,
+                  title: "🔒 Güvenli Süper Kalkan",
+                  content:
+                  "• Tüm verilerin Google Firebase altyapısında süper şifrelerle saklanır.\n"
+                      "• Bilgilerine sadece sen ve yetkili sistem koruyucuları erişebilir.\n"
+                      "• Verilerin kilitli dijital kasalarda güvendedir!",
+                  accentColor: AppColors.basariYesili,
                   delay: 200.ms,
                 ),
 
                 _buildAccordionSection(
-                  title: "🔒 Verilerin Korunması",
-                  content: "• Tüm veriler Google Firebase altyapısında şifreli olarak saklanır.\n"
-                      "• API anahtarları Google Cloud Secret Manager ile güvenli ortamda tutulur.\n"
-                      "• Kullanıcı verileri sadece hesap sahibi ve yetkilendirilmiş yöneticiler tarafından erişilebilir.\n"
-                      "• Firestore güvenlik kuralları ile yetkisiz erişim engellenir.",
-                  accentColor: const Color(0xFF10B981),
+                  icon: Icons.smart_toy_rounded,
+                  title: "🤖 Dost Canlısı Yapay Zeka",
+                  content:
+                  "• Yapay Zeka arkadaşımız (Gemini / Groq), sana güvenli rehberlik etmek için var.\n"
+                      "• Rahatsız edici veya zorbalık içeren durumları engellemek için mesajları tarar.\n"
+                      "• Yapay zeka verileri asla reklam amaçlı kullanılmaz ve kimseyle paylaşılmaz!",
+                  accentColor: AppColors.yumusakMor,
+                  delay: 250.ms,
+                ),
+
+                _buildAccordionSection(
+                  icon: Icons.child_care_rounded,
+                  title: "👶 Çocuk Dostu İlkeler (KVKK)",
+                  content:
+                  "• Uygulamamız tam 6-18 yaş arası kahramanlar için özel olarak tasarlandı.\n"
+                      "• Kişisel verilerin toplanmaz, gizliliğin tam koruma altındadır.\n"
+                      "• KVKK ve Çocuk Gizliliği standartlarına %100 uyumludur.",
+                  accentColor: AppColors.uyariTuruncusu,
                   delay: 300.ms,
                 ),
 
                 _buildAccordionSection(
-                  title: "🤖 Yapay Zeka Kullanımı",
-                  content: "• Uygulama, Google Gemini ve Groq (Llama) yapay zeka modellerini eğitim ve destek amaçlı kullanır.\n"
-                      "• Siber zorbalığı önlemek amacıyla, mesajlar yapay zeka destekli güvenlik analizi ile taranabilir.\n"
-                      "• Risk tespiti durumunda, sistem sadece gerekli güvenlik uyarılarını oluşturur.\n"
-                      "• AI çıktıları sunucu tarafında filtrelenerek çocuklara uygun olmayan içerikler engellenir.\n"
-                      "• AI verileri asla reklam amaçlı kullanılmaz ve üçüncü şahıslarla paylaşılmaz.",
-                  accentColor: const Color(0xFF8E2DE2),
+                  icon: Icons.stars_rounded,
+                  title: "📊 Ne İçin Kullanıyoruz?",
+                  content:
+                  "• Rozetlerini ve seviyeni takip etmek için 🏅\n"
+                      "• Sana özel eğlenceli görevler hazırlamak için 🚀\n"
+                      "• Siber zorbalığa karşı seni korumak için 🛡️",
+                  accentColor: AppColors.accentMavi,
+                  delay: 350.ms,
+                ),
+
+                _buildAccordionSection(
+                  icon: Icons.delete_forever_rounded,
+                  title: "🗑️ Hesabı ve Verileri Silme",
+                  content:
+                  "İstediğin an profil ayarlarından hesabını tek tıkla silebilirsin! Hesap silindiğinde tüm puanların ve kayıtların sistemimizden tamamen uçup gider.",
+                  accentColor: const Color(0xFFFF5252),
                   delay: 400.ms,
                 ),
 
                 _buildAccordionSection(
-                  title: "👶 Çocuk Gizliliği (KVKK)",
-                  content: "• Uygulama, 6-18 yaş arası kullanıcılar için tasarlanmıştır.\n"
-                      "• Çocukların kişisel bilgileri toplanmaz; sadece takma ad kullanılır.\n"
-                      "• Sohbet geçmişi, çocuğun güvenliğini sağlamak amacıyla yetkili eğitimciler tarafından incelenebilir.\n"
-                      "• Uygulama, KVKK (Kişisel Verilerin Korunması Kanunu) ve çocuk gizliliği ilkelerine tamamen uygun olarak geliştirilmiştir.",
-                  accentColor: const Color(0xFFF59E0B),
-                  delay: 500.ms,
+                  icon: Icons.autorenew_rounded,
+                  title: "🔄 Kural Güncellemeleri",
+                  content:
+                  "Gizlilik kuralımız güncellenirse seni uygulama içindeki tatlı mini bildirimlerle hemen haberdar edeceğiz!",
+                  accentColor: const Color(0xFF78909C),
+                  delay: 450.ms,
                 ),
 
-                _buildAccordionSection(
-                  title: "📊 Verilerin Kullanım Amaçları",
-                  content: "• Kullanıcının eğitim ilerlemesini takip etmek\n"
-                      "• Kişiselleştirilmiş öğrenme deneyimi sunmak\n"
-                      "• Olası zorbalık veya risk durumlarını tespit etmek\n"
-                      "• Uygulama performansını iyileştirmek\n"
-                      "• İstatistiksel raporlama (anonim ve toplu veriler)",
-                  accentColor: const Color(0xFF06B6D4),
-                  delay: 600.ms,
-                ),
+                const SizedBox(height: 15),
 
-                _buildAccordionSection(
-                  title: "🗑️ Veri Silme Hakkı",
-                  content: "Kullanıcılar, profil ayarlarından hesaplarını ve tüm verilerini kalıcı olarak silebilir. Hesap silindiğinde tüm kişisel veriler, ilerleme kayıtları ve sohbet geçmişi sistemden tamamen kaldırılır.",
-                  accentColor: const Color(0xFFEF4444),
-                  delay: 700.ms,
-                ),
+                // Kid-friendly Contact Card
+                _buildPlayfulContactCard(),
 
-                _buildAccordionSection(
-                  title: "🔄 Politika Güncellemeleri",
-                  content: "Bu gizlilik politikası zaman zaman güncellenebilir. Önemli değişiklikler uygulama içi sevimli bildirimlerle kahramanlarımıza duyurulacaktır.",
-                  accentColor: const Color(0xFF64748B),
-                  delay: 800.ms,
-                ),
+                const SizedBox(height: 25),
 
-                const SizedBox(height: 10),
-                _buildContactCard(),
-                const SizedBox(height: 20),
-
-                Text(
-                  "Son güncelleme: Mayıs 2026",
-                  style: TextStyle(
-                    color: Colors.blueGrey.shade300,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    fontStyle: FontStyle.italic,
+                // Footer Info
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.softPurple.withOpacity(0.5)),
                   ),
-                ).animate().fadeIn(delay: 950.ms),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.stars_rounded, size: 16, color: AppColors.oyunSarisi),
+                      SizedBox(width: 6),
+                      Text(
+                        "Son Güncelleme: Mayıs 2026",
+                        style: TextStyle(
+                          color: AppColors.yaziRengi,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 500.ms),
               ],
             ),
           ),
@@ -176,27 +189,43 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderArea() {
+  // Sevimli Kahraman Header Alanı
+  Widget _buildHeroHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF3B82F6).withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(
+            color: AppColors.anaMavi.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 65,
-            height: 65,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(22),
+              gradient: AppColors.anaGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accentMavi.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: const Icon(Icons.verified_user_rounded, size: 34, color: Color(0xFF3B82F6)),
+            child: const Icon(
+              Icons.verified_user_rounded,
+              size: 40,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 16),
           const Expanded(
@@ -205,55 +234,66 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
               children: [
                 Text(
                   "Güvenliğin Bize Emanet! 🛡️",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.3),
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.yaziRengi,
+                  ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 6),
                 Text(
-                  "Kişisel verilerini toplamıyor, gizliliğini en yüksek standartta koruyoruz.",
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600, height: 1.3),
+                  "Kişisel verilerini toplamıyor, seni ve gizliliğini tam kalkanla koruyoruz!",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, curve: Curves.easeOut);
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, curve: Curves.easeOutBack);
   }
 
-  // Yenilenen Genişletilebilir Akordeon Kart Yapısı
+  // Renkli, Yuvarlatılmış Bubbly Akordeon Kart Yapısı
   Widget _buildAccordionSection({
+    required IconData icon,
     required String title,
     required String content,
     required Color accentColor,
     required Duration delay,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: accentColor.withOpacity(0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            color: accentColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Theme(
-        data: ThemeData().copyWith(dividerColor: Colors.transparent), // Alt çizgileri kaldırır
+        data: ThemeData().copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           iconColor: accentColor,
-          collapsedIconColor: Colors.blueGrey.shade300,
+          collapsedIconColor: AppColors.yaziRengi.withOpacity(0.4),
           leading: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
+              color: accentColor.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.shield_rounded,
-              size: 18,
+              icon,
+              size: 22,
               color: accentColor,
             ),
           ),
@@ -262,25 +302,24 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF1E293B),
-              letterSpacing: -0.2,
+              color: AppColors.yaziRengi,
             ),
           ),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.blueGrey.shade50),
+                color: accentColor.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: accentColor.withOpacity(0.1)),
               ),
               child: Text(
                 content,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF475569),
+                  color: AppColors.yaziRengi,
                   fontWeight: FontWeight.w600,
                   height: 1.5,
                 ),
@@ -289,88 +328,178 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
           ],
         ),
       ),
-    ).animate().fadeIn(delay: delay, duration: 450.ms).slideY(begin: 0.08, curve: Curves.easeOutBack);
+    ).animate().fadeIn(delay: delay, duration: 250.ms).slideY(begin: 0.08, curve: Curves.easeOutBack);
   }
 
-  Widget _buildContactCard() {
+  // Çocuklar İçin Renkli & Neşeli İletişim Kartı
+  Widget _buildPlayfulContactCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)], // Soft Neşeli Mor Geçiş
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(
+            color: AppColors.yumusakMor.withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.mail_outline_rounded, color: Colors.amber, size: 22),
-              SizedBox(width: 8),
-              Text(
-                "İletişim & Sorular",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.oyunSarisi,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.mail_rounded, color: AppColors.yaziRengi, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "İletişim & Sorular 💌",
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text(
-            "Gizlilik politikamızla ilgili aklına takılan her şeyi bize sormaktan çekinme Kahraman!",
-            style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500, height: 1.4),
+          const SizedBox(height: 12),
+          Text(
+            "Aklına takılan bir şey mi var Kahraman? Bize istediğin zaman e-posta atabilirsin!",
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _launchEmail,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "siberkahramanapp@gmail.com",
-                    style: TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                    ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              child: GestureDetector(
+                onTap: _launchEmail,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.open_in_new_rounded, color: Colors.amber, size: 14),
-                ],
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.mark_email_read_rounded, color: AppColors.yumusakMor, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        "siberkahramanapp@gmail.com",
+                        style: TextStyle(
+                          color: AppColors.yumusakMor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: Colors.white10),
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Divider(color: Colors.white24, thickness: 1),
           ),
-          const Text(
-            "🚀 Proje: TÜBİTAK Siber Zorbalık Farkındalık Projesi",
-            style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w700),
+          const Row(
+            children: [
+              Icon(Icons.military_tech_rounded, color: AppColors.oyunSarisi, size: 18),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "TÜBİTAK Siber Zorbalık Farkındalık Projesi",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 900.ms, duration: 400.ms);
+    ).animate().fadeIn(delay: 500.ms, duration: 300.ms);
+  }
+
+  // Arka Plan Dekoratif Yumuşak Baloncuklar
+  Widget _buildBackgroundDecorations() {
+    return Stack(
+      children: [
+        Positioned(
+          top: -20,
+          right: -30,
+          child: Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.anaMavi.withOpacity(0.06),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 250,
+          left: -40,
+          child: Container(
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.eglencePembesi.withOpacity(0.05),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 50,
+          right: -20,
+          child: Transform.rotate(
+            angle: math.pi / 6,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                color: AppColors.oyunSarisi.withOpacity(0.08),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
       path: 'siberkahramanapp@gmail.com',
-      query: 'subject=Gizlilik Politikası Hakkında Soru',
+      query: 'subject=Siber Kahraman - Gizlilik Hakkında Soru',
     );
     if (await canLaunchUrl(emailLaunchUri)) {
       await launchUrl(emailLaunchUri);

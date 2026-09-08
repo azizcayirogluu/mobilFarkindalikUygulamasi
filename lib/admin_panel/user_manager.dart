@@ -53,7 +53,11 @@ class UserManager extends StatelessWidget {
 
   Widget _buildUserList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').orderBy('kayitTarihi', descending: true).snapshots(),
+      // Audit HIGH-02: Limit query and reduce N+1 stream listeners.
+      stream: FirebaseFirestore.instance.collection('users')
+          .orderBy('kayitTarihi', descending: true)
+          .limit(50)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final users = snapshot.data!.docs;
@@ -64,8 +68,8 @@ class UserManager extends StatelessWidget {
             final userData = users[index].data() as Map<String, dynamic>;
             final String uid = users[index].id;
             
-            return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots(),
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('usersProgress').doc(uid).get(),
               builder: (context, progSnap) {
                 final progData = progSnap.data?.data() as Map<String, dynamic>? ?? {};
                 return _buildUserCard(context, uid, userData, progData);

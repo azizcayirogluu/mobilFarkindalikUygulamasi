@@ -28,6 +28,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   bool _isProcessing = false;
   List<String> _bilinenSoruIds = [];
 
+  // KANIT: Her soru için verilen kararı tutar [{id: "...", choice: "GÜVENLİ"}, ...]
+  final List<Map<String, String>> _gameProof = [];
+
   @override
   void initState() {
     super.initState();
@@ -114,20 +117,21 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     final mevcutSoru = _soruHavuzu[_currentIndex];
     bool dogruMu = mevcutSoru["durum"] == karar;
 
+    // KANIT: Verilen kararı (doğru veya yanlış) kanıt listesine ekliyoruz
+    _gameProof.add({"id": mevcutSoru["id"], "choice": karar});
+
     if (dogruMu) {
       _kazanilanPuan += 20;
       _bilinenSoruIds.add(mevcutSoru["id"]);
-      _confettiController.play();
     } else {
       if (_currentUser != null) {
-        // Hatalı cevapta yapay zekanın analizi için soruyu kaydediyoruz.
         _aiAnalysisService.logMistake(_currentUser!.uid, "Dedektif Oyunu Hatası: ${mevcutSoru["metin"]}");
       }
     }
 
     _showFeedback(dogruMu, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
 
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         setState(() {
           _isProcessing = false;
@@ -135,6 +139,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             _currentIndex++;
           } else {
             _oyunBitti = true;
+            if (_kazanilanPuan >= 60) {
+              _confettiController.play();
+            }
             _verileriSenkronizeEt();
           }
         });
@@ -155,21 +162,39 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         backgroundColor: isCorrect ? Colors.green.shade600 : Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
 
   Future<void> _verileriSenkronizeEt() async {
-    if (_currentUser == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
     try {
-      await AnalyticsService().aktiviteGuncelle(_currentUser!.uid, _kazanilanPuan);
-      await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).update({
-        'bilinen_dedektif_sorulari': _bilinenSoruIds,
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      });
+      // Kanıt listesini de (proof) gönderiyoruz
+      await AnalyticsService().aktiviteGuncelle(user.uid, 0, proof: List.from(_gameProof));
+      debugPrint("Dedektif senkronizasyonu başarılı.");
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
+      if (mounted) {
+        String mesaage = "Puanın sunucuya kaydedilemedi! 🌐";
+        if (e.toString().contains("unauthenticated")) {
+          mesaage = "Oturum doğrulanamadı, puanın korunması için tekrar dene. 🔐";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(mesaage),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: "TEKRAR",
+              textColor: Colors.white,
+              onPressed: _verileriSenkronizeEt,
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -204,7 +229,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       children: [
         Column(
           children: [
-            // İlerleme Barı
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -230,7 +254,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
               ),
             ),
             const Spacer(),
-            // Kart Alanı
             Draggable(
               feedback: Material(color: Colors.transparent, child: _buildCard(soru, opacity: 0.8)),
               childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
@@ -239,9 +262,8 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
                 else if (details.offset.dx > 100) _kararVer("GÜVENLİ");
               },
               child: _buildCard(soru),
-            ).animate().slideY(begin: 0.2, duration: 600.ms, curve: Curves.easeOutBack).fadeIn(),
+            ).animate().slideY(begin: 0.2, duration: 300.ms, curve: Curves.easeOutBack).fadeIn(),
             const Spacer(),
-            // Butonlar
             Padding(
               padding: const EdgeInsets.only(bottom: 40),
               child: Row(
@@ -347,7 +369,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             ),
             child: Icon(icon, color: Colors.white, size: 35),
           ),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 2.seconds),
+        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 1.seconds),
         const SizedBox(height: 12),
         Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, decoration: TextDecoration.none)),
       ],
@@ -361,7 +383,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.stars_rounded, size: 120, color: Colors.orangeAccent).animate().scale(duration: 800.ms, curve: Curves.bounceOut),
+            const Icon(Icons.stars_rounded, size: 120, color: Colors.orangeAccent).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
             const SizedBox(height: 20),
             const Text("GÖREV TAMAMLANDI!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
             const SizedBox(height: 10),

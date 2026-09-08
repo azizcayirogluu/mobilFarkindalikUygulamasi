@@ -85,12 +85,26 @@ class StatisticsModel {
   }
 
   factory StatisticsModel.fromMap(Map<String, dynamic> map) {
+    // Audit CRIT-02: Support both flat and nested structure (karar_yapisi)
+    // and both camelCase/snake_case for production stability.
+    final kararYapisi = map['karar_yapisi'] as Map?;
+
     return StatisticsModel(
-      toplamSureDk: (map['toplamSureDk'] as num?)?.toInt() ?? 0,
-      hataliCevaplar: (map['hataliCevaplar'] as num?)?.toInt() ?? 0,
-      empati: (map['empati'] as num?)?.toInt() ?? 0,
-      dikkat: (map['dikkat'] as num?)?.toInt() ?? 0,
-      yardim: (map['yardim'] as num?)?.toInt() ?? 0,
+      toplamSureDk: (map['toplam_sure_dk'] as num?)?.toInt() ??
+          (map['toplamSureDk'] as num?)?.toInt() ??
+          0,
+      hataliCevaplar: (map['hatali_cevaplar'] as num?)?.toInt() ??
+          (map['hataliCevaplar'] as num?)?.toInt() ??
+          0,
+      empati: (kararYapisi?['empati'] as num?)?.toInt() ??
+          (map['empati'] as num?)?.toInt() ??
+          0,
+      dikkat: (kararYapisi?['dikkat'] as num?)?.toInt() ??
+          (map['dikkat'] as num?)?.toInt() ??
+          0,
+      yardim: (kararYapisi?['yardim'] as num?)?.toInt() ??
+          (map['yardim'] as num?)?.toInt() ??
+          0,
     );
   }
 }

@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
-import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -345,7 +342,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 350.ms, delay: (index * 80).ms).slideY(begin: 0.08, curve: Curves.easeOut);
+    ).animate().fadeIn(duration: 350.ms, delay: (index * 30).ms).slideY(begin: 0.08, curve: Curves.easeOut);
   }
 
   // İnternet Koptuğunda Gösterilecek İnteraktif ve Eğlenceli Tasarım
@@ -356,7 +353,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
         children: [
           const Icon(Icons.wifi_off_rounded, color: Colors.white38, size: 55)
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .shake(hz: 2, duration: 2.seconds),
+              .shake(hz: 2, duration: 1.seconds),
           const SizedBox(height: 12),
           const Text(
             "Sinyal Aranıyor...",

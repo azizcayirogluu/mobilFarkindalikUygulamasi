@@ -117,7 +117,7 @@ class NotificationService {
   Future<void> _saveTokenToFirestore() async {
     try {
       // Servislerin ısınması için kısa bir bekleme (SERVICE_NOT_AVAILABLE hatasını önler)
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 1));
       
       String? token = await _fcm.getToken();
       if (token != null) {

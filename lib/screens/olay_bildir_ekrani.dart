@@ -18,6 +18,14 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
   final ReportService _reportService = ReportService();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _baslikController.dispose();
+    _detayController.dispose();
+    _konumController.dispose();
+    super.dispose();
+  }
+
   void _gonder() async {
     final String baslik = _baslikController.text.trim();
     final String detay = _detayController.text.trim();
@@ -25,7 +33,10 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (baslik.isEmpty || detay.isEmpty) {
-      _mesajGoster("Lütfen olay başlığını ve detaylarını yaz canım! 😊", isError: true);
+      _mesajGoster(
+        "Lütfen olay başlığını ve detaylarını yaz canım! 😊",
+        isError: true,
+      );
       return;
     }
 
@@ -55,7 +66,11 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        title: const Text("Mesajın Alındı! 🕊️", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          "Mesajın Alındı! 🕊️",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         content: const Text(
           "Anlattıkların güvende. Kahraman ekibimiz bunu inceleyecek. Yalnız olmadığını sakın unutma! 🛡️",
           textAlign: TextAlign.center,
@@ -78,7 +93,10 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
   void _mesajGoster(String mesaj, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(mesaj, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(
+          mesaj,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: isError ? Colors.redAccent : AppColors.anaMavi,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -91,7 +109,10 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
     return Scaffold(
       backgroundColor: AppColors.zemin,
       appBar: AppBar(
-        title: const Text("BAŞIMA BİR ŞEY GELDİ", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        title: const Text(
+          "BAŞIMA BİR ŞEY GELDİ",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -100,30 +121,55 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Icon(Icons.edit_note_rounded, size: 80, color: AppColors.anaMavi).animate().shake(),
+            const Icon(
+              Icons.edit_note_rounded,
+              size: 80,
+              color: AppColors.anaMavi,
+            ).animate().shake(),
             const SizedBox(height: 10),
             const Text(
               "Neler yaşadığını anlatmak ister misin?\nBiz seni dinliyoruz.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.blueGrey,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 30),
-            _buildInput("Olayın Özeti (Örn: Okulda siber zorbalık)", _baslikController, Icons.title_rounded),
+            _buildInput(
+              "Olayın Özeti (Örn: Okulda siber zorbalık)",
+              _baslikController,
+              Icons.title_rounded,
+            ),
             const SizedBox(height: 20),
-            _buildInput("Neler Oldu? (Tüm detayları yazabilirsin)", _detayController, Icons.description_rounded, maxLines: 5),
+            _buildInput(
+              "Neler Oldu? (Tüm detayları yazabilirsin)",
+              _detayController,
+              Icons.description_rounded,
+              maxLines: 5,
+            ),
             const SizedBox(height: 20),
-            _buildInput("Nerede Oldu? (Okul, Instagram, Park vb.)", _konumController, Icons.location_on_rounded),
+            _buildInput(
+              "Nerede Oldu? (Okul, Instagram, Park vb.)",
+              _konumController,
+              Icons.location_on_rounded,
+            ),
             const SizedBox(height: 40),
-            _isLoading 
-              ? const CircularProgressIndicator()
-              : _buildSubmitButton(),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : _buildSubmitButton(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInput(String hint, TextEditingController controller, IconData icon, {int maxLines = 1}) {
+  Widget _buildInput(
+    String hint,
+    TextEditingController controller,
+    IconData icon, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -132,8 +178,14 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
         prefixIcon: Icon(icon, color: AppColors.anaMavi),
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: AppColors.anaMavi, width: 2)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.anaMavi, width: 2),
+        ),
       ),
     );
   }
@@ -145,12 +197,28 @@ class _OlayBildirEkraniState extends State<OlayBildirEkrani> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: AppColors.anaGradient,
-        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.anaMavi.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ElevatedButton(
         onPressed: _gonder,
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
-        child: const Text("MESAJI GÖNDER 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+        ),
+        child: const Text(
+          "MESAJI GÖNDER 🚀",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }

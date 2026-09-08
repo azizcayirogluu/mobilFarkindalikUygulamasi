@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCPKt4kqHvzKLBuxsbpF4qd1NQTRd_XcWY',
-    appId: '1:610579116609:android:4536b4cc1cc2ce6e844cc0',
+    appId: '1:610579116609:android:c20e4d5a4578da15844cc0',
     messagingSenderId: '610579116609',
     projectId: 'tubitak-akran-zorbaligi',
     storageBucket: 'tubitak-akran-zorbaligi.firebasestorage.app',

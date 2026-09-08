@@ -168,7 +168,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
           ],
         ),
       ),
-    ).animate().scale(delay: 500.ms, duration: 400.ms, curve: Curves.easeOutBack);
+    ).animate().scale(delay: 250.ms, duration: 200.ms, curve: Curves.easeOutBack);
   }
 
   // Acil durum butonları
@@ -198,7 +198,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
           ],
         ),
       ),
-    ).animate(onPlay: (c) => c.repeat()).shimmer(delay: 3.seconds, duration: 1500.ms);
+    ).animate(onPlay: (c) => c.repeat()).shimmer(delay: 1.seconds, duration: 200.ms);
   }
 
   Widget _buildModernMapGrid() {
@@ -267,7 +267,7 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.1);
   }
 
   //Tıklandığında 'tamamlandı' durumunu değiştirir ve UI'ı günceller

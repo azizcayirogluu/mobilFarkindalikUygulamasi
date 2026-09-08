@@ -5,7 +5,8 @@ import 'package:zorbalik_uygulamasi/screens/senaryo_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:math' as math; // Dekoratif arka plan dalgaları için
+import 'dart:math' as math;
+import 'guvenlik_rehberi_ekrani.dart';
 
 class EgitimEkrani extends StatelessWidget {
   const EgitimEkrani({super.key});
@@ -31,13 +32,24 @@ class EgitimEkrani extends StatelessWidget {
 
                 _buildKidEgitimCard(
                   context,
+                  title: "Zorbalık Rehberi 🛡️",
+                  desc: "Zorbalık nedir, nasıl başa çıkılır? Kahramanlık rehberini oku!",
+                  icon: Icons.auto_awesome_sharp,
+                  accentColor: const Color(0xFF8B5CF6),
+                  label: "TEMEL BİLGİLER",
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GuvenlikRehberiEkrani())),
+                  delay: 0.ms,
+                ),
+
+                _buildKidEgitimCard(
+                  context,
                   title: "Senaryo Çöz 🧠",
                   desc: "Zor durumlar karşısında en doğru kararı sen ver, kahraman ol!",
                   icon: Icons.psychology_alt_rounded,
                   accentColor: const Color(0xFF6366F1),
                   label: "KAHRAMANLUK GÖREVİ",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
-                  delay: 0.ms,
+                  delay: 20.ms,
                 ),
 
                 _buildKidEgitimCard(
@@ -132,7 +144,7 @@ class EgitimEkrani extends StatelessWidget {
             color: const Color(0xFF3B82F6).withOpacity(0.4),
             borderRadius: BorderRadius.circular(10),
           ),
-        ).animate().scaleX(duration: 400.ms, curve: Curves.easeOutQuad),
+        ).animate().scaleX(duration: 200.ms, curve: Curves.easeOutQuad),
       ],
     );
   }

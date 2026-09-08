@@ -63,8 +63,8 @@ class AiAnalysisService {
         final mistakes = await getMistakes(uid);
         final offlineResult = await _offlineEngine.analyzeMistakes(mistakes);
         return {
-          "durum": offlineResult?["durum"] ?? "GÜVENLİ",
-          "neden": "Çevrimdışı analiz: " + (offlineResult?["neden"] ?? "Sorun tespit edilmedi.")
+          "durum": offlineResult["durum"] ?? "GÜVENLİ",
+          "neden": "Çevrimdışı analiz: ${offlineResult["neden"] ?? 'Sorun tespit edilmedi.'}"
         };
       }
 

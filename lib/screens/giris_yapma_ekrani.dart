@@ -1,11 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/kayit_olma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:math' as math;
 
 class GirisEkrani extends StatefulWidget {
   const GirisEkrani({super.key});
@@ -18,6 +21,14 @@ class _GirisEkraniState extends State<GirisEkrani> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
   bool _isLoading = false;
+  bool _showPin = false;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _pinController.dispose();
+    super.dispose();
+  }
 
   Future<void> _checkRateLimit() async {
     final lockoutMs = StorageService().getLockoutUntil();
@@ -41,27 +52,13 @@ class _GirisEkraniState extends State<GirisEkrani> {
     }
   }
 
-  Future<void> _resetFailedAttempts() async {
-    await StorageService().clearLoginSecurityData();
-  }
-
   void _girisYap() async {
+    FocusScope.of(context).unfocus();
     final kullaniciAdi = _usernameController.text.trim().toLowerCase();
     final pin = _pinController.text.trim();
 
     if (kullaniciAdi.isEmpty || pin.isEmpty) {
-      _mesajGoster(
-        "Lütfen kullanıcı adını ve PIN kodunu yaz canım! 😊",
-        isError: true,
-      );
-      return;
-    }
-
-    if (!RegExp(r'^\d{6}$').hasMatch(pin)) {
-      _mesajGoster(
-        "PIN kodu 6 rakamdan oluşmalı. Örneğin 123456.",
-        isError: true,
-      );
+      _mesajGoster("Kullanıcı adını ve PIN kodunu yazmayı unutma! 😊", isError: true);
       return;
     }
 
@@ -69,398 +66,233 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
     try {
       await _checkRateLimit();
-
       final String deterministicEmail = '$kullaniciAdi@zorbalik.app';
 
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: deterministicEmail, password: pin);
 
-      try {
-        await userCredential.user?.updateDisplayName(kullaniciAdi);
-      } catch (e) {
-        debugPrint("Profil adı güncellenirken hata: $e");
-      }
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).update({
+        'sonGorulme': FieldValue.serverTimestamp(),
+        'isOnline': true,
+      });
 
-      await _resetFailedAttempts();
+      await StorageService().clearLoginSecurityData();
 
       if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AnaNavigation()),
-            (route) => false,
-      );
+      _mesajGoster("Tekrar hoş geldin $kullaniciAdi! 🚀");
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AnaNavigation()), (route) => false);
     } on FirebaseAuthException catch (e) {
-      String mesaj = "Giriş yapılamadı kahraman! ✨";
-      switch (e.code) {
-        case 'user-not-found':
-          mesaj = "Böyle bir kullanıcı henüz kayıtlarda yok! Önce kayıt olmalısın. 😊";
-          break;
-        case 'wrong-password':
-        case 'invalid-credential':
-          await _recordFailedAttempt();
-          return;
-        case 'network-request-failed':
-          mesaj = "İnternet sinyalin biraz zayıf gibi, bağlantını kontrol eder misin? 🌐";
-          break;
-        case 'too-many-requests':
-          mesaj = "Çok fazla deneme yaptın! Güvenlik için biraz bekle. 🛡️";
-          break;
-        default:
-          mesaj = "Küçük bir aksilik oldu ama biz kahramanız, pes etmeyiz! Tekrar dene. 💪";
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential' || e.code == 'user-not-found') {
+        await _recordFailedAttempt();
+      } else {
+        _mesajGoster("Giriş sırasında bir sorun oluştu. Lütfen tekrar dene. 💪", isError: true);
       }
-      _mesajGoster(mesaj, isError: true);
     } catch (e) {
-      debugPrint("Giriş hatası: $e");
-      final errorMessage = e.toString().contains("Exception:")
-          ? e.toString().replaceAll("Exception: ", "")
-          : (e is FirebaseAuthException
-          ? _firebaseAuthErrorMessage(e)
-          : "Beklenmedik bir hata oluştu. Lütfen tekrar dene.");
-      _mesajGoster(errorMessage, isError: true);
+      _mesajGoster(e.toString().replaceAll("Exception: ", ""), isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  String _firebaseAuthErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return "Böyle bir kullanıcı henüz kayıtlarda yok! Önce kayıt olmalısın. 😊";
-      case 'wrong-password':
-      case 'invalid-credential':
-        return "Girdiğin PIN kodu yanlış! Lütfen tekrar dene. 🔐";
-      case 'network-request-failed':
-        return "İnternet sinyalin biraz zayıf gibi, bağlantını kontrol eder misin? 🌐";
-      case 'too-many-requests':
-        return "Çok fazla deneme yaptın! Güvenlik için biraz bekle. 🛡️";
-      case 'user-disabled':
-        return "Hesabın devre dışı bırakılmış. Destek ile iletişime geç.";
-      default:
-        return "Küçük bir aksilik oldu ama biz kahramanız, pes etmeyiz! Tekrar dene. 💪";
     }
   }
 
   void _mesajGoster(String mesaj, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            Icon(isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded, color: Colors.white),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                mesaj,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        content: Text(mesaj, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? const Color(0xFFE85D75) : const Color(0xFF00A896),
         behavior: SnackBarBehavior.floating,
-        elevation: 10,
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    const Color backgroundSubtle = Color(0xFFF0F9FF);
+    final media = MediaQuery.of(context);
+    final keyboardOpen = media.viewInsets.bottom > 0;
 
     return Scaffold(
-      backgroundColor: backgroundSubtle,
-      body: Stack(
-        children: [
-          // Arka plan sevimli baloncuk süslemeleri
-          Positioned(
-            top: -60,
-            left: -60,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.anaMavi.withOpacity(0.06),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            right: -30,
-            child: Transform.rotate(
-              angle: math.pi / 4,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(40),
-                  color: Colors.orange.withOpacity(0.04),
-                ),
-              ),
-            ),
-          ),
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableHeight = constraints.maxHeight;
+            final isShort = availableHeight < 600;
 
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Geri Dönüş Butonu
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            return Stack(
+              children: [
+                // 1. DİNAMİK RENKLİ ARKA PLAN
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFE0F7FA), Color(0xFFF3E5F5), Colors.white],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+
+                // 2. HAREKETLİ DEKORATİF OBJELER
+                if (!keyboardOpen && !isShort) ...[
+                  Positioned(
+                    top: -40,
+                    right: -40,
+                    child: _decorCircle(200, AppColors.anaMavi.withOpacity(.1))
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .moveY(begin: -15, end: 15, duration: 4.seconds),
+                  ),
+                  Positioned(
+                    bottom: -60,
+                    left: -50,
+                    child: _decorCircle(220, AppColors.eglencePembesi.withOpacity(.08))
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .moveX(begin: -10, end: 10, duration: 5.seconds),
+                  ),
+                ],
+
+                // 3. İÇERİK
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      _buildHeader(),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            if (!keyboardOpen && !isShort) _buildHeroSection(),
+                            Flexible(child: _buildFormCard(keyboardOpen || isShort)),
+                            _buildRegisterLink(keyboardOpen || isShort),
                           ],
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF334155)),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Hero(
-                      tag: 'welcome_image',
-                      child: Image.asset(
-                        "assets/team.png",
-                        height: 140,
-                        errorBuilder: (c, e, s) => Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          child: const Icon(Icons.group_rounded, size: 80, color: AppColors.anaMavi),
-                        ),
-                      ),
-                    ).animate().scale(delay: 100.ms, duration: 500.ms, curve: Curves.easeOutBack),
-                    const SizedBox(height: 15),
-
-                    Text(
-                      "Tekrardan Merhaba! 👋",
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
-                        letterSpacing: -0.8,
-                        fontFamily: 'CarterOne',
-                        shadows: [
-                          Shadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, 2), blurRadius: 2),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Kaldığın yerden iyilik ve nezaket dolu bir dünya kurmaya hazır mısın?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 35),
-
-                    _buildGirisKarti(),
-                    const SizedBox(height: 25),
-
-                    // Kayıt Olma Linki
-                    _buildRegisterLink().animate().fadeIn(delay: 400.ms),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ],
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildGirisKarti() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(38),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.anaMavi.withOpacity(0.08),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildInputField(
-            "Kullanıcı Adın",
-            Icons.person_pin_rounded,
-            _usernameController,
-          ),
-          const SizedBox(height: 20),
-          _buildInputField(
-            "6 Haneli Gizli PIN",
-            Icons.lock_open_rounded,
-            _pinController,
-            isPin: true,
-          ),
-          const SizedBox(height: 28),
-          _isLoading
-              ? const SizedBox(
-              height: 55,
-              child: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.anaMavi)))
-          )
-              : _buildLoginButton(),
-        ],
-      ),
-    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutBack);
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black12, elevation: 4),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi, size: 18),
+        ),
+        const Spacer(),
+        const Text("Giriş Yap", style: TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.w900, fontSize: 16)),
+      ],
+    );
   }
 
-  Widget _buildInputField(
-      String hint,
-      IconData icon,
-      TextEditingController controller, {
-        bool isPin = false,
-      }) {
+  Widget _buildHeroSection() {
+    return Column(
+      children: [
+        Image.asset("assets/image/team.png", height: 120, errorBuilder: (_, __, ___) => const Icon(Icons.group_rounded, size: 80, color: AppColors.anaMavi)),
+        const SizedBox(height: 15),
+        const Text("Tekrardan Merhaba! 👋", textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi, letterSpacing: -1)),
+        const SizedBox(height: 6),
+        const Text("Kaldığın yerden iyilik dolu bir dünya kurmaya hazır mısın?", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+      ],
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildFormCard(bool compact) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: compact ? 16 : 32),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.98),
+        borderRadius: BorderRadius.circular(45),
+        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(.1), blurRadius: 40, offset: const Offset(0, 15))],
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildInputField("Kullanıcı Adın", Icons.face_rounded, _usernameController, compact),
+          SizedBox(height: compact ? 12 : 20),
+          _buildInputField("6 Haneli Gizli PIN", Icons.lock_rounded, _pinController, compact, isPin: true),
+          SizedBox(height: compact ? 20 : 32),
+          _buildLoginButton(compact),
+        ],
+      ),
+    ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.95, 0.95));
+  }
+
+  Widget _buildInputField(String label, IconData icon, TextEditingController controller, bool compact, {bool isPin = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const SizedBox(width: 8),
-            Icon(icon, size: 16, color: AppColors.anaMavi.withOpacity(0.7)),
-            const SizedBox(width: 6),
-            Text(
-              hint,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF475569),
-                fontSize: 13,
-              ),
-            ),
-          ],
+        if (!compact) Padding(
+          padding: const EdgeInsets.only(left: 10, bottom: 8),
+          child: Text(label.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 10, letterSpacing: 1.1)),
         ),
-        const SizedBox(height: 8),
         TextField(
           controller: controller,
-          obscureText: isPin,
+          obscureText: isPin && !_showPin,
           keyboardType: isPin ? TextInputType.number : TextInputType.text,
           maxLength: isPin ? 6 : null,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: compact ? 14 : 16),
           decoration: InputDecoration(
             counterText: "",
-            hintText: "$hint girin...",
-            hintStyle: TextStyle(color: Colors.blueGrey.shade200, fontSize: 14, fontWeight: FontWeight.w500),
+            hintText: "$label...",
+            prefixIcon: Icon(icon, color: AppColors.anaMavi, size: 20),
+            suffixIcon: isPin ? IconButton(onPressed: () => setState(() => _showPin = !_showPin), icon: Icon(_showPin ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: Colors.grey.shade400)) : null,
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: AppColors.anaMavi.withOpacity(0.04),
             contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(22),
-              borderSide: BorderSide(color: Colors.blueGrey.shade50, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(22),
-              borderSide: const BorderSide(
-                color: AppColors.anaMavi,
-                width: 2.5,
-              ),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: AppColors.anaMavi, width: 2)),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(bool compact) {
     return Container(
       width: double.infinity,
-      height: 58,
+      height: compact ? 50 : 60,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          colors: [AppColors.anaMavi, const Color(0xFF1D4ED8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.anaMavi.withOpacity(0.35),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        gradient: AppColors.anaGradient,
+        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6))],
       ),
       child: ElevatedButton(
-        onPressed: _girisYap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "MACERAYA BAŞLA",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+        onPressed: _isLoading ? null : _girisYap,
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+            : const Text("MACERAYA BAŞLA! 🚀", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+      ),
+    );
+  }
+
+  Widget _buildRegisterLink(bool compact) {
+    return TextButton(
+      onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const KayitEkrani())),
+      child: Text.rich(
+        TextSpan(
+          style: TextStyle(color: Colors.blueGrey, fontSize: compact ? 12 : 14, fontWeight: FontWeight.w700),
+          children: const [
+            TextSpan(text: 'Henüz kahraman değil misin? '),
+            TextSpan(text: 'Kayıt Ol ✨', style: TextStyle(color: AppColors.anaMavi, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRegisterLink() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blueGrey.shade50)
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            "Yeni misin?",
-            style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const KayitEkrani()),
-            ),
-            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-            child: const Text(
-              "Hemen Hesap Oluştur ✨",
-              style: TextStyle(
-                color: AppColors.anaMavi,
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _decorCircle(double size, Color color) {
+    return Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
   }
 }

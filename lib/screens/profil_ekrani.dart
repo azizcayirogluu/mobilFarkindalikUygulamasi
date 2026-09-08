@@ -29,7 +29,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   bool _isDeleting = false;
   User? _user;
   Future<Map<String, dynamic>>? _statsFuture;
-  String _currentAvatar = "assets/boy.png";
+  String _currentAvatar = "assets/image/boy.png";
   String _currentYasGrubu = "6-12";
 
   @override
@@ -47,8 +47,14 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(_user!.uid).get();
       if (doc.exists && mounted) {
+        String avatar = doc.data()?['avatarUrl'] ?? "assets/image/boy.png";
+        // GÜVENLİK: Eğer path yanlışsa (image/ eksikse) otomatik düzelt
+        if (avatar.startsWith("assets/") && !avatar.startsWith("assets/image/")) {
+          avatar = avatar.replaceFirst("assets/", "assets/image/");
+        }
+
         setState(() {
-          _currentAvatar = doc.data()?['avatarUrl'] ?? "assets/boy.png";
+          _currentAvatar = avatar;
           _currentYasGrubu = doc.data()?['yasGrubu'] ?? "6-12";
         });
       }
@@ -109,7 +115,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                   children: [
                     _yasSecenek("6-12", tempYas, (val) => setDialogState(() => tempYas = val)),
                     const SizedBox(width: 10),
-                    _yasSecenek("13-17", tempYas, (val) => setDialogState(() => tempYas = val)),
+                    _yasSecenek("13-18", tempYas, (val) => setDialogState(() => tempYas = val)),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -120,10 +126,10 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _avatarOption("assets/boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/girls-boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/superhero-man.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/superhero-girls.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                    _avatarOption("assets/image/boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                    _avatarOption("assets/image/girls-boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                    _avatarOption("assets/image/superhero-man.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                    _avatarOption("assets/image/superhero-girls.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
                   ],
                 ),
               ],
@@ -215,27 +221,85 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     if (onay == true) {
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const KarsilamaEkrani()), (route) => false);
     }
   }
 
   Future<void> _hesabiSil() async {
     if (_user == null) return;
-    bool? onay = await _onayDiyalogu(emoji: "🥺", baslik: "Hesabı Kalıcı Sil", icerik: "Tüm rozetlerin ve ilerlemen silinecek. Bu işlem geri alınamaz!", butonMetni: "Evet, Hesabımı Sil", renk: Colors.redAccent);
-    if (onay == true) {
-      setState(() => _isDeleting = true);
-      try {
-        final deleteFn = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('deleteSelfAccount');
-        await deleteFn.call();
-        await FirebaseAuth.instance.signOut();
-        await StorageService().clearUserData();
-        if (!mounted) return;
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomePages()), (route) => false);
-      } catch (e) {
-        if (mounted) {
-          setState(() => _isDeleting = false);
-          _showSnack("Hata: Tekrar giriş yapıp deneyin.", isError: true);
-        }
+
+    bool? onay = await _onayDiyalogu(
+      emoji: "🥺",
+      baslik: "Hesabı Kalıcı Sil",
+      icerik: "Tüm rozetlerin ve ilerlemen silinecek. Bu işlem geri alınamaz!",
+      butonMetni: "Evet, Hesabımı Sil",
+      renk: Colors.redAccent,
+    );
+
+    if (onay != true) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      print("DELETE_TEST: UID = ${_user!.uid}");
+      print("DELETE_TEST: Function çağrılıyor...");
+
+      final deleteFn = FirebaseFunctions.instanceFor(
+        region: 'europe-west1',
+      ).httpsCallable('deleteSelfAccount');
+
+      final result = await deleteFn.call();
+
+      print("DELETE_TEST: FUNCTION BAŞARILI");
+      print("DELETE_TEST: RESULT = ${result.data}");
+
+      await FirebaseAuth.instance.signOut();
+
+      print("DELETE_TEST: AUTH SIGNOUT BAŞARILI");
+
+      await StorageService().clearUserData();
+
+      print("DELETE_TEST: LOCAL STORAGE TEMİZLENDİ");
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const KarsilamaEkrani(),
+        ),
+            (route) => false,
+      );
+
+    } on FirebaseFunctionsException catch (e) {
+
+      print("DELETE_TEST: FIREBASE FUNCTION HATASI");
+      print("DELETE_TEST: code = ${e.code}");
+      print("DELETE_TEST: message = ${e.message}");
+      print("DELETE_TEST: details = ${e.details}");
+
+      if (mounted) {
+        setState(() => _isDeleting = false);
+
+        _showSnack(
+          "Function hatası: ${e.code} - ${e.message}",
+          isError: true,
+        );
+      }
+
+    } catch (e, stack) {
+
+      print("DELETE_TEST: GENEL HATA");
+      print("DELETE_TEST: $e");
+      print("DELETE_TEST: $stack");
+
+      if (mounted) {
+        setState(() => _isDeleting = false);
+
+        _showSnack(
+          "Beklenmeyen hata: $e",
+          isError: true,
+        );
       }
     }
   }
@@ -246,7 +310,11 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       bool admin = userDoc.exists ? (userDoc.data()?['isAdmin'] ?? false) : false;
       final sCountQuery = await FirebaseFirestore.instance.collection('scenarios').count().get();
       final hCountQuery = await FirebaseFirestore.instance.collection('stories').count().get();
-      return {'isAdmin': admin, 'toplamGorev': (sCountQuery.count ?? 0) + (hCountQuery.count ?? 0)};
+      final dCountQuery = await FirebaseFirestore.instance.collection('detective_questions').count().get();
+      return {
+        'isAdmin': admin, 
+        'toplamGorev': (sCountQuery.count ?? 0) + (hCountQuery.count ?? 0) + (dCountQuery.count ?? 0)
+      };
     } catch (e) {
       return {'isAdmin': false, 'toplamGorev': 1};
     }
@@ -270,16 +338,28 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           final progressData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
           final List bitti = progressData['tamamlanan_bolumler'] as List? ?? [];
           final List okundu = progressData['okunan_hikayeler'] as List? ?? [];
+          final List dedektif = progressData['bilinen_dedektif_sorulari'] as List? ?? [];
           final List rozetler = progressData['rozetler'] as List? ?? [];
           final int toplamPuan = progressData['toplam_puan'] ?? 0;
-          final int tamamlananToplam = bitti.length + okundu.length;
+          
+          // ÇÖZÜM: Senaryo ID'lerini güvenli şekilde ayır ve SET yap
+          Set<String> tamamlananSenaryoIdleri = {};
+          for (var item in bitti) {
+            String s = item.toString();
+            if (s.contains('_')) {
+              tamamlananSenaryoIdleri.add(s.split('_')[0]);
+            } else {
+              tamamlananSenaryoIdleri.add(s);
+            }
+          }
+          final int tamamlananToplam = tamamlananSenaryoIdleri.length + okundu.length + dedektif.length;
 
           return FutureBuilder<Map<String, dynamic>>(
             future: _statsFuture,
             builder: (context, statsSnap) {
               final bool isAdmin = statsSnap.data?['isAdmin'] ?? false;
               final int toplamGorev = statsSnap.data?['toplamGorev'] ?? 1;
-              final double ilerleme = (tamamlananToplam / toplamGorev).clamp(0.01, 1.0);
+              final double ilerleme = (tamamlananToplam / toplamGorev).clamp(0.0, 1.0);
               final int seviye = (tamamlananToplam ~/ 3) + 1;
 
               return SingleChildScrollView(
@@ -300,7 +380,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                     const SizedBox(height: 8),
                     _buildActionGrid(size).animate(delay: 200.ms).fadeIn().slideY(begin: 0.05),
                     const SizedBox(height: 24),
-                    _buildDangerZoneZone().animate(delay: 400.ms).fadeIn(),
+                    _buildDangerZoneZone().animate(delay: 200.ms).fadeIn(),
                     const SizedBox(height: 16),
                     _buildFooter(),
                     const SizedBox(height: 100),
@@ -368,7 +448,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                       ),
                     ),
                   ],
-                ).animate().scale(delay: 200.ms, curve: Curves.elasticOut, duration: 800.ms),
+                ).animate().scale(delay: 200.ms, curve: Curves.elasticOut, duration: 200.ms),
                 const SizedBox(height: 18),
                 Text(
                   isim.toUpperCase(),
@@ -478,7 +558,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           return Align(
             alignment: Alignment.centerLeft,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 600),
+              duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               height: 12,
               width: progressWidth.clamp(

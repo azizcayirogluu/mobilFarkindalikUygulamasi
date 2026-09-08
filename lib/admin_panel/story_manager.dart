@@ -77,6 +77,9 @@ class _StoryManagerState extends State<StoryManager> {
   }
 
   Widget _buildStoryCard(String id, Map<String, dynamic> data) {
+    final String? imageUrl = data['gorselYolu']?.toString();
+    final bool hasValidUrl = imageUrl != null && imageUrl.startsWith('http');
+
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
       clipBehavior: Clip.antiAlias,
@@ -88,9 +91,30 @@ class _StoryManagerState extends State<StoryManager> {
               children: [
                 SizedBox(
                   width: double.infinity,
-                  child: data['gorselYolu']?.toString().startsWith('http') == true
-                      ? CachedNetworkImage(imageUrl: data['gorselYolu'], fit: BoxFit.cover, errorWidget: (c,u,e) => Container(color: Colors.grey.shade100))
-                      : Container(color: Colors.grey.shade100, child: const Icon(Icons.menu_book_rounded, color: Colors.grey, size: 50)),
+                  height: double.infinity,
+                  child: hasValidUrl
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: Colors.grey.shade100,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            debugPrint("Görsel yükleme hatası: $error");
+                            return Container(
+                              color: Colors.grey.shade100,
+                              child: const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 40),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey.shade100,
+                          child: const Icon(Icons.menu_book_rounded, color: Colors.grey, size: 50),
+                        ),
                 ),
                 Positioned(
                   top: 10, right: 10,

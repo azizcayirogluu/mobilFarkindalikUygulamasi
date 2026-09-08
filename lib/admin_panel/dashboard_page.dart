@@ -75,10 +75,11 @@ class DashboardPage extends StatelessWidget {
 
   Widget _statBox(String title, String col, IconData icon, Color color) {
     return Expanded(
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection(col).snapshots(),
+      child: FutureBuilder<AggregateQuerySnapshot>(
+        // Audit HIGH-01: Use count() instead of snapshots() to reduce Firestore read costs.
+        future: FirebaseFirestore.instance.collection(col).count().get(),
         builder: (context, snapshot) {
-          final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+          final count = snapshot.hasData ? snapshot.data!.count : 0;
           return Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),

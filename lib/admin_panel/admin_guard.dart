@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminGuard extends StatelessWidget {
@@ -13,15 +12,10 @@ class AdminGuard extends StatelessWidget {
     if (user == null) return false;
 
     try {
-      // 1. Önce Token'a bak (Hızlı kontrol)
+      // SEC-06: Sadece Custom Claims (admin) üzerinden yetki kontrolü yapılır.
+      // Firestore'daki isAdmin alanı artık tek başına yetki vermez (Security Rules'a uygun).
       final idTokenResult = await user.getIdTokenResult(true);
-      if (idTokenResult.claims?['admin'] == true || idTokenResult.claims?['isAdmin'] == true) {
-        return true;
-      }
-
-      // 2. Token'da yoksa senin yaptığın Firestore ayarına bak (Kesin çözüm)
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      return doc.data()?['isAdmin'] == true;
+      return idTokenResult.claims?['admin'] == true;
     } catch (e) {
       return false;
     }

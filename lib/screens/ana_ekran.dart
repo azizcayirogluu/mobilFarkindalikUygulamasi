@@ -112,12 +112,20 @@ class _AnaSayfaState extends State<AnaSayfa> {
           stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
           builder: (context, userSnap) {
             String aktifAd = widget.kullaniciAdi;
-            String aktifAvatar = "assets/boy.png";
+            String aktifAvatar = "assets/image/boy.png";
 
             if (userSnap.hasData && userSnap.data!.exists) {
               final uData = userSnap.data!.data() as Map<String, dynamic>;
               aktifAd = uData['kullaniciAdi'] ?? aktifAd;
-              aktifAvatar = uData['avatarUrl'] ?? aktifAvatar;
+              String? dbAvatar = uData['avatarUrl'];
+              if (dbAvatar != null && dbAvatar.isNotEmpty) {
+                // GÜVENLİK: Eğer path yanlışsa (image/ eksikse) otomatik düzelt
+                if (dbAvatar.startsWith("assets/") && !dbAvatar.startsWith("assets/image/")) {
+                  aktifAvatar = dbAvatar.replaceFirst("assets/", "assets/image/");
+                } else {
+                  aktifAvatar = dbAvatar;
+                }
+              }
             }
 
             return StreamBuilder<DocumentSnapshot>(
@@ -130,7 +138,20 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   puan = data['toplam_puan'] ?? 0;
                   List bitti = data['tamamlanan_bolumler'] as List? ?? [];
                   List okundu = data['okunan_hikayeler'] as List? ?? [];
-                  tamamlananSayisi = bitti.length + okundu.length;
+                  List dedektif = data['bilinen_dedektif_sorulari'] as List? ?? [];
+                  
+                  // ÇÖZÜM: Senaryo ID'lerini güvenli şekilde ayır ve SET yap
+                  Set<String> tamamlananSenaryoIdleri = {};
+                  for (var item in bitti) {
+                    String s = item.toString();
+                    if (s.contains('_')) {
+                      tamamlananSenaryoIdleri.add(s.split('_')[0]);
+                    } else {
+                      tamamlananSenaryoIdleri.add(s);
+                    }
+                  }
+                  
+                  tamamlananSayisi = tamamlananSenaryoIdleri.length + okundu.length + dedektif.length;
                 }
                 double ilerleme = _toplamGorevSayisi > 0 
                     ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
@@ -233,7 +254,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   ),
                 ),
                 child: CircleAvatar(
-                  radius: 28, // Biraz büyüttük
+                  radius: 28,
                   backgroundColor: Colors.white,
                   backgroundImage: AssetImage(avatarPath),
                 ),
@@ -248,7 +269,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
   Widget _buildProgressCard(int tamamlanan, int puan, double ilerleme, Size size) {
     return Container(
       width: double.infinity,
-      height: 180, // Yüksekliği sabitledik, daha derli toplu
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(35),
         color: Colors.white.withOpacity(0.45),
@@ -265,19 +286,19 @@ class _AnaSayfaState extends State<AnaSayfa> {
         borderRadius: BorderRadius.circular(35),
         child: Stack(
           children: [
-            // Arka plandaki renkli "Oyun Bulutları"
             _buildBlob(right: -20, top: -20, color: Colors.pink.shade100, size: 120),
             _buildBlob(left: -30, bottom: -40, color: Colors.yellow.shade100, size: 140),
             _buildBlob(right: 40, bottom: -20, color: Colors.blue.shade100, size: 80),
             
-            Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                   Row(
                     children: [
-                      // Seviye Rozeti
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -312,13 +333,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                           ],
                         ),
                       ),
-                      // Puan Kutusu
                       _buildPointBadge(puan),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   _buildLinearProgress(ilerleme),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -335,6 +355,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 ],
               ),
             ),
+          ),
           ],
         ),
       ),
@@ -388,13 +409,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
         return Stack(
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 1500),
-              curve: Curves.elasticOut, // Zıplayan çocuksu bir efekt
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.elasticOut,
               height: 14,
-              width: constraints.maxWidth * value.clamp(0.1, 1.0),
+              width: constraints.maxWidth * value.clamp(0.0, 1.0),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF818CF8), Color(0xFFC084FC)], // Soft mor-pembe
+                  colors: [Color(0xFF818CF8), Color(0xFFC084FC)],
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),

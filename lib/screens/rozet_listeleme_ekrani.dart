@@ -153,7 +153,7 @@ class RozetlerEkrani extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(22, 15, 22, 20),
       width: double.infinity,
-      height: 180,
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(35),
         color: Colors.white.withOpacity(0.45),
@@ -192,7 +192,7 @@ class RozetlerEkrani extends StatelessWidget {
                         ),
                         child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 24)
                             .animate(onPlay: (c) => c.repeat())
-                            .shimmer(duration: 1800.ms),
+                            .shimmer(duration: 1000.ms),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
@@ -284,10 +284,10 @@ class RozetlerEkrani extends StatelessWidget {
         return Stack(
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 1500),
-              curve: Curves.elasticOut,
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutQuart,
               height: 14,
-              width: constraints.maxWidth * value.clamp(0.05, 1.0),
+              width: constraints.maxWidth * value.clamp(0.0, 1.0),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
@@ -386,7 +386,7 @@ class RozetlerEkrani extends StatelessWidget {
             ),
           ],
         ),
-      ).animate(delay: (index * 25).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
+      ).animate(delay: (index * 15).ms).fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
     );
   }
 
@@ -432,7 +432,7 @@ class RozetlerEkrani extends StatelessWidget {
                 size: 55,
                 color: color,
               ),
-            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+            ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
             const SizedBox(height: 18),
 
             Text(
