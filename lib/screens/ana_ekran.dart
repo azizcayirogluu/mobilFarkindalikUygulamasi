@@ -53,10 +53,14 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   IconData _getIcon(String? iconName) {
     switch (iconName) {
-      case 'psychology': return Icons.psychology_alt_rounded;
-      case 'auto_stories': return Icons.auto_stories_rounded;
-      case 'play': return Icons.play_circle_filled_rounded;
-      default: return Icons.stars_rounded;
+      case 'psychology':
+        return Icons.psychology_alt_rounded;
+      case 'auto_stories':
+        return Icons.auto_stories_rounded;
+      case 'play':
+        return Icons.play_circle_filled_rounded;
+      default:
+        return Icons.stars_rounded;
     }
   }
 
@@ -78,7 +82,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
       if (mounted) {
         setState(() {
           _toplamGorevSayisi = data['toplamGorevSayisi'];
-          List<Map<String, dynamic>> rawHavuz = List<Map<String, dynamic>>.from(data['kesifHavuzu']);
+          List<Map<String, dynamic>> rawHavuz = List<Map<String, dynamic>>.from(
+            data['kesifHavuzu'],
+          );
           _kesifHavuzu = rawHavuz.map((item) {
             item['renk'] = _hexToColor(item['renkStr']);
             item['ikon'] = _getIcon(item['ikonStr']);
@@ -92,7 +98,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("İçerikler yüklenirken bir hata oluştu.")),
+          const SnackBar(
+            content: Text("İçerikler yüklenirken bir hata oluştu."),
+          ),
         );
       }
     }
@@ -100,7 +108,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_currentUser == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final size = MediaQuery.of(context).size;
     final paddingValue = size.width * 0.05;
     final String uid = _currentUser.uid;
@@ -109,7 +118,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .snapshots(),
           builder: (context, userSnap) {
             String aktifAd = widget.kullaniciAdi;
             String aktifAvatar = "assets/image/boy.png";
@@ -120,8 +132,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
               String? dbAvatar = uData['avatarUrl'];
               if (dbAvatar != null && dbAvatar.isNotEmpty) {
                 // GÜVENLİK: Eğer path yanlışsa (image/ eksikse) otomatik düzelt
-                if (dbAvatar.startsWith("assets/") && !dbAvatar.startsWith("assets/image/")) {
-                  aktifAvatar = dbAvatar.replaceFirst("assets/", "assets/image/");
+                if (dbAvatar.startsWith("assets/") &&
+                    !dbAvatar.startsWith("assets/image/")) {
+                  aktifAvatar = dbAvatar.replaceFirst(
+                    "assets/",
+                    "assets/image/",
+                  );
                 } else {
                   aktifAvatar = dbAvatar;
                 }
@@ -138,8 +154,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   puan = data['toplam_puan'] ?? 0;
                   List bitti = data['tamamlanan_bolumler'] as List? ?? [];
                   List okundu = data['okunan_hikayeler'] as List? ?? [];
-                  List dedektif = data['bilinen_dedektif_sorulari'] as List? ?? [];
-                  
+                  List dedektif =
+                      data['bilinen_dedektif_sorulari'] as List? ?? [];
+
                   // ÇÖZÜM: Senaryo ID'lerini güvenli şekilde ayır ve SET yap
                   Set<String> tamamlananSenaryoIdleri = {};
                   for (var item in bitti) {
@@ -150,11 +167,14 @@ class _AnaSayfaState extends State<AnaSayfa> {
                       tamamlananSenaryoIdleri.add(s);
                     }
                   }
-                  
-                  tamamlananSayisi = tamamlananSenaryoIdleri.length + okundu.length + dedektif.length;
+
+                  tamamlananSayisi =
+                      tamamlananSenaryoIdleri.length +
+                      okundu.length +
+                      dedektif.length;
                 }
-                double ilerleme = _toplamGorevSayisi > 0 
-                    ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0) 
+                double ilerleme = _toplamGorevSayisi > 0
+                    ? (tamamlananSayisi / _toplamGorevSayisi).clamp(0.0, 1.0)
                     : 0.0;
 
                 return RefreshIndicator(
@@ -166,25 +186,46 @@ class _AnaSayfaState extends State<AnaSayfa> {
                       _buildAppBar(aktifAd, aktifAvatar, paddingValue),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
-                          child: _buildProgressCard(tamamlananSayisi, puan, ilerleme, size),
+                          padding: EdgeInsets.fromLTRB(
+                            paddingValue,
+                            10,
+                            paddingValue,
+                            20,
+                          ),
+                          child: _buildProgressCard(
+                            tamamlananSayisi,
+                            puan,
+                            ilerleme,
+                            size,
+                          ),
                         ),
                       ),
                       _buildSectionTitle("Günün Önerileri 🚀🎓", paddingValue),
-                      _isLoading 
-                        ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-                        : SliverPadding(
-                            padding: EdgeInsets.symmetric(horizontal: paddingValue),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (c, i) => _buildModernContentCard(_kesifHavuzu[i], size)
-                                    .animate(delay: (i * 30).ms)
-                                    .fadeIn(duration: 300.ms)
-                                    .slideY(begin: 0.05, curve: Curves.easeOutQuad),
-                                childCount: _kesifHavuzu.length
+                      _isLoading
+                          ? const SliverFillRemaining(
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: paddingValue,
+                              ),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (c, i) =>
+                                      _buildModernContentCard(
+                                            _kesifHavuzu[i],
+                                            size,
+                                          )
+                                          .animate(delay: (i * 30).ms)
+                                          .fadeIn(duration: 300.ms)
+                                          .slideY(
+                                            begin: 0.05,
+                                            curve: Curves.easeOutQuad,
+                                          ),
+                                  childCount: _kesifHavuzu.length,
+                                ),
                               ),
                             ),
-                          ),
                       const SliverToBoxAdapter(child: SizedBox(height: 120)),
                     ],
                   ),
@@ -199,15 +240,15 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   Widget _buildAppBar(String ad, String avatarPath, double padding) {
     return SliverAppBar(
-      floating: true, 
-      backgroundColor: Colors.transparent, 
-      elevation: 0, 
+      floating: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       toolbarHeight: 110,
       title: Row(
         children: [
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, 
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "KAHRAMAN GÜNLÜĞÜ 🧾",
@@ -228,7 +269,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     letterSpacing: -0.5,
                   ),
                 ),
-              ]
+              ],
             ),
           ),
           GestureDetector(
@@ -246,12 +287,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
                       color: Colors.indigo.withOpacity(0.1),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
-                    )
+                    ),
                   ],
-                  border: Border.all(
-                    color: Colors.indigo.shade50,
-                    width: 2,
-                  ),
+                  border: Border.all(color: Colors.indigo.shade50, width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 28,
@@ -266,7 +304,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
-  Widget _buildProgressCard(int tamamlanan, int puan, double ilerleme, Size size) {
+  Widget _buildProgressCard(
+    int tamamlanan,
+    int puan,
+    double ilerleme,
+    Size size,
+  ) {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 180),
@@ -279,92 +322,131 @@ class _AnaSayfaState extends State<AnaSayfa> {
             color: Colors.purple.withOpacity(0.08),
             blurRadius: 25,
             offset: const Offset(0, 10),
-          )
+          ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(35),
         child: Stack(
           children: [
-            _buildBlob(right: -20, top: -20, color: Colors.pink.shade100, size: 120),
-            _buildBlob(left: -30, bottom: -40, color: Colors.yellow.shade100, size: 140),
-            _buildBlob(right: 40, bottom: -20, color: Colors.blue.shade100, size: 80),
-            
+            _buildBlob(
+              right: -20,
+              top: -20,
+              color: Colors.pink.shade100,
+              size: 120,
+            ),
+            _buildBlob(
+              left: -30,
+              bottom: -40,
+              color: Colors.yellow.shade100,
+              size: 140,
+            ),
+            _buildBlob(
+              right: 40,
+              bottom: -20,
+              color: Colors.blue.shade100,
+              size: 80,
+            ),
+
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 18,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.2), blurRadius: 8)],
-                        ),
-                        child: const Icon(Icons.auto_awesome, color: Colors.orangeAccent, size: 24),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "MACERA SEVİYESİ",
-                              style: TextStyle(
-                                color: Colors.indigo.shade900.withOpacity(0.5),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.2),
+                                blurRadius: 8,
                               ),
-                            ),
-                            Text(
-                              "${(ilerleme * 100).toInt()}% Tamamlandı! ✨",
-                              style: TextStyle(
-                                color: Colors.indigo.shade900,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            color: Colors.orangeAccent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "MACERA SEVİYESİ",
+                                style: TextStyle(
+                                  color: Colors.indigo.shade900.withOpacity(
+                                    0.5,
+                                  ),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                            ),
-                          ],
+                              Text(
+                                "${(ilerleme * 100).toInt()}% Tamamlandı! ✨",
+                                style: TextStyle(
+                                  color: Colors.indigo.shade900,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      _buildPointBadge(puan),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildLinearProgress(ilerleme),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _ilerlemeMesaji(ilerleme),
-                        style: TextStyle(
-                          color: Colors.indigo.shade700,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                        _buildPointBadge(puan),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildLinearProgress(ilerleme),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _ilerlemeMesaji(ilerleme),
+                          style: TextStyle(
+                            color: Colors.indigo.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBlob({double? top, double? bottom, double? left, double? right, required Color color, required double size}) {
+  Widget _buildBlob({
+    double? top,
+    double? bottom,
+    double? left,
+    double? right,
+    required Color color,
+    required double size,
+  }) {
     return Positioned(
-      top: top, bottom: bottom, left: left, right: right,
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right,
       child: Container(
         width: size,
         height: size,
@@ -382,7 +464,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
       decoration: BoxDecoration(
         color: Colors.indigo.shade900,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.indigo.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -390,7 +478,11 @@ class _AnaSayfaState extends State<AnaSayfa> {
           const SizedBox(width: 6),
           Text(
             "$puan",
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -405,24 +497,26 @@ class _AnaSayfaState extends State<AnaSayfa> {
         color: Colors.white.withOpacity(0.6),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: LayoutBuilder(builder: (context, constraints) {
-        return Stack(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.elasticOut,
-              height: 14,
-              width: constraints.maxWidth * value.clamp(0.0, 1.0),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF818CF8), Color(0xFFC084FC)],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.elasticOut,
+                height: 14,
+                width: constraints.maxWidth * value.clamp(0.0, 1.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF818CF8), Color(0xFFC084FC)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-          ],
-        );
-      }),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -443,8 +537,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
           child: Row(
             children: [
               Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Icon(item['ikon'], color: color, size: 30),
               ),
               const SizedBox(width: 16),
@@ -454,27 +552,47 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   children: [
                     Text(
                       item['tip'],
-                      style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       item['baslik'],
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                     Text(
-                      item['tip'] == "HİKAYE" 
-                          ? (item['data']['feedbackMessage'] != null && item['data']['feedbackMessage'].toString().isNotEmpty 
-                              ? item['data']['feedbackMessage']
-                              : "Kahramanlık yolunda yeni bir öykü! ✨")
+                      item['tip'] == "HİKAYE"
+                          ? (item['data']['feedbackMessage'] != null &&
+                                    item['data']['feedbackMessage']
+                                        .toString()
+                                        .isNotEmpty
+                                ? item['data']['feedbackMessage']
+                                : "Kahramanlık yolunda yeni bir öykü! ✨")
                           : item['altBaslik'],
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade300, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey.shade300,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, color: color.withOpacity(0.2), size: 16),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: color.withOpacity(0.2),
+                size: 16,
+              ),
             ],
           ),
         ),
@@ -486,19 +604,92 @@ class _AnaSayfaState extends State<AnaSayfa> {
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.fromLTRB(padding, 20, padding, 15),
-        child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.5)),
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1E293B),
+            letterSpacing: -0.5,
+          ),
+        ),
       ),
     );
   }
 
-  void _route(Map item) {
+  Future<void> _route(Map item) async {
     final data = item['data'];
     if (item['tip'] == "SENARYO") {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => SenaryoDetayEkrani(docId: item['id'], bolumIndex: 0)));
+      final docId = (item['id'] ?? '').toString().trim();
+      if (docId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Bu öneri artık geçersiz. Liste yenileniyor..."),
+          ),
+        );
+        await _initData();
+        return;
+      }
+
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('scenarios')
+            .doc(docId)
+            .get();
+        if (!doc.exists) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Bu senaryo artık mevcut değil. Diğer önerilere bakıyoruz...",
+              ),
+            ),
+          );
+          await _initData();
+          return;
+        }
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Senaryo bilgisi yüklenirken bir sorun oluştu."),
+          ),
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SenaryoDetayEkrani(docId: docId, bolumIndex: 0),
+        ),
+      );
+      return;
     } else if (item['tip'] == "HİKAYE") {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => HikayeDetayEkrani(baslik: data['baslik'], gorselYolu: data['gorselYolu'], temaRengi: item['renk'], hikayeMetni: data['hikayeMetni'], feedbackMessage: data['feedbackMessage'])));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HikayeDetayEkrani(
+            baslik: data['baslik'],
+            gorselYolu: data['gorselYolu'],
+            temaRengi: item['renk'],
+            hikayeMetni: data['hikayeMetni'],
+            feedbackMessage: data['feedbackMessage'],
+          ),
+        ),
+      );
     } else if (item['tip'] == "VİDEO") {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoDetayEkrani(baslik: data['baslik'], youtubeId: data['youtubeId'], tumVideolarJson: _kesifHavuzu)));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoDetayEkrani(
+            baslik: data['baslik'],
+            youtubeId: data['youtubeId'],
+            tumVideolarJson: _kesifHavuzu,
+          ),
+        ),
+      );
     }
   }
 }

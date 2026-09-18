@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#8B7CF6">
+
+  <title>Sayfa Bulunamadı | Kahraman Dostum</title>
+
+  <style>
+    :root {
+      --purple: #8B7CF6;
+      --purple-dark: #6658D8;
+      --purple-light: #EEEAFE;
+      --blue-light: #E8F6FD;
+      --pink-light: #FCEBF3;
+      --green-light: #EAF8F1;
+      --text: #303047;
+      --muted: #73738A;
+      --bg: #F8F7FD;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    header {
+      background: rgba(255,255,255,.9);
+      border-bottom: 1px solid #E9E7F1;
+    }
+
+    .navbar {
+      width: min(1120px, calc(100% - 32px));
+      margin: auto;
+      min-height: 75px;
+      display: flex;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 800;
+    }
+
+    .brand-icon {
+      width: 43px;
+      height: 43px;
+      border-radius: 14px;
+      background: linear-gradient(135deg,#998AF7,#72B9E4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 24px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 55px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    .circle-one {
+      width: 300px;
+      height: 300px;
+      background: var(--purple-light);
+      left: -130px;
+      top: -100px;
+    }
+
+    .circle-two {
+      width: 250px;
+      height: 250px;
+      background: var(--pink-light);
+      right: -110px;
+      bottom: -100px;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 650px;
+    }
+
+    .illustration {
+      width: 180px;
+      height: 180px;
+      border-radius: 55px;
+      background: linear-gradient(145deg,var(--purple-light),var(--blue-light));
+      margin: 0 auto 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .illustration svg {
+      width: 100px;
+      height: 100px;
+      color: var(--purple);
+    }
+
+    .star {
+      position: absolute;
+      font-size: 28px;
+    }
+
+    .star-one {
+      left: 12px;
+      top: 18px;
+    }
+
+    .star-two {
+      right: 14px;
+      bottom: 18px;
+    }
+
+    .error {
+      font-size: clamp(75px,15vw,130px);
+      line-height: .9;
+      font-weight: 900;
+      letter-spacing: -6px;
+      background: linear-gradient(90deg,#8B7CF6,#72B9E4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin: 15px 0 10px;
+    }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 25px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 14px 22px;
+      border-radius: 15px;
+      background: var(--purple);
+      color: white;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: 0 10px 24px rgba(139,124,246,.23);
+      transition: .2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    footer {
+      text-align: center;
+      padding: 28px 20px;
+      background: white;
+      border-top: 1px solid #E9E7F1;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media(max-width:600px) {
+      .illustration {
+        width: 150px;
+        height: 150px;
+      }
+
+      .illustration svg {
+        width: 80px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="navbar">
+
+    <a href="index.html" class="brand">
+
+      <div class="brand-icon">
+
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8">
+
+          <path d="M12 3L20 6V11C20 16.2 16.7 19.5 12 21C7.3 19.5 4 16.2 4 11V6L12 3Z"/>
+          <path d="M8.5 12L10.8 14.2L15.8 9.3"/>
+
+        </svg>
+
+      </div>
+
+      Kahraman Dostum
+
+    </a>
+
+  </div>
+
+</header>
+
+
+<main>
+
+  <div class="circle circle-one"></div>
+  <div class="circle circle-two"></div>
+
+  <div class="content">
+
+    <div class="illustration">
+
+      <span class="star star-one">⭐</span>
+      <span class="star star-two">💜</span>
+
+      <svg viewBox="0 0 100 110" fill="none">
+
+        <path
+                d="M50 5L91 20V48C91 75 74 95 50 104C26 95 9 75 9 48V20L50 5Z"
+                fill="white"
+                stroke="currentColor"
+                stroke-width="4"/>
+
+        <path
+                d="M34 51L45 62L67 40"
+                stroke="currentColor"
+                stroke-width="6"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+
+      </svg>
+
+    </div>
+
+    <div class="error">404</div>
+
+    <h1>Hoppala! Bu sayfa kaybolmuş. 🧭</h1>
+
+    <p>
+      Aradığın sayfayı bulamadık. Merak etme,
+      Kahraman Dostum seni güvenli bir şekilde
+      ana sayfaya götürebilir.
+    </p>
+
+    <a href="index.html" class="button">
+      🏠 Ana Sayfaya Dön
+    </a>
+
+  </div>
+
+</main>
+
+
+<footer>
+
+  <strong>💜 Kahraman Dostum</strong>
+
+  <div style="margin-top:7px;">
+    AZIZ DIGITAL · TÜBİTAK Akran Zorbalığı Farkındalık Projesi
+  </div>
+
+</footer>
+
+</body>
+</html>

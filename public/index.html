@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#8B7CF6">
+  <meta name="description" content="Kahraman Dostum - Akran zorbalığı konusunda farkındalık oluşturmak, bilgi edinmek ve kendini geliştirmek için hazırlanmış dijital farkındalık uygulaması.">
+
+  <title>Kahraman Dostum | AZIZ DIGITAL</title>
+
+  <style>
+    :root {
+      --purple: #8B7CF6;
+      --purple-dark: #6658D8;
+      --purple-light: #EEEAFE;
+
+      --blue: #76BCE7;
+      --blue-light: #E8F6FD;
+
+      --pink: #F2A8C8;
+      --pink-light: #FCEBF3;
+
+      --green: #8DD5B1;
+      --green-light: #EAF8F1;
+
+      --yellow: #F5D77F;
+      --yellow-light: #FFF8DF;
+
+      --text: #303047;
+      --muted: #73738A;
+      --white: #FFFFFF;
+      --bg: #F8F7FD;
+
+      --shadow: 0 18px 50px rgba(76, 66, 130, .10);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      width: min(1120px, calc(100% - 40px));
+      margin: auto;
+    }
+
+    /* NAVBAR */
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(139,124,246,.10);
+    }
+
+    .navbar {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 800;
+      font-size: 17px;
+    }
+
+    .brand-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #998AF7, #72B9E4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 22px rgba(139,124,246,.22);
+    }
+
+    .brand-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    nav a:hover {
+      color: var(--purple-dark);
+    }
+
+    /* HERO */
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 82px 0 92px;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      z-index: -1;
+    }
+
+    .blob-one {
+      width: 300px;
+      height: 300px;
+      background: var(--purple-light);
+      top: -110px;
+      left: -100px;
+    }
+
+    .blob-two {
+      width: 260px;
+      height: 260px;
+      background: var(--pink-light);
+      right: -100px;
+      top: 30px;
+    }
+
+    .blob-three {
+      width: 180px;
+      height: 180px;
+      background: var(--green-light);
+      left: 48%;
+      bottom: -80px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      align-items: center;
+      gap: 65px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--purple-light);
+      color: var(--purple-dark);
+      padding: 9px 15px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 750;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow span {
+      font-size: 17px;
+    }
+
+    h1 {
+      font-size: clamp(42px, 6vw, 68px);
+      line-height: 1.04;
+      letter-spacing: -2.5px;
+      margin-bottom: 23px;
+    }
+
+    .gradient {
+      background: linear-gradient(90deg, #7869E6, #5EA9D8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-description {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 620px;
+      margin-bottom: 30px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 14px 21px;
+      border-radius: 15px;
+      font-size: 14px;
+      font-weight: 750;
+      transition: .2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-primary {
+      background: var(--purple);
+      color: white;
+      box-shadow: 0 10px 25px rgba(139,124,246,.25);
+    }
+
+    .button-secondary {
+      background: white;
+      border: 1px solid #E8E6F0;
+    }
+
+    /* HERO ART */
+
+    .hero-art {
+      min-height: 410px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .phone {
+      width: 245px;
+      height: 410px;
+      background: #29283A;
+      border-radius: 37px;
+      padding: 9px;
+      box-shadow: 0 25px 55px rgba(50,45,80,.20);
+      transform: rotate(3deg);
+    }
+
+    .phone-screen {
+      height: 100%;
+      border-radius: 29px;
+      background: linear-gradient(160deg, #F8F5FF, #EDF8FC);
+      overflow: hidden;
+      padding: 22px 16px;
+    }
+
+    .notch {
+      width: 75px;
+      height: 17px;
+      border-radius: 20px;
+      background: #29283A;
+      margin: -15px auto 19px;
+    }
+
+    .phone-greeting {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .phone-title {
+      font-size: 21px;
+      font-weight: 850;
+      margin: 3px 0 18px;
+    }
+
+    .hero-shield {
+      height: 125px;
+      border-radius: 25px;
+      background: linear-gradient(145deg, #A69AF9, #7ABFE6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      margin-bottom: 14px;
+    }
+
+    .hero-shield svg {
+      width: 80px;
+      height: 80px;
+    }
+
+    .phone-card {
+      height: 52px;
+      border-radius: 15px;
+      background: white;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 5px 15px rgba(70,60,110,.06);
+    }
+
+    .mini-icon {
+      width: 33px;
+      height: 33px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mini-icon svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .mi-purple { background: var(--purple-light); color: var(--purple-dark); }
+    .mi-pink { background: var(--pink-light); color: #D56C9B; }
+
+    .floating {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 62px;
+      height: 62px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      font-size: 27px;
+    }
+
+    .float-one {
+      background: var(--yellow-light);
+      right: 15px;
+      top: 45px;
+      transform: rotate(8deg);
+    }
+
+    .float-two {
+      background: var(--pink-light);
+      left: 18px;
+      bottom: 65px;
+      transform: rotate(-8deg);
+    }
+
+    /* SECTION */
+
+    section {
+      padding: 85px 0;
+    }
+
+    .section-heading {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 45px;
+    }
+
+    .section-heading .label {
+      color: var(--purple-dark);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .section-heading h2 {
+      font-size: clamp(29px, 4vw, 40px);
+      line-height: 1.15;
+      margin-bottom: 13px;
+    }
+
+    .section-heading p {
+      color: var(--muted);
+    }
+
+    /* FEATURES */
+
+    .features {
+      background: white;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .feature {
+      padding: 27px 23px;
+      border-radius: var(--radius);
+      background: var(--bg);
+      transition: .2s ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+    }
+
+    .feature-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 19px;
+    }
+
+    .feature-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .purple { background: var(--purple-light); color: var(--purple-dark); }
+    .blue { background: var(--blue-light); color: #3985B4; }
+    .pink { background: var(--pink-light); color: #D56C9B; }
+    .green { background: var(--green-light); color: #40996B; }
+
+    .feature h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ABOUT */
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      align-items: center;
+      gap: 70px;
+    }
+
+    .about-art {
+      min-height: 330px;
+      border-radius: 35px;
+      background: linear-gradient(145deg, var(--purple-light), var(--blue-light));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .about-circle {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+    }
+
+    .about-circle svg {
+      width: 105px;
+      height: 105px;
+      color: var(--purple);
+    }
+
+    .about-bubble {
+      position: absolute;
+      padding: 10px 15px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .bubble-one {
+      top: 50px;
+      left: 35px;
+    }
+
+    .bubble-two {
+      bottom: 45px;
+      right: 30px;
+    }
+
+    .about-content h2 {
+      font-size: clamp(29px, 4vw, 42px);
+      line-height: 1.15;
+      margin-bottom: 18px;
+    }
+
+    .about-content p {
+      color: var(--muted);
+      margin-bottom: 17px;
+    }
+
+    .check-list {
+      list-style: none;
+      margin-top: 25px;
+    }
+
+    .check-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 11px 0;
+      font-weight: 650;
+      font-size: 14px;
+    }
+
+    .check {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: var(--green-light);
+      color: #40996B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* CTA */
+
+    .cta {
+      padding: 0 0 85px;
+    }
+
+    .cta-box {
+      border-radius: 32px;
+      padding: 55px;
+      background: linear-gradient(135deg, #8B7CF6, #72B9E2);
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before,
+    .cta-box::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,.10);
+    }
+
+    .cta-box::before {
+      width: 220px;
+      height: 220px;
+      left: -80px;
+      top: -100px;
+    }
+
+    .cta-box::after {
+      width: 180px;
+      height: 180px;
+      right: -60px;
+      bottom: -80px;
+    }
+
+    .cta-box h2 {
+      position: relative;
+      font-size: 34px;
+      margin-bottom: 12px;
+    }
+
+    .cta-box p {
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto 25px;
+      opacity: .92;
+    }
+
+    .cta-box .button {
+      position: relative;
+      background: white;
+      color: var(--purple-dark);
+    }
+
+    /* FOOTER */
+
+    footer {
+      background: white;
+      border-top: 1px solid #EAE8F1;
+      padding: 35px 0;
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .footer-brand {
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .footer-copy {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-links a:hover {
+      color: var(--purple-dark);
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .about-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 55px;
+      }
+
+      .hero-art {
+        min-height: 380px;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .about-grid {
+        gap: 35px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        width: min(100% - 28px, 1120px);
+      }
+
+      nav {
+        display: none;
+      }
+
+      .navbar {
+        min-height: 68px;
+      }
+
+      .hero {
+        padding: 48px 0 60px;
+      }
+
+      h1 {
+        font-size: 43px;
+      }
+
+      .hero-description {
+        font-size: 16px;
+      }
+
+      section {
+        padding: 65px 0;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .about-art {
+        min-height: 270px;
+      }
+
+      .cta-box {
+        padding: 40px 22px;
+      }
+
+      .cta-box h2 {
+        font-size: 28px;
+      }
+
+      .footer-grid {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .phone {
+        transform: rotate(2deg) scale(.92);
+      }
+
+      .float-one {
+        right: -2px;
+      }
+
+      .float-two {
+        left: -2px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="container navbar">
+
+    <a href="index.html" class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 3L20 6V11C20 16.2 16.7 19.5 12 21C7.3 19.5 4 16.2 4 11V6L12 3Z"/>
+          <path d="M8.5 12L10.8 14.2L15.8 9.3"/>
+        </svg>
+      </div>
+      <span>Kahraman Dostum</span>
+    </a>
+
+    <nav>
+      <a href="#ozellikler">Özellikler</a>
+      <a href="#hakkimizda">Hakkımızda</a>
+      <a href="gizlilik-politikasi.html">Gizlilik</a>
+      <a href="hesap-sil.html">Hesap Silme</a>
+    </nav>
+
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+
+    <div class="blob blob-one"></div>
+    <div class="blob blob-two"></div>
+    <div class="blob blob-three"></div>
+
+    <div class="container hero-grid">
+
+      <div>
+
+        <div class="eyebrow">
+          <span>💜</span>
+          TÜBİTAK Akran Zorbalığı Farkındalık Projesi
+        </div>
+
+        <h1>
+          <span class="gradient">Kahraman</span><br>
+          Dostum
+        </h1>
+
+        <p class="hero-description">
+          Zorbalığa karşı birlikte daha güçlüyüz.
+          Kahraman Dostum; akran zorbalığını tanımak,
+          doğru bilgileri öğrenmek ve zorbalık karşısında
+          nasıl davranabileceğini keşfetmek için hazırlanmış
+          farkındalık uygulamasıdır.
+        </p>
+
+        <div class="buttons">
+          <a href="#ozellikler" class="button button-primary">
+            🌈 Uygulamayı Keşfet
+          </a>
+
+          <a href="gizlilik-politikasi.html" class="button button-secondary">
+            🔒 Gizlilik Politikası
+          </a>
+        </div>
+
+      </div>
+
+      <div class="hero-art">
+
+        <div class="floating float-one">⭐</div>
+        <div class="floating float-two">💗</div>
+
+        <div class="phone">
+
+          <div class="phone-screen">
+
+            <div class="notch"></div>
+
+            <div class="phone-greeting">
+              Merhaba Kahraman! 👋
+            </div>
+
+            <div class="phone-title">
+              Hazır mısın?
+            </div>
+
+            <div class="hero-shield">
+
+              <svg viewBox="0 0 100 110" fill="none">
+                <path
+                        d="M50 5L91 20V48C91 75 74 95 50 104C26 95 9 75 9 48V20L50 5Z"
+                        fill="rgba(255,255,255,.25)"
+                        stroke="white"
+                        stroke-width="5"/>
+                <path
+                        d="M31 52L44 65L70 38"
+                        stroke="white"
+                        stroke-width="7"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"/>
+              </svg>
+
+            </div>
+
+            <div class="phone-card">
+              <div class="mini-icon mi-purple">
+                🧠
+              </div>
+              <div>
+                Zorbalığı Tanı
+              </div>
+            </div>
+
+            <div class="phone-card">
+              <div class="mini-icon mi-pink">
+                🤝
+              </div>
+              <div>
+                Destek Ol
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <section class="features" id="ozellikler">
+
+    <div class="container">
+
+      <div class="section-heading">
+
+        <div class="label">Kahraman Dostum ile</div>
+
+        <h2>
+          Öğren, fark et, güçlen 💜
+        </h2>
+
+        <p>
+          Akran zorbalığı hakkında bilgi edinmek ve
+          farkındalığını artırmak için keşfedebileceğin
+          farklı alanlar.
+        </p>
+
+      </div>
+
+      <div class="feature-grid">
+
+        <div class="feature">
+
+          <div class="feature-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 10V16"/>
+              <circle cx="12" cy="7" r=".7" fill="currentColor"/>
+            </svg>
+          </div>
+
+          <h3>🧠 Bilgi Edin</h3>
+
+          <p>
+            Akran zorbalığının ne olduğunu,
+            nasıl fark edilebileceğini ve farklı
+            türlerini keşfet.
+          </p>
+
+        </div>
+
+
+        <div class="feature">
+
+          <div class="feature-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3Z"/>
+              <path d="M8.5 12L10.8 14.3L15.8 9.3"/>
+            </svg>
+          </div>
+
+          <h3>🛡️ Kendini Koru</h3>
+
+          <p>
+            Zorbalıkla karşılaşıldığında
+            bilinçli ve doğru adımlar atmayı öğren.
+          </p>
+
+        </div>
+
+
+        <div class="feature">
+
+          <div class="feature-icon pink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20 11.5C20 16.2 16.5 19 12 21C7.5 19 4 16.2 4 11.5C4 7.5 7 5 10.2 5C11.1 5 11.6 5.4 12 6C12.4 5.4 12.9 5 13.8 5C17 5 20 7.5 20 11.5Z"/>
+            </svg>
+          </div>
+
+          <h3>🤝 Destek Ol</h3>
+
+          <p>
+            Zorbalık yaşayan bir arkadaşına
+            nasıl destek olabileceğini keşfet.
+          </p>
+
+        </div>
+
+
+        <div class="feature">
+
+          <div class="feature-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 20V10"/>
+              <path d="M12 20V4"/>
+              <path d="M18 20V7"/>
+              <path d="M4 20H20"/>
+            </svg>
+          </div>
+
+          <h3>🏆 İlerlemeni Takip Et</h3>
+
+          <p>
+            Öğrendikçe ilerlemeni,
+            başarılarını ve kazandığın rozetleri takip et.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section id="hakkimizda">
+
+    <div class="container about-grid">
+
+      <div class="about-art">
+
+        <div class="about-bubble bubble-one">
+          🌈 Yalnız değilsin
+        </div>
+
+        <div class="about-circle">
+
+          <svg viewBox="0 0 100 110" fill="none">
+            <path
+                    d="M50 5L91 20V48C91 75 74 95 50 104C26 95 9 75 9 48V20L50 5Z"
+                    fill="#EEEAFE"
+                    stroke="#8B7CF6"
+                    stroke-width="4"/>
+            <path
+                    d="M31 52L44 65L70 38"
+                    stroke="#8B7CF6"
+                    stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"/>
+          </svg>
+
+        </div>
+
+        <div class="about-bubble bubble-two">
+          💜 Birlikte güçlüyüz
+        </div>
+
+      </div>
+
+
+      <div class="about-content">
+
+        <h2>
+          Herkesin bir <span class="gradient">kahraman dostu</span> olabilir.
+        </h2>
+
+        <p>
+          Kahraman Dostum, akran zorbalığı konusunda
+          farkındalık oluşturmak ve gençlerin konu hakkında
+          doğru bilgilere ulaşmasına yardımcı olmak amacıyla
+          geliştirilmiştir.
+        </p>
+
+        <p>
+          Amacımız; zorbalığı normalleştirmek yerine fark
+          etmeyi, doğru bilgiyle hareket etmeyi ve ihtiyaç
+          olduğunda destek istemenin önemini anlatmaktır.
+        </p>
+
+        <ul class="check-list">
+
+          <li>
+            <span class="check">✓</span>
+            Güvenli ve anlaşılır farkındalık içeriği
+          </li>
+
+          <li>
+            <span class="check">✓</span>
+            Öğrenmeyi destekleyen interaktif deneyim
+          </li>
+
+          <li>
+            <span class="check">✓</span>
+            İlerleme ve rozet sistemi
+          </li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="cta">
+
+    <div class="container">
+
+      <div class="cta-box">
+
+        <h2>
+          Birlikte daha güçlü bir dünya 💜
+        </h2>
+
+        <p>
+          Zorbalığı fark etmek, doğru bilgiyle başlar.
+          Kahraman Dostum ile farkındalık yolculuğuna katıl.
+        </p>
+
+        <a href="gizlilik-politikasi.html" class="button">
+          🔒 Gizlilik Politikası
+        </a>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+
+  <div class="container footer-grid">
+
+    <div>
+      <div class="footer-brand">
+        💜 Kahraman Dostum
+      </div>
+
+      <div class="footer-copy">
+        TÜBİTAK Akran Zorbalığı Farkındalık Projesi · AZIZ DIGITAL
+      </div>
+    </div>
+
+    <div class="footer-links">
+      <a href="index.html">Ana Sayfa</a>
+      <a href="gizlilik-politikasi.html">Gizlilik Politikası</a>
+      <a href="hesap-sil.html">Hesap Silme</a>
+      <a href="mailto:siberkahramanapp@gmail.com">İletişim</a>
+    </div>
+
+  </div>
+
+</footer>
+
+</body>
+</html>

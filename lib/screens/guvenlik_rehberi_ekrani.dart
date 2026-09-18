@@ -32,7 +32,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Zorbalığı Tanı 🔍',
       shortTitle: 'Tanı',
       icon: Icons.visibility_rounded,
-      color: AppColors.anaMavi,
+      color: Color(0xFF6F8FB3),
       audioAsset: 'assets/audio/zorbaligi_tani.mp3',
       intro: 'Zorbalığı tanımak, doğru yardımı istemenin ilk adımıdır.',
       points: [
@@ -46,7 +46,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Güvende Kal 🛡️',
       shortTitle: 'Güvenlik',
       icon: Icons.shield_rounded,
-      color: AppColors.basariYesili,
+      color: Color(0xFF6FA89C),
       audioAsset: 'assets/audio/guvende_kal.mp3',
       intro: 'Zor bir anda ilk hedef tartışmak değil, güvende kalmaktır.',
       points: [
@@ -60,7 +60,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Siber Zorbalık 📱',
       shortTitle: 'Dijital',
       icon: Icons.phonelink_lock_rounded,
-      color: AppColors.yumusakMor,
+      color: Color(0xFF9687B8),
       audioAsset: 'assets/audio/siber_zorbalik.mp3',
       intro: 'İnternette yapılan zorbalık da gerçektir ve engellenmelidir.',
       points: [
@@ -74,7 +74,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Arkadaşına Destek Ol 🤝',
       shortTitle: 'Destek Ol',
       icon: Icons.groups_rounded,
-      color: AppColors.uyariTuruncusu,
+      color: Color(0xFFC58D72),
       audioAsset: 'assets/audio/arkadasina_destek_ol.mp3',
       intro: 'Sessiz kalmamak bir arkadaşının hayatını değiştirebilir.',
       points: [
@@ -88,7 +88,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Yardım İstemek Cesarettir 🦁',
       shortTitle: 'Yardım İste',
       icon: Icons.volunteer_activism_rounded,
-      color: AppColors.eglencePembesi,
+      color: Color(0xFFB78391),
       audioAsset: 'assets/audio/yardim_iste.mp3',
       intro: 'Sorunu tek başına taşımak zorunda değilsin!',
       points: [
@@ -207,7 +207,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                 return LinearProgressIndicator(
                   value: progress,
                   minHeight: 4,
-                  color: AppColors.anaMavi,
+                  color: const Color(0xFF6F8FB3),
                   backgroundColor: AppColors.softPurple.withOpacity(0.3),
                 );
               },
@@ -260,8 +260,11 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             child: IconButton(
               tooltip: 'Geri dön',
               onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back_rounded,
-                  size: 22, color: AppColors.anaMavi),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                size: 22,
+                color: AppColors.anaMavi,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -287,7 +290,11 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          gradient: AppColors.anaGradient,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7896B5), Color(0xFF9B9AC3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           boxShadow: [
             BoxShadow(
               color: AppColors.accentMavi.withOpacity(0.3),
@@ -304,8 +311,11 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: AppColors.oyunSarisi, size: 36),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFFD8B86A),
+                size: 36,
+              ),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -459,7 +469,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             ),
             const SizedBox(height: 16),
             ...section.points.asMap().entries.map(
-                  (entry) => _buildPoint(
+              (entry) => _buildPoint(
                 number: entry.key + 1,
                 text: entry.value,
                 color: section.color,
@@ -552,17 +562,16 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: const Color(0xFFFFF9EE),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.oyunSarisi, width: 1.5),
+        border: Border.all(color: Color(0xFFE0C98E), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.flash_on_rounded,
-                  color: AppColors.uyariTuruncusu),
+              const Icon(Icons.flash_on_rounded, color: Color(0xFFC58D72)),
               const SizedBox(width: 6),
               const Expanded(
                 child: Text(
@@ -582,7 +591,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                     tooltip: 'Dinle',
                     onPressed: () => _playAsset(_quickPlanAudio),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.oyunSarisi,
+                      backgroundColor: const Color(0xFFE4CD93),
                       foregroundColor: AppColors.yaziRengi,
                     ),
                     icon: Icon(
@@ -597,13 +606,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
           ),
           const SizedBox(height: 12),
           ...steps.map(
-                (step) => Padding(
+            (step) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 12,
-                    backgroundColor: AppColors.uyariTuruncusu,
+                    backgroundColor: const Color(0xFFC58D72),
                     child: Text(
                       step.$1,
                       style: const TextStyle(
@@ -645,14 +654,14 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.yumusakMor, Color(0xFF7B1FA2)],
+          colors: [Color(0xFF9D91B8), Color(0xFFB79EAB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: AppColors.yumusakMor.withOpacity(0.3),
+            color: Color(0x4D9D91B8),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -694,10 +703,11 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: AppColors.yumusakMor,
+              foregroundColor: Color(0xFF756782),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             icon: const Icon(Icons.chat_bubble_rounded),
             label: const Text(
@@ -723,24 +733,31 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
               builder: (context, durationSnapshot) {
                 final position = positionSnapshot.data ?? Duration.zero;
                 final duration = durationSnapshot.data ?? Duration.zero;
-                
+
                 final isCurrentAudio = _loadedAsset == section.audioAsset;
                 final sliderMaximum = duration.inMilliseconds > 0
                     ? duration.inMilliseconds.toDouble()
                     : 1.0;
-                final sliderValue =
-                    position.inMilliseconds.clamp(0, sliderMaximum.round()).toDouble();
+                final sliderValue = position.inMilliseconds
+                    .clamp(0, sliderMaximum.round())
+                    .toDouble();
 
                 return RepaintBoundary(
                   child: Container(
                     color: Colors.transparent,
                     padding: const EdgeInsets.all(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: section.color.withOpacity(0.3), width: 1.5),
+                        border: Border.all(
+                          color: section.color.withOpacity(0.3),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: section.color.withOpacity(0.18),
@@ -761,7 +778,11 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                                   color: section.color.withOpacity(0.12),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(section.icon, color: section.color, size: 20),
+                                child: Icon(
+                                  section.icon,
+                                  color: section.color,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -813,22 +834,26 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                                 Text(
                                   _formatDuration(position),
                                   style: const TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.yaziRengi,
-                                      fontWeight: FontWeight.bold),
+                                    fontSize: 10,
+                                    color: AppColors.yaziRengi,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Expanded(
                                   child: SliderTheme(
                                     data: SliderThemeData(
                                       trackHeight: 3,
-                                      thumbShape:
-                                          const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 6,
+                                      ),
                                     ),
                                     child: Slider(
                                       value: sliderValue,
                                       max: sliderMaximum,
                                       activeColor: section.color,
-                                      inactiveColor: section.color.withOpacity(0.15),
+                                      inactiveColor: section.color.withOpacity(
+                                        0.15,
+                                      ),
                                       onChanged: (value) => _seekTo(value),
                                     ),
                                   ),
@@ -836,9 +861,10 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                                 Text(
                                   _formatDuration(duration),
                                   style: const TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.yaziRengi,
-                                      fontWeight: FontWeight.bold),
+                                    fontSize: 10,
+                                    color: AppColors.yaziRengi,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -857,10 +883,8 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
   }
 
   String _formatDuration(Duration duration) {
-    final minutes =
-    duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds =
-    duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
 }

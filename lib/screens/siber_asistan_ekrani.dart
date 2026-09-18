@@ -865,7 +865,7 @@ class _KahramanDostumInfoSheet extends StatelessWidget {
 
   Widget _buildFeatureGrid() {
     final features = [
-      {"icon": Icons.menu_book_rounded, "text": "Derslerinde yardımcı olur"},
+      {"icon": Icons.menu_book_rounded, "text": "Zorbalık hakkında sana yardımcı olur"},
       {"icon": Icons.sports_esports_rounded, "text": "Eğitici oyunlar oynar"},
       {"icon": Icons.lightbulb_rounded, "text": "Konuları daha kolay anlamanı sağlar"},
       {"icon": Icons.extension_rounded, "text": "Mini bulmacalar ve sorular hazırlar"},

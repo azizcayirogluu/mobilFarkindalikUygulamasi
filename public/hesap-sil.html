@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#8B7CF6">
+
+    <title>Hesap ve Veri Silme | Kahraman Dostum</title>
+
+    <style>
+        :root {
+          --purple: #8B7CF6;
+          --purple-dark: #6658D8;
+          --purple-light: #EEEAFE;
+          --pink: #F2A8C8;
+          --pink-light: #FCEBF3;
+          --blue-light: #E8F6FD;
+          --green-light: #EAF8F1;
+          --text: #303047;
+          --muted: #73738A;
+          --bg: #F8F7FD;
+          --white: #fff;
+          --shadow: 0 18px 50px rgba(76,66,130,.10);
+        }
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          font-family:
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            Roboto,
+            Arial,
+            sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          line-height: 1.7;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .container {
+          width: min(900px, calc(100% - 32px));
+          margin: auto;
+        }
+
+        header {
+          background: rgba(255,255,255,.92);
+          border-bottom: 1px solid #E9E7F1;
+        }
+
+        .navbar {
+          min-height: 75px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          font-weight: 800;
+        }
+
+        .brand-icon {
+          width: 43px;
+          height: 43px;
+          border-radius: 14px;
+          background: linear-gradient(135deg,#998AF7,#72B9E4);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .brand-icon svg {
+          width: 24px;
+        }
+
+        .home-link {
+          color: var(--muted);
+          font-size: 14px;
+          font-weight: 650;
+        }
+
+        .home-link:hover {
+          color: var(--purple-dark);
+        }
+
+        main {
+          padding: 65px 0 80px;
+        }
+
+        .hero {
+          text-align: center;
+          margin-bottom: 35px;
+        }
+
+        .icon {
+          width: 82px;
+          height: 82px;
+          margin: 0 auto 20px;
+          border-radius: 27px;
+          background: var(--pink-light);
+          color: #D46F9D;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .icon svg {
+          width: 42px;
+          height: 42px;
+        }
+
+        h1 {
+          font-size: clamp(30px,5vw,46px);
+          line-height: 1.15;
+          margin-bottom: 13px;
+        }
+
+        .subtitle {
+          color: var(--muted);
+          max-width: 650px;
+          margin: auto;
+        }
+
+        .card {
+          background: white;
+          border-radius: 27px;
+          padding: 35px;
+          box-shadow: var(--shadow);
+          margin-bottom: 20px;
+        }
+
+        h2 {
+          font-size: 21px;
+          margin-bottom: 12px;
+        }
+
+        .step {
+          display: flex;
+          gap: 17px;
+          padding: 18px;
+          border-radius: 17px;
+          background: var(--bg);
+          margin: 12px 0;
+        }
+
+        .number {
+          width: 38px;
+          height: 38px;
+          flex-shrink: 0;
+          border-radius: 13px;
+          background: var(--purple-light);
+          color: var(--purple-dark);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 850;
+        }
+
+        .step strong {
+          display: block;
+          margin-bottom: 3px;
+        }
+
+        .step p {
+          color: var(--muted);
+          font-size: 14px;
+        }
+
+        ul {
+          padding-left: 22px;
+          color: var(--muted);
+        }
+
+        li {
+          margin: 7px 0;
+        }
+
+        .notice {
+          background: var(--blue-light);
+          border-radius: 19px;
+          padding: 20px;
+          margin-top: 20px;
+          color: #376C8C;
+        }
+
+        .contact {
+          background: linear-gradient(135deg,var(--purple-light),var(--pink-light));
+          border-radius: 21px;
+          padding: 24px;
+          margin-top: 20px;
+        }
+
+        .contact a {
+          color: var(--purple-dark);
+          font-weight: 750;
+        }
+
+        footer {
+          text-align: center;
+          padding: 30px 20px;
+          color: var(--muted);
+          font-size: 13px;
+          border-top: 1px solid #E9E7F1;
+          background: white;
+        }
+
+        .footer-links {
+          margin-top: 9px;
+        }
+
+        .footer-links a {
+          margin: 0 8px;
+        }
+
+        .footer-links a:hover {
+          color: var(--purple-dark);
+        }
+
+        @media(max-width:600px) {
+          .container {
+            width: min(100% - 26px, 900px);
+          }
+
+          main {
+            padding: 45px 0 60px;
+          }
+
+          .card {
+            padding: 23px 19px;
+          }
+
+          .home-link {
+            display: none;
+          }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="container navbar">
+
+        <a href="index.html" class="brand">
+
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 3L20 6V11C20 16.2 16.7 19.5 12 21C7.3 19.5 4 16.2 4 11V6L12 3Z"/>
+                    <path d="M8.5 12L10.8 14.2L15.8 9.3"/>
+                </svg>
+            </div>
+
+            Kahraman Dostum
+
+        </a>
+
+        <a href="index.html" class="home-link">
+            ← Ana Sayfaya Dön
+        </a>
+
+    </div>
+</header>
+
+
+<main>
+
+    <div class="container">
+
+        <div class="hero">
+
+            <div class="icon">
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8">
+                    <path d="M5 7H19"/>
+                    <path d="M10 11V17"/>
+                    <path d="M14 11V17"/>
+                    <path d="M6.5 7L7.5 20H16.5L17.5 7"/>
+                    <path d="M9 7V4H15V7"/>
+                </svg>
+            </div>
+
+            <h1>Hesap ve Veri Silme</h1>
+
+            <p class="subtitle">
+                Kahraman Dostum hesabınızı ve hesabınızla ilişkili
+                verileri silmek için aşağıdaki adımları takip edebilirsiniz.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>📱 Uygulama içerisinden hesabınızı silme</h2>
+
+            <p>
+                Kahraman Dostum uygulamasına giriş yaptıysanız,
+                hesabınızı doğrudan uygulama içerisinden kalıcı olarak
+                silebilirsiniz.
+            </p>
+
+            <div class="step">
+
+                <div class="number">1</div>
+
+                <div>
+                    <strong>Profil bölümünü açın</strong>
+                    <p>
+                        Kahraman Dostum uygulamasında Profil ekranına gidin.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="step">
+
+                <div class="number">2</div>
+
+                <div>
+                    <strong>Hesabı silme seçeneğini seçin</strong>
+                    <p>
+                        Profil ekranında bulunan
+                        “Hesabı Kalıcı Olarak Sil” seçeneğine dokunun.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="step">
+
+                <div class="number">3</div>
+
+                <div>
+                    <strong>Silme işlemini onaylayın</strong>
+                    <p>
+                        Onayınızın ardından hesabınız ve hesabınızla
+                        ilişkili verilerin silinmesi gerçekleştirilir.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>🗑️ Silinen veriler</h2>
+
+            <p>
+                Hesap silme işlemi gerçekleştirildiğinde hesabınızla
+                ilişkili aşağıdaki veri türleri silme sürecine dahil edilir:
+            </p>
+
+            <ul>
+                <li>Firebase Authentication kullanıcı hesabı</li>
+                <li>Kullanıcı hesabıyla ilişkili benzersiz kullanıcı kimliği</li>
+                <li>Kullanıcı profili ve kullanıcı adı bilgileri</li>
+                <li>Uygulama ilerleme ve rozet bilgileri</li>
+                <li>Kullanıcı hesabıyla ilişkili rapor kayıtları</li>
+                <li>Kullanıcı hesabıyla ilişkili reklam ödül işlem kayıtları</li>
+            </ul>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>⏳ Veri saklama</h2>
+
+            <p>
+                Hesap silme işleminin ardından silinmesi gereken kullanıcı
+                verileri silme sürecine alınır.
+            </p>
+
+            <div class="notice">
+                <strong>ℹ️ Yasal yükümlülükler</strong><br>
+                Yasal olarak saklanması gereken veriler bulunması halinde,
+                bu veriler yalnızca gerekli olduğu süre boyunca saklanabilir.
+                Saklama süresi sona erdiğinde veriler silinir veya
+                uygun olduğu durumlarda anonimleştirilir.
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>💬 Yardıma mı ihtiyacınız var?</h2>
+
+            <p>
+                Hesabınızı silme konusunda sorun yaşıyorsanız veya
+                veri silme süreciyle ilgili bir sorunuz varsa bizimle
+                iletişime geçebilirsiniz.
+            </p>
+
+            <div class="contact">
+
+                📧
+                <strong>İletişim:</strong><br>
+
+                <a href="mailto:siberkahramanapp@gmail.com">
+                    siberkahramanapp@gmail.com
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<footer>
+
+    <strong>💜 Kahraman Dostum</strong>
+
+    <div class="footer-links">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="gizlilik-politikasi.html">Gizlilik Politikası</a>
+    </div>
+
+    <div style="margin-top:10px;">
+        AZIZ DIGITAL · TÜBİTAK Akran Zorbalığı Farkındalık Projesi
+    </div>
+
+</footer>
+
+</body>
+</html>

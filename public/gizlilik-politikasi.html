@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#8B7CF6">
+
+    <title>Gizlilik Politikası | Kahraman Dostum</title>
+
+    <style>
+        :root {
+          --purple: #8B7CF6;
+          --purple-dark: #6658D8;
+          --purple-light: #EEEAFE;
+          --blue-light: #E8F6FD;
+          --green-light: #EAF8F1;
+          --pink-light: #FCEBF3;
+          --text: #303047;
+          --muted: #73738A;
+          --bg: #F8F7FD;
+          --white: #fff;
+          --shadow: 0 18px 50px rgba(76,66,130,.09);
+        }
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          font-family:
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            Roboto,
+            Arial,
+            sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          line-height: 1.75;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .container {
+          width: min(900px, calc(100% - 32px));
+          margin: auto;
+        }
+
+        header {
+          background: rgba(255,255,255,.94);
+          border-bottom: 1px solid #E9E7F1;
+        }
+
+        .navbar {
+          min-height: 75px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          font-weight: 800;
+        }
+
+        .brand-icon {
+          width: 43px;
+          height: 43px;
+          border-radius: 14px;
+          background: linear-gradient(135deg,#998AF7,#72B9E4);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .brand-icon svg {
+          width: 24px;
+        }
+
+        .home-link {
+          color: var(--muted);
+          font-size: 14px;
+          font-weight: 650;
+        }
+
+        .home-link:hover {
+          color: var(--purple-dark);
+        }
+
+        main {
+          padding: 60px 0 80px;
+        }
+
+        .hero {
+          text-align: center;
+          margin-bottom: 35px;
+        }
+
+        .icon {
+          width: 82px;
+          height: 82px;
+          margin: 0 auto 20px;
+          border-radius: 27px;
+          background: var(--purple-light);
+          color: var(--purple-dark);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .icon svg {
+          width: 43px;
+          height: 43px;
+        }
+
+        h1 {
+          font-size: clamp(30px,5vw,45px);
+          line-height: 1.15;
+          margin-bottom: 10px;
+        }
+
+        .date {
+          color: var(--muted);
+          font-size: 14px;
+        }
+
+        .card {
+          background: white;
+          border-radius: 27px;
+          padding: 34px;
+          box-shadow: var(--shadow);
+          margin-bottom: 18px;
+        }
+
+        h2 {
+          font-size: 21px;
+          margin-bottom: 12px;
+          line-height: 1.3;
+        }
+
+        p {
+          margin-bottom: 13px;
+        }
+
+        ul {
+          padding-left: 23px;
+          margin: 10px 0 15px;
+        }
+
+        li {
+          margin: 7px 0;
+        }
+
+        .info {
+          background: linear-gradient(135deg,var(--purple-light),var(--blue-light));
+          border-radius: 19px;
+          padding: 20px;
+          margin-bottom: 25px;
+        }
+
+        .data-card {
+          display: grid;
+          grid-template-columns: 50px 1fr;
+          gap: 16px;
+          padding: 17px;
+          border-radius: 17px;
+          background: var(--bg);
+          margin: 11px 0;
+        }
+
+        .data-icon {
+          width: 50px;
+          height: 50px;
+          border-radius: 15px;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 23px;
+        }
+
+        .data-card strong {
+          display: block;
+          margin-bottom: 3px;
+        }
+
+        .data-card span {
+          color: var(--muted);
+          font-size: 14px;
+        }
+
+        .contact {
+          background: var(--green-light);
+          border-radius: 20px;
+          padding: 22px;
+        }
+
+        .contact a {
+          color: #348B60;
+          font-weight: 750;
+        }
+
+        .delete-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 5px;
+          padding: 12px 17px;
+          border-radius: 13px;
+          background: var(--pink-light);
+          color: #C85E8C;
+          font-weight: 750;
+          font-size: 14px;
+        }
+
+        footer {
+          text-align: center;
+          padding: 30px 20px;
+          background: white;
+          border-top: 1px solid #E9E7F1;
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        .footer-links {
+          margin-top: 9px;
+        }
+
+        .footer-links a {
+          margin: 0 8px;
+        }
+
+        .footer-links a:hover {
+          color: var(--purple-dark);
+        }
+
+        @media(max-width:600px) {
+          .container {
+            width: min(100% - 26px, 900px);
+          }
+
+          main {
+            padding: 45px 0 60px;
+          }
+
+          .card {
+            padding: 23px 19px;
+          }
+
+          .home-link {
+            display: none;
+          }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <div class="container navbar">
+
+        <a href="index.html" class="brand">
+
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 3L20 6V11C20 16.2 16.7 19.5 12 21C7.3 19.5 4 16.2 4 11V6L12 3Z"/>
+                    <path d="M8.5 12L10.8 14.2L15.8 9.3"/>
+                </svg>
+            </div>
+
+            Kahraman Dostum
+
+        </a>
+
+        <a href="index.html" class="home-link">
+            ← Ana Sayfaya Dön
+        </a>
+
+    </div>
+
+</header>
+
+
+<main>
+
+    <div class="container">
+
+        <div class="hero">
+
+            <div class="icon">
+
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 3L20 6V11C20 16.2 16.7 19.5 12 21C7.3 19.5 4 16.2 4 11V6L12 3Z"/>
+                    <path d="M9 12L11 14L15.5 9.5"/>
+                </svg>
+
+            </div>
+
+            <h1>Gizlilik Politikası</h1>
+
+            <div class="date">
+                Son güncelleme: 10 Eylül 2026
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="info">
+
+                <strong>Uygulama:</strong> Kahraman Dostum<br>
+                <strong>Geliştirici:</strong> AZIZ DIGITAL<br>
+                <strong>Proje:</strong> TÜBİTAK Akran Zorbalığı Farkındalık Projesi
+
+            </div>
+
+            <h2>1. Genel</h2>
+
+            <p>
+                Bu Gizlilik Politikası, AZIZ DIGITAL tarafından geliştirilen
+                Kahraman Dostum mobil uygulamasında kullanıcı verilerinin
+                nasıl işlendiğini açıklamak amacıyla hazırlanmıştır.
+            </p>
+
+            <p>
+                Kahraman Dostum; akran zorbalığı konusunda farkındalık
+                oluşturmak, kullanıcıların konu hakkında bilgi edinmesine
+                ve uygulama içerisindeki ilerlemelerini takip etmelerine
+                yardımcı olmak amacıyla geliştirilmiştir.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>2. İşlenen Veri Türleri</h2>
+
+            <p>
+                Uygulamanın çalışması ve kullanıcı hesaplarının yönetilmesi
+                kapsamında aşağıdaki veri türleri işlenebilir:
+            </p>
+
+
+            <div class="data-card">
+
+                <div class="data-icon">👤</div>
+
+                <div>
+                    <strong>Kullanıcı kimliği ve kullanıcı adı</strong>
+                    <span>
+            Hesabın oluşturulması, kimlik doğrulama ve
+            kullanıcı hesabının yönetilmesi için kullanılır.
+          </span>
+                </div>
+
+            </div>
+
+
+            <div class="data-card">
+
+                <div class="data-icon">🏆</div>
+
+                <div>
+                    <strong>İlerleme ve rozet bilgileri</strong>
+                    <span>
+            Kullanıcının uygulama içerisindeki ilerlemesini
+            ve kazanımlarını takip etmek için kullanılır.
+          </span>
+                </div>
+
+            </div>
+
+
+            <div class="data-card">
+
+                <div class="data-icon">📝</div>
+
+                <div>
+                    <strong>Kullanıcıyla ilişkili rapor kayıtları</strong>
+                    <span>
+            Uygulama içerisindeki ilgili raporların kullanıcı
+            hesabıyla ilişkilendirilmesi amacıyla işlenebilir.
+          </span>
+                </div>
+
+            </div>
+
+
+            <div class="data-card">
+
+                <div class="data-icon">📱</div>
+
+                <div>
+                    <strong>Cihaz veya diğer kimlikler</strong>
+                    <span>
+            Reklam hizmetlerinin sağlanması kapsamında gerekli
+            teknik kimlikler işlenebilir.
+          </span>
+                </div>
+
+            </div>
+
+
+            <p style="margin-top:18px;">
+                Uygulama hesap oluşturma sırasında kullanıcıdan gerçek
+                bir e-posta adresi istememektedir.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>3. Firebase Hizmetleri</h2>
+
+            <p>
+                Kahraman Dostum, kullanıcı hesaplarının ve uygulama
+                verilerinin yönetilmesi amacıyla Google Firebase
+                hizmetlerinden yararlanmaktadır.
+            </p>
+
+            <p>
+                Firebase Authentication kullanıcı hesabının oluşturulması
+                ve kimlik doğrulama işlemlerinde; Firebase Firestore ise
+                uygulama verilerinin saklanması ve yönetilmesinde
+                kullanılmaktadır.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>4. Reklamlar</h2>
+
+            <p>
+                Uygulama içerisinde Google AdMob aracılığıyla reklamlar
+                gösterilebilir.
+            </p>
+
+            <p>
+                Reklam hizmetleri kapsamında cihaz veya diğer kimlikler
+                gibi teknik bilgiler reklamların sunulması ve reklam
+                hizmetlerinin çalışması amacıyla işlenebilir.
+            </p>
+
+            <p>
+                Google'ın reklam hizmetleri kendi gizlilik ve veri işleme
+                politikaları kapsamında çalışmaktadır.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>5. Verilerin Kullanım Amaçları</h2>
+
+            <p>
+                İşlenen veriler aşağıdaki amaçlarla kullanılabilir:
+            </p>
+
+            <ul>
+                <li>Uygulamanın temel işlevlerini sağlamak</li>
+                <li>Kullanıcı hesaplarını oluşturmak ve yönetmek</li>
+                <li>Kullanıcı ilerlemesini ve rozetlerini saklamak</li>
+                <li>Kullanıcı hesabıyla ilişkili kayıtları yönetmek</li>
+                <li>Reklam hizmetlerini sağlamak</li>
+                <li>Uygulamanın güvenli ve düzgün çalışmasına yardımcı olmak</li>
+            </ul>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>6. Verilerin Paylaşılması</h2>
+
+            <p>
+                Kullanıcı verileri, uygulamanın çalışmasını sağlayan
+                üçüncü taraf hizmet sağlayıcıları kapsamında işlenebilir.
+            </p>
+
+            <p>
+                Firebase ve Google AdMob gibi hizmetler, sundukları
+                hizmetlerin gerektirdiği verileri kendi politikaları
+                kapsamında işleyebilir.
+            </p>
+
+            <p>
+                AZIZ DIGITAL kullanıcı verilerini satmaz.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>7. Veri Güvenliği</h2>
+
+            <p>
+                Kullanıcı verilerinin korunması amacıyla uygun teknik
+                ve organizasyonel güvenlik önlemleri uygulanmaktadır.
+            </p>
+
+            <p>
+                Bununla birlikte internet üzerinden gerçekleştirilen
+                hiçbir veri aktarımının tamamen risksiz olduğu garanti
+                edilemez.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>8. Hesap ve Verilerin Silinmesi</h2>
+
+            <p>
+                Kullanıcılar hesaplarını Kahraman Dostum uygulamasındaki
+                Profil bölümünde bulunan
+                <strong>“Hesabı Kalıcı Olarak Sil”</strong>
+                seçeneğini kullanarak silebilir.
+            </p>
+
+            <p>
+                Hesap silme işlemiyle ilgili ayrıntılı bilgiye aşağıdaki
+                sayfadan ulaşabilirsiniz:
+            </p>
+
+            <a href="hesap-sil.html" class="delete-link">
+                🗑️ Hesap ve Veri Silme Sayfası →
+            </a>
+
+            <p style="margin-top:20px;">
+                Hesap silme işlemi sırasında kullanıcı hesabı ve
+                hesapla ilişkili silinmesi gereken veriler silme
+                sürecine dahil edilir.
+            </p>
+
+            <p>
+                Yasal bir yükümlülük nedeniyle belirli verilerin
+                belirli bir süre saklanması gerekiyorsa, bu veriler
+                yalnızca gerekli süre boyunca saklanabilir.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>9. Çocuklar ve Gençlerin Gizliliği</h2>
+
+            <p>
+                Kahraman Dostum, akran zorbalığı konusunda farkındalık
+                oluşturmayı amaçlayan bir uygulamadır.
+            </p>
+
+            <p>
+                Kullanıcıların uygulama içerisinde kendileri veya
+                başka kişiler hakkında gereksiz kişisel veya hassas
+                bilgileri paylaşmamaları önerilmektedir.
+            </p>
+
+            <p>
+                Uygulamanın hedef kitlesine ilişkin Google Play
+                ayarları ve uygulamada kullanılan üçüncü taraf
+                hizmetler, ilgili Google Play politika ve gerekliliklerine
+                uygun şekilde yapılandırılmalıdır.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>10. Üçüncü Taraf Hizmetler</h2>
+
+            <p>
+                Uygulama, hizmetlerin sağlanabilmesi için üçüncü taraf
+                platform ve hizmetlerden yararlanabilir.
+            </p>
+
+            <p>
+                Bu hizmetlerin kendi gizlilik politikaları ve veri
+                işleme koşulları bulunmaktadır.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>11. Politika Değişiklikleri</h2>
+
+            <p>
+                Bu Gizlilik Politikası gerektiğinde güncellenebilir.
+                Güncel politika bu sayfa üzerinden yayımlanır.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>12. İletişim</h2>
+
+            <p>
+                Gizlilik politikası, veri kullanımı veya hesap silme
+                işlemleri hakkında sorularınız için bizimle iletişime
+                geçebilirsiniz.
+            </p>
+
+            <div class="contact">
+
+                📧 <strong>İletişim e-postası</strong><br>
+
+                <a href="mailto:siberkahramanapp@gmail.com">
+                    siberkahramanapp@gmail.com
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<footer>
+
+    <strong>💜 Kahraman Dostum</strong>
+
+    <div class="footer-links">
+        <a href="index.html">Ana Sayfa</a>
+        <a href="hesap-sil.html">Hesap Silme</a>
+    </div>
+
+    <div style="margin-top:10px;">
+        AZIZ DIGITAL · TÜBİTAK Akran Zorbalığı Farkındalık Projesi
+    </div>
+
+</footer>
+
+</body>
+</html>

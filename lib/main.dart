@@ -16,7 +16,6 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'injection_container.dart' as di;
 
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -29,9 +28,11 @@ void main() async {
   bool initFailed = false;
 
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     await _activateAppCheck();
-    
+
     await di.init();
     await StorageService().init();
 
@@ -65,13 +66,19 @@ void main() async {
 }
 
 Future<void> _activateAppCheck() async {
-  if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
+  if (kIsWeb ||
+      (defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS)) {
     return;
   }
 
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttestWithDeviceCheckFallback,
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleAppAttestWithDeviceCheckFallbackProvider(),
   );
 }
 
@@ -102,13 +109,27 @@ class _InitErrorApp extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.wifi_off_rounded, size: 80, color: Colors.redAccent),
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  size: 80,
+                  color: Colors.redAccent,
+                ),
                 const SizedBox(height: 24),
-                const Text("Bağlantı Sorunu! 📡", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
+                const Text(
+                  "Bağlantı Sorunu! 📡",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
+                ),
                 const SizedBox(height: 12),
-                const Text("Kahramanlık profilini hazırlayamadık.\nİnternetini kontrol edip uygulamayı\nyeniden açar mısın?", textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, height: 1.5)),
+                const Text(
+                  "Kahramanlık profilini hazırlayamadık.\nİnternetini kontrol edip uygulamayı\nyeniden açar mısın?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.blueGrey, height: 1.5),
+                ),
                 const SizedBox(height: 30),
-                ElevatedButton(onPressed: () => main(), child: const Text("TEKRAR DENE")),
+                ElevatedButton(
+                  onPressed: () => main(),
+                  child: const Text("TEKRAR DENE"),
+                ),
               ],
             ),
           ),
@@ -142,7 +163,9 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snapshot.hasData) {
           return UserDataGate(uid: snapshot.data!.uid);
@@ -177,7 +200,7 @@ class _UserDataGateState extends State<UserDataGate> {
   /// Client-side veri oluşturma (recovery) kaldırıldı, güvenli hale getirildi.
   Future<void> _checkUserProfile() async {
     if (!mounted) return;
-    
+
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -207,14 +230,21 @@ class _UserDataGateState extends State<UserDataGate> {
   Widget build(BuildContext context) {
     switch (_status) {
       case _UserDataStatus.loading:
-        return const Scaffold(body: Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text("Kahraman profili yükleniyor...", style: TextStyle(color: Colors.blueGrey)),
-          ],
-        )));
+        return const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text(
+                  "Kahraman profili yükleniyor...",
+                  style: TextStyle(color: Colors.blueGrey),
+                ),
+              ],
+            ),
+          ),
+        );
 
       case _UserDataStatus.error:
         return Scaffold(
@@ -224,9 +254,17 @@ class _UserDataGateState extends State<UserDataGate> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.redAccent,
+                  ),
                   const SizedBox(height: 12),
-                  const Text("Bağlantı kurulamadı veya profil henüz hazır değil.", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Bağlantı kurulamadı veya profil henüz hazır değil.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () {
@@ -238,7 +276,10 @@ class _UserDataGateState extends State<UserDataGate> {
                     },
                     child: const Text("YENİDEN DENE"),
                   ),
-                  TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text("Giriş Sayfasına Dön")),
+                  TextButton(
+                    onPressed: () => FirebaseAuth.instance.signOut(),
+                    child: const Text("Giriş Sayfasına Dön"),
+                  ),
                 ],
               ),
             ),
@@ -277,13 +318,19 @@ class _AppInitializerState extends State<AppInitializer> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-        {'sonGorulme': FieldValue.serverTimestamp(), 'isOnline': true},
-        SetOptions(merge: true),
-      );
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'sonGorulme': FieldValue.serverTimestamp(),
+        'isOnline': true,
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint("Son görülme güncellenemedi: $e");
     }
+  }
+
+  @override
+  void dispose() {
+    _notificationService.dispose();
+    super.dispose();
   }
 
   @override
