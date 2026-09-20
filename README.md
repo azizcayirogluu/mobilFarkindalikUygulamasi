@@ -1,7 +1,7 @@
-# 🛡️ Siber Dost
+# 🛡️ Siber Dost (Kahraman Dostum)
 
 <p align="center">
-  <strong>Çocuklar ve gençler için akran zorbalığı, siber zorbalık ve dijital güvenlik farkındalık platformu.</strong>
+  <strong>Çocuklar ve gençler için akran zorbalığı, siber zorbalık ve dijital güvenlik farkındalığı platformu.</strong>
 </p>
 
 <p align="center">
@@ -11,54 +11,65 @@
   <img alt="TÜBİTAK 2209-A" src="https://img.shields.io/badge/TÜBİTAK_2209--A-1565C0?style=for-the-badge" />
 </p>
 
-> “Güvenli bir dijital gelecek, bilinçli nesillerle inşa edilir.”
+---
 
-## Proje Hakkında
+### 🌟 "Güvenli bir dijital gelecek, bilinçli nesillerle inşa edilir."
 
-**Siber Dost**, 6–18 yaş aralığındaki kullanıcıların akran zorbalığı, siber zorbalık ve dijital güvenlik hakkında bilgi edinmesini; güvenli kararlar için pratik yapmasını ve ihtiyaç duyduğunda doğru destek kanallarına yönelmesini amaçlayan bir Flutter uygulamasıdır.
+**Siber Dost**, 6–18 yaş aralığındaki çocukların ve gençlerin akran zorbalığı, siber zorbalık ve dijital dünyadaki tehditler hakkında eğlenerek farkındalık kazanması amacıyla geliştirilmiş **yapay zekâ destekli** mobil platformdur. Proje, modern pedagojik yaklaşımlarla dijital güvenliği birleştirerek çocukları yargılamadan desteklemeyi, doğru rehberlik sunmayı ve gerektiğinde yardım istemeyi öğretmeyi amaçlamaktadır.
 
-Uygulama; öğretici içerikleri, etkileşimli senaryoları, güvenlik rehberini, olay bildirimini ve yapay zekâ destekli sohbet deneyimini aynı çatı altında toplar. Amaç; kullanıcıyı yargılamadan desteklemek, güvenli davranışları öğretmek ve yardım istemeyi kolaylaştırmaktır.
+> 🏆 **Proje Desteği:** Bu çalışma, çocuklarda dijital farkındalık ve siber güvenlik bilinci oluşturmaya yönelik yenilikçi yaklaşımıyla **TÜBİTAK 2209-A Üniversite Öğrencileri Araştırma Projeleri Destekleme Programı** kapsamında desteklenmektedir.
 
-> **Önemli:** Siber Dost, profesyonel psikolojik destek, sağlık hizmeti veya acil yardım hizmetlerinin yerine geçmez. Kullanıcı kendisi ya da bir başkası için acil tehlike hissediyorsa 112 Acil Çağrı Merkezi’ne veya yakındaki güvenilir bir yetişkine başvurmalıdır.
+---
 
-## Öne Çıkan Özellikler
+## 🎨 Öne Çıkan Özellikler
 
-### 🎓 Eğitsel ve etkileşimli içerikler
+### 🎓 Eğitsel ve Etkileşimli İçerikler
+* **İnteraktif Senaryolar:** Yaş gruplarına özel olarak hazırlanan karar akışları sayesinde çocuklar, zorbalık anında verebilecekleri kararların sonuçlarını güvenli bir simülasyonda deneyimler.
+* **Siber Dedektif Oyunu:** Çocukların dijital ayak izlerini ve internetteki tehlikeli davranışları bir dedektif gibi inceleyerek analiz ettiği soru/cevap ve oyun tabanlı öğrenme modülü.
+* **Multimedya Kütüphanesi:** Özenle seçilmiş pedagojik hikayeler, eğitici animasyonlar ve video içerikleri.
+* **Rozet & Motivasyon Sistemi:** Tamamlanan her görev, okunan her hikaye için çocukları teşvik eden efsanevi siber koruyucu rozetleri ve ilerleme takibi.
 
-- Zorbalık farkındalığı için senaryolar ve karar akışları
-- Siber Dedektif ile güvenli internet davranışlarına yönelik soru/cevap deneyimi
-- Hikâyeler ve video içerikleri
-- Tamamlanan içerikler için ilerleme, rozet ve motivasyon sistemi
+### 🧭 Güvenlik Rehberi & Çevrim Dışı Dinleme
+* Zorbalığı tanıma, siber zorbalıkla baş etme ve profesyonel yardım isteme adımlarını içeren kapsamlı rehber.
+* **Kesintisiz Ses Deneyimi:** İnternet bağlantısı olmasa bile profesyonel Türkçe ses kayıtlarıyla rehberi sesli dinleyebilme (ExoPlayer entegrasyonu ile sıfır gecikme).
+* **Hızlı Güvenlik Planı:** Acil anlarda çocukların uygulayabileceği 3 adımlı pratik eylem planı.
 
-### 🧭 Güvenlik Rehberi
+### 🤖 Yapay Zekâ Destekli Siber Asistan
+* **Firebase Cloud Functions** üzerinden güvenli bir şekilde çalışan, yaş gruplarına özel filtrelenmiş **Gemini 1.5 Flash** entegrasyonu.
+* Zorbalık, arkadaşlık ilişkileri ve okul hayatına odaklı, çocuk psikolojisine uygun 7/24 interaktif rehberlik.
+* **Çevrim Dışı Kural Motoru:** İnternet kesildiğinde bile yerel kural tabanlı yapay zekâ motoru sayesinde kesintisiz koruma ve analiz.
+* **Enerji (Hak) & Reklam Entegrasyonu:** AdMob ödüllü reklam yapısıyla çocukları suistimalden koruyan, sunucu taraflı hız limitleri (Rate Limiting) ve günlük hak sistemi.
 
-- Zorbalığı tanıma, güvenli kalma, siber zorbalıkla baş etme ve yardım isteme bölümleri
-- Sabit, profesyonel olarak hazırlanmış Türkçe ses kayıtlarıyla çevrim dışı dinleme deneyimi
-- Hızlı güvenlik planı ve Siber Asistan’a doğrudan geçiş
+### 🚨 Siber İmdat & Olay Bildirimi
+* Resmi yardım kanallarına (112 Acil Çağrı, siber ihbar noktaları) hızlı yönlendirme.
+* **Olay Bildirim Formu:** Yaşanılan siber veya akran zorbalığı olaylarını yetkili yöneticilere güvenli ve anonim olarak iletebilme altyapısı.
+* PDF formatında kurumsal rapor oluşturma ve yazdırma desteği.
 
-### 🚨 Siber İmdat ve olay bildirimi
+---
 
-- Acil destek numaralarına yönlendirme
-- Güvenlik adımlarını takip etmek için kontrol listesi
-- Yaşanan olayı yöneticilere iletmek için olay bildirim formu
-- Yakındaki yardım noktalarını harita uygulamasında açma
+## 🔒 Güvenlik ve Gizlilik Mimarisi
 
-### 🤖 Yapay zekâ destekli Siber Asistan
+Proje, çocuk verilerinin gizliliğini en üst düzeyde tutmak için endüstri standardı güvenlik protokolleriyle donatılmıştır:
 
-- Firebase Cloud Functions üzerinden çalışan, yaşa uygun sohbet deneyimi
-- Zorbalık, arkadaşlık, okul hayatı ve güvenli iletişim odaklı yönlendirme
-- Mesaj uzunluğu, sohbet geçmişi ve istek sıklığı için sunucu tarafı sınırlar
-- Riskli ifadelerde kullanıcıyı güvenilir yetişkinlere ve Güvenlik Merkezi’ne yönlendirmeye odaklı içerik tasarımı
+* **Gizli API Yönetimi:** Gemini API anahtarları asla istemci (client) tarafında barındırılmaz; tamamen sunucu (Firebase Cloud Functions) ortamında ve şifrelenmiş sırlar (Secrets Manager) olarak saklanır.
+* **Firebase App Check & Play Integrity:** Uygulama içi isteklere sahte cihazlardan veya botlardan gelen suistimalleri engellemek için Google Play Integrity ve Apple App Attest altyapıları entegre edilmiştir.
+* **Gelişmiş Firestore & Storage Kuralları:** Rol tabanlı erişim kontrolü sayesinde kullanıcı raporlarına ve hassas ilerleme verilerine sadece yetkili yöneticiler ve ilgili verinin sahibi olan kullanıcı erişebilir.
+* **Veri Senkronizasyonu & Custom Claims:** Yönetici yetkilendirmeleri sunucu tarafında atomik Firestore tetikleyicileri ve Auth Custom Claims ile anlık olarak doğrulanır.
+* **Hesap ve Veri Silme Güvencesi:** Kullanıcılar, Google Play politikalarıyla %100 uyumlu şekilde, profilleri üzerinden tek tıkla tüm kişisel verilerini, raporlarını ve hesaplarını kalıcı olarak silebilirler (GDPR/KVKK uyumlu veri temizliği).
 
-### 🔐 Hesap ve veri yönetimi
+---
 
-- Firebase Authentication ile kullanıcı oturumu
-- Cloud Firestore ile gerçek zamanlı ilerleme ve içerik verileri
-- Firebase App Check desteği
-- Kullanıcının kendi hesabını ve ilişkili verilerini silmesine yönelik akış
-- Rol tabanlı yönetici paneli
+## 🛠️ Kullanılan Teknolojiler
 
-## Ekran Görüntüleri
+* **Frontend:** Flutter (Dart) - Nesne yönelimli, temiz mimari (Clean Architecture) ve bağımlılık enjeksiyonu (GetIt) kullanımı.
+* **Backend:** Firebase (Authentication, Cloud Firestore, Cloud Functions v2, Firebase Hosting, Cloud Messaging).
+* **Yapay Zekâ:** Google Gemini API (`gemini-1.5-flash`), Google Cloud Text-to-Speech API (Seslendirme entegrasyonu).
+* **Multimedya & UI:** Just Audio, Youtube Player Iframe, Flutter Animate, Cached Network Image, FL Chart.
+* **Reklam & Analiz:** Google Mobile Ads (AdMob Rewarded Ads), Firebase Crashlytics, Firebase Analytics.
+
+---
+
+## 📱 Ekran Görüntüleri
 
 <table>
   <tr>
@@ -67,7 +78,6 @@ Uygulama; öğretici içerikleri, etkileşimli senaryoları, güvenlik rehberini
     <td><img width="220" alt="Siber Dedektif" src="https://github.com/user-attachments/assets/0800738b-33a3-4634-b09b-e8a4c830ec33" /></td>
     <td><img width="220" alt="Siber Asistan" src="https://github.com/user-attachments/assets/6918573a-0206-4aa5-9386-ebf5d6ab0e7d" /></td>
   </tr>
-
   <tr>
     <td><img width="220" alt="Rozetler" src="https://github.com/user-attachments/assets/9afbf129-35e3-4ea4-9ae9-bd142d29cadb" /></td>
     <td><img width="220" alt="Güvenlik Merkezi" src="https://github.com/user-attachments/assets/3568e6d6-d156-4767-ae3f-0a162182b383" /></td>
@@ -76,15 +86,13 @@ Uygulama; öğretici içerikleri, etkileşimli senaryoları, güvenlik rehberini
   </tr>
 </table>
 
-## Güvenlik ve gizlilik ilkeleri
-
-- Gemini anahtarı istemciye eklenmez; yalnızca sunucu ortamında kullanılır.
-- Yönetici erişimi Firebase custom claims ve Firestore kurallarıyla sınırlandırılmalıdır.
-- Olay bildirimleri hassas veri içerebilir; yalnızca yetkili yöneticiler erişebilmelidir.
-- Kullanıcılar, hesap silme akışıyla kişisel verilerinin silinmesini talep edebilmelidir.
-- Uygulama içindeki yönlendirmeler destekleyicidir; acil durumlarda profesyonel ve yerel yardım kanalları esas alınır.
 ---
 
+## 📝 Önemli Yasal Uyarı
+
+**Siber Dost (Kahraman Dostum)**, eğitsel ve farkındalık oluşturma amaçlı bir platformdur; profesyonel psikolojik destek, tıbbi tanı, hukuki danışmanlık veya acil yardım hizmetlerinin yerine geçmez. Kullanıcı kendisi veya bir başkası için acil bir fiziksel/siber tehlike hissediyorsa, vakit kaybetmeden **112 Acil Çağrı Merkezi**'ne veya güvenilir bir yetişkine başvurmalıdır.
+
+---
 <p align="center">
-  <strong>Siber Dost</strong> · Dijital dünyada daha bilinçli, daha güvenli adımlar için.
+  <strong>Siber Dost</strong> · Dijital dünyada daha bilinçli, daha güvenli ve daha cesur adımlar için.
 </p>
