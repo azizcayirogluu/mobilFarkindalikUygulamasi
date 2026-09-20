@@ -1,10 +1,7 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/kayit_olma_ekrani.dart';
@@ -156,16 +153,25 @@ class _GirisEkraniState extends State<GirisEkrani> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
                       _buildHeader(),
                       Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            if (!keyboardOpen && !isShort) _buildHeroSection(),
-                            Flexible(child: _buildFormCard(keyboardOpen || isShort)),
-                            _buildRegisterLink(keyboardOpen || isShort),
-                          ],
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (!keyboardOpen && !isShort) ...[
+                                const SizedBox(height: 10),
+                                _buildHeroSection(),
+                                const SizedBox(height: 25),
+                              ],
+                              _buildFormCard(keyboardOpen || isShort),
+                              const SizedBox(height: 20),
+                              _buildRegisterLink(keyboardOpen || isShort),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -198,9 +204,21 @@ class _GirisEkraniState extends State<GirisEkrani> {
       children: [
         Image.asset("assets/image/team.png", height: 120, errorBuilder: (_, __, ___) => const Icon(Icons.group_rounded, size: 80, color: AppColors.anaMavi)),
         const SizedBox(height: 15),
-        const Text("Tekrardan Merhaba! 👋", textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi, letterSpacing: -1)),
+        const Text(
+          "Tekrardan Merhaba! 👋",
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi, letterSpacing: -1),
+        ),
         const SizedBox(height: 6),
-        const Text("Kaldığın yerden iyilik dolu bir dünya kurmaya hazır mısın?", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+        const Text(
+          "Kaldığın yerden iyilik dolu bir dünya kurmaya hazır mısın?",
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+        ),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
   }
@@ -261,7 +279,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
   Widget _buildLoginButton(bool compact) {
     return Container(
       width: double.infinity,
-      height: compact ? 50 : 60,
+      constraints: const BoxConstraints(minHeight: 55),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         gradient: AppColors.anaGradient,
@@ -270,9 +288,18 @@ class _GirisEkraniState extends State<GirisEkrani> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _girisYap,
         style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0),
-        child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-            : const Text("MACERAYA BAŞLA! 🚀", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: _isLoading
+              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+              : const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    "MACERAYA BAŞLA! 🚀",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1),
+                  ),
+                ),
+        ),
       ),
     );
   }

@@ -3,71 +3,123 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuthenticated() { return request.auth != null; }
-    function isAdmin() { return isAuthenticated() && request.auth.token.admin == true; }
-    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    // ============================================================
+    // YARDIMCI FONKSİYONLAR
+    // ============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Girdi verisinde belirli alanların değişip değişmediğini kontrol eder
+    function isUnchanged(key) {
+      return !(key in request.resource.data.diff(resource.data).affectedKeys());
+    }
 
     // ============================================================
     // USERS COLLECTION
     // ============================================================
-
+    // Kullanıcı temel profil bilgileri.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
-      // İlk kayıt (uid ve isAdmin/isPremium kontrolü)
+      // İlk kayıt: Sadece kendi dokümanını oluşturabilir, admin/premium yetkisi veremez.
       allow create: if isOwner(userId) &&
-                    !(request.resource.data.diff({}).affectedKeys().hasAny(['isAdmin', 'isPremium']));
+                    !request.resource.data.diff({}).affectedKeys().hasAny(['isAdmin', 'isPremium', 'role']);
 
+      // Güncelleme: Sadece kendi bilgilerini (ad, yaş vb.) güncelleyebilir.
+      // Kritik alanlar (isAdmin, isPremium, uid, kayitTarihi) korunur.
       allow update: if (isOwner(userId) || isAdmin()) &&
-                    // Hassas alanlar ASLA client tarafından değiştirilemez
-                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isPremium', 'uid', 'kayitTarihi']) &&
-                    (isAdmin() || isOwner(userId));
+                    isUnchanged('isAdmin') &&
+                    isUnchanged('isPremium') &&
+                    isUnchanged('uid') &&
+                    isUnchanged('kayitTarihi') &&
+                    isUnchanged('role');
 
+      // Silme: Yalnızca sistem yöneticisi silebilir (veya Cloud Function üzerinden).
       allow delete: if isAdmin();
     }
 
     // ============================================================
     // USERS PROGRESS COLLECTION
     // ============================================================
-
+    // Kullanıcının puanları, rozetleri, hakları ve sohbet geçmişi.
+    // Bu doküman çoğunlukla Cloud Function'lar tarafından yönetilmelidir.
     match /usersProgress/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
+      // Client tarafı yaratma: Sadece temel başlangıç için izin verilir, puan/hak manipülasyonu engellenir.
       allow create: if isOwner(userId) &&
-                    !(request.resource.data.diff({}).affectedKeys().hasAny([
-                      'toplam_puan', 'rozetler', 'gemini_hakki', 'riskDurumu'
-                    ]));
+                    !request.resource.data.diff({}).affectedKeys().hasAny([
+                      'toplam_puan', 'rozetler', 'gemini_hakki', 'riskDurumu', 'tamamlanan_bolumler'
+                    ]);
 
+      // Client tarafı güncelleme: Kullanıcı kendi puanını, hakkını veya geçmişini DOĞRUDAN artıramaz.
+      // Bu alanlar Cloud Function (geminiChat, completeTask, grantAdReward) tarafından yönetilir.
       allow update: if isAdmin() || (
         isOwner(userId) &&
-        // Puan, Rozet, Enerji gibi kritik alanlar korunur
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'uid', 'toplam_puan', 'rozetler', 'gemini_hakki',
-          'riskDurumu', 'riskNedeni', 'sohbet_gecmisi', 'ssv_verify',
-          'tamamlanan_bolumler', 'bilinen_dedektif_sorulari'
-        ])
+        isUnchanged('uid') &&
+        isUnchanged('toplam_puan') &&
+        isUnchanged('rozetler') &&
+        isUnchanged('gemini_hakki') &&
+        isUnchanged('riskDurumu') &&
+        isUnchanged('riskNedeni') &&
+        isUnchanged('sohbet_gecmisi') &&
+        isUnchanged('tamamlanan_bolumler') &&
+        isUnchanged('bilinen_dedektif_sorulari')
       );
 
       allow delete: if isAdmin();
     }
 
     // ============================================================
-    // STATIC CONTENT & SYSTEM
+    // STATIC CONTENT (READ-ONLY FOR USERS)
     // ============================================================
-
     match /scenarios/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /stories/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /videos/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /badges/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /detective_questions/{doc=**} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
 
+    // ============================================================
+    // REPORTS (SECURITY AUDIT)
+    // ============================================================
     match /reports/{reportId} {
+      // Kullanıcılar rapor oluşturabilir (zorbalık bildirimi vb.)
+      // Ancak başkasının raporunu okuyamaz veya silemez.
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
       allow read, update, delete: if isAdmin();
-      allow create: if isAdmin();
     }
 
-    match /admobRewardTransactions/{id} { allow read, write: if isAdmin(); }
-    match /deletedAccounts/{id} { allow read, write: if isAdmin(); }
-    match /{document=**} { allow read, write: if false; }
+    // ============================================================
+    // SYSTEM TRACKING
+    // ============================================================
+    match /rateLimits/{id} {
+      // Rate limit dokümanları Cloud Function tarafından yönetilir.
+      // Client'ın bu dokümanları görmesine veya değiştirmesine gerek yoktur.
+      allow read, write: if false;
+    }
+
+    match /admobRewardTransactions/{id} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /deletedAccounts/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

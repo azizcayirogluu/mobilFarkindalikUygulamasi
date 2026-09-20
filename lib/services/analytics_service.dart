@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/app_logger.dart';
 
 class AnalyticsService {
   final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(
@@ -33,7 +34,7 @@ class AnalyticsService {
           'proof': verificationData ?? [],
         });
 
-        if (kDebugMode) print("Görev tamamlandı sonucu: ${result.data}");
+        if (kDebugMode) debugPrint("Görev tamamlandı sonucu: ${result.data}");
       } else {
         // Hikaye ve Video için sadece ilerleme listesi güncellenir, puan verilmez.
         String? listeAdi;
@@ -52,21 +53,19 @@ class AnalyticsService {
                 'sonGuncelleme': FieldValue.serverTimestamp(),
               });
           if (kDebugMode)
-            print("İlerleme kaydedildi (Puan verilmedi): $gorevId");
+            debugPrint("İlerleme kaydedildi (Puan verilmedi): $gorevId");
         }
       }
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint(
-        "Görev İşleme Hatası (Functions): ${e.code} - ${e.message} - ${e.details}",
-      );
+    } on FirebaseFunctionsException catch (e, stack) {
+      AppLogger.error("Görev İşleme Hatası (Functions)", e, stack);
       // Eğer unauthenticated hatası alıyorsak token yenilemeyi deneyebiliriz
       if (e.code == 'unauthenticated') {
         debugPrint("Oturum hatası tespit edildi, token yenileniyor...");
         await user.getIdToken(true);
       }
       rethrow;
-    } catch (e) {
-      debugPrint("Görev İşleme Hatası (Genel): $e");
+    } catch (e, stack) {
+      AppLogger.error("Görev İşleme Hatası (Genel)", e, stack);
       rethrow;
     }
   }

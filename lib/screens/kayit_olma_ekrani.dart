@@ -33,13 +33,8 @@ class _KayitEkraniState extends State<KayitEkrani> {
     super.dispose();
   }
 
-  // ============================================================
-  // KAYIT BAŞLAT
-  // ============================================================
-
   Future<void> _kayitBaslat() async {
     FocusScope.of(context).unfocus();
-
     final username = _usernameController.text.trim().toLowerCase();
     final pin = _pinController.text.trim();
 
@@ -47,41 +42,28 @@ class _KayitEkraniState extends State<KayitEkrani> {
       _showMessage('Önce kendine bir kahraman adı seç! 🦸', isError: true);
       return;
     }
-
     if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(username)) {
-      _showMessage(
-        'Kullanıcı adı 3-20 karakter olmalı.\nHarf, rakam ve _ kullanabilirsin.',
-        isError: true,
-      );
+      _showMessage('Kullanıcı adı 3-20 karakter olmalı.', isError: true);
       return;
     }
-
     if (!RegExp(r'^\d{6}$').hasMatch(pin)) {
       _showMessage('PIN tam olarak 6 rakamdan oluşmalı 🔐', isError: true);
       return;
     }
-
     if (seciliGrup.isEmpty) {
       _showMessage('Yaş grubunu seçmeyi unutma 🎂', isError: true);
       return;
     }
-
     if (!_privacyAccepted) {
       _showMessage('Gizlilik Politikasını kabul etmelisin 📋', isError: true);
       return;
     }
-
     if (seciliGrup == '6-12') {
       await _showParentalGate();
       return;
     }
-
     await _register();
   }
-
-  // ============================================================
-  // YETİŞKİN DOĞRULAMASI
-  // ============================================================
 
   Future<void> _showParentalGate() async {
     final number1 = Random().nextInt(10) + 10;
@@ -95,44 +77,24 @@ class _KayitEkraniState extends State<KayitEkrani> {
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          title: Row(
-            children: [
-              const Icon(Icons.shield_rounded, color: AppColors.anaMavi, size: 28),
-              const SizedBox(width: 10),
-              Text('Yetişkin Doğrulaması', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade900)),
-            ],
-          ),
+          title: const Text('Yetişkin Doğrulaması', style: TextStyle(fontWeight: FontWeight.w900)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '6-12 yaş grubu için bir ebeveyn veya öğretmenden yardım iste.',
-                style: TextStyle(color: Color(0xFF686C7D), fontSize: 14, height: 1.45),
-              ),
+              const Text('6-12 yaş grubu için bir büyüğünden yardım iste.', style: TextStyle(fontSize: 14)),
               const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(color: const Color(0xFFF0EFFF), borderRadius: BorderRadius.circular(18)),
-                child: Text(
-                  '$number1 + $number2 = ?',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.anaMavi, fontSize: 29, fontWeight: FontWeight.w900),
-                ),
-              ),
+              Text('$number1 + $number2 = ?', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF6366F1))),
               const SizedBox(height: 16),
               TextField(
                 controller: answerController,
-                autofocus: true,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
-                  hintText: 'Cevabı yaz',
+                  hintText: 'Cevap',
                   filled: true,
-                  fillColor: const Color(0xFFF6F7FB),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide.none),
+                  fillColor: const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                 ),
               ),
             ],
@@ -140,114 +102,60 @@ class _KayitEkraniState extends State<KayitEkrani> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('İptal')),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.anaMavi),
-              onPressed: () {
-                final correct = answerController.text.trim() == correctAnswer.toString();
-                Navigator.pop(dialogContext, correct);
-              },
+              onPressed: () => Navigator.pop(dialogContext, answerController.text.trim() == correctAnswer.toString()),
               child: const Text('Onayla'),
             ),
           ],
         );
       },
     );
-
-    answerController.dispose();
-    if (!mounted) return;
-
-    if (result == true) {
-      await _register();
-    } else if (result == false) {
-      _showMessage('Yetişkin doğrulaması başarısız oldu ❌', isError: true);
-    }
+    if (result == true) await _register();
   }
-
-  // ============================================================
-  // FIREBASE
-  // ============================================================
 
   Future<void> _register() async {
     if (_loading) return;
-    FocusScope.of(context).unfocus();
-
+    setState(() => _loading = true);
     final username = _usernameController.text.trim().toLowerCase();
     final pin = _pinController.text.trim();
     final email = '$username@zorbalik.app';
 
-    setState(() => _loading = true);
-
     try {
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pin);
       final user = credential.user;
-      if (user == null) throw Exception('Firebase kullanıcı oluşturamadı.');
+      if (user == null) throw Exception();
 
       final firestore = FirebaseFirestore.instance;
       final batch = firestore.batch();
-
-      batch.set(
-        firestore.collection('users').doc(user.uid),
-        {
-          'kullaniciAdi': username,
-          'yasGrubu': seciliGrup,
-          'avatarUrl': 'assets/image/boy.png',
-          'isOnline': true,
-          'emailAlias': email,
-          'sonGorulme': FieldValue.serverTimestamp(),
-          'consentMethod': seciliGrup == '6-12' ? 'adult_action_gate' : 'not_required',
-        },
-        SetOptions(merge: true),
-      );
-
-      batch.set(
-        firestore.collection('usersProgress').doc(user.uid),
-        {
-          'kullaniciAdi': username,
-          'sonGuncelleme': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-
+      batch.set(firestore.collection('users').doc(user.uid), {
+        'kullaniciAdi': username,
+        'yasGrubu': seciliGrup,
+        'avatarUrl': 'assets/image/boy.png',
+        'isOnline': true,
+        'sonGorulme': FieldValue.serverTimestamp(),
+      });
+      batch.set(firestore.collection('usersProgress').doc(user.uid), {
+        'kullaniciAdi': username,
+        'sonGuncelleme': FieldValue.serverTimestamp(),
+      });
       await batch.commit();
       await user.updateDisplayName(username);
 
       if (!mounted) return;
-      _showMessage('Hoş geldin $username! 🚀', isError: false);
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AnaNavigation()), (route) => false);
-    } on FirebaseAuthException catch (e) {
-      String message;
-      switch (e.code) {
-        case 'email-already-in-use': message = 'Bu kahraman adı zaten kullanılıyor 🚀'; break;
-        case 'network-request-failed': message = 'İnternet bağlantını kontrol et 🌐'; break;
-        case 'too-many-requests': message = 'Çok fazla deneme yapıldı.\nBiraz sonra tekrar dene 🛡️'; break;
-        case 'weak-password': message = 'PIN kodun yeterince güvenli değil 🔐'; break;
-        default: message = 'Kayıt sırasında bir sorun oluştu.\nLütfen tekrar dene.';
-      }
-      _showMessage(message, isError: true);
     } catch (e) {
-      _showMessage('Beklenmeyen bir hata oluştu.\nLütfen tekrar dene 💪', isError: true);
+      _showMessage('Bir sorun oluştu, lütfen tekrar dene.', isError: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   void _showMessage(String message, {required bool isError}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: const TextStyle(fontWeight: FontWeight.w700)),
-          backgroundColor: isError ? const Color(0xFFE85D75) : const Color(0xFF00A896),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
-        ),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.redAccent : Colors.green,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -255,269 +163,154 @@ class _KayitEkraniState extends State<KayitEkrani> {
     final keyboardOpen = media.viewInsets.bottom > 0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableHeight = constraints.maxHeight;
-            final isShort = availableHeight < 600;
-
-            return Stack(
+        child: Stack(
+          children: [
+            Positioned(top: -100, right: -100, child: _decorCircle(300, const Color(0xFFEEF2FF))),
+            Column(
               children: [
-                // 1. DİNAMİK RENKLİ ARKA PLAN
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFE0F7FA), Color(0xFFF3E5F5), Color(0xFFFFF9C4)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                _buildHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        if (!keyboardOpen) ...[
+                          const SizedBox(height: 20),
+                          _buildHeroSection(),
+                          const SizedBox(height: 30),
+                        ],
+                        _buildFormCard(),
+                        const SizedBox(height: 20),
+                        _buildLoginLink(),
+                        const SizedBox(height: 30),
+                      ],
                     ),
                   ),
                 ),
-                
-                // 2. HAREKETLİ DEKORATİF OBJELER
-                if (!keyboardOpen && !isShort) ...[
-                  Positioned(
-                    top: -60,
-                    right: -40,
-                    child: _decorCircle(220, AppColors.anaMavi.withOpacity(.15))
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .moveY(begin: -25, end: 25, duration: 4.seconds)
-                        .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1)),
-                  ),
-                  Positioned(
-                    bottom: -80,
-                    left: -60,
-                    child: _decorCircle(250, AppColors.eglencePembesi.withOpacity(.1))
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .moveX(begin: -20, end: 20, duration: 5.seconds),
-                  ),
-                  
-                  // UÇUŞAN KAHRAMAN İKONLARI
-                  _floatingHeroItem(Icons.auto_awesome_rounded, AppColors.oyunSarisi, top: 100, left: 30),
-                  _floatingHeroItem(Icons.shield_rounded, AppColors.anaMavi, top: 250, right: 30),
-                  _floatingHeroItem(Icons.favorite_rounded, AppColors.eglencePembesi, bottom: 200, left: 60),
-                ],
-
-                // 3. İÇERİK
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-                      _buildHeader(compact: keyboardOpen || isShort),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            if (!keyboardOpen && !isShort) _buildHeroSection(keyboardOpen),
-                            Flexible(child: _buildFormCard(keyboardOpen || isShort)),
-                            _buildLoginButton(compact: keyboardOpen || isShort),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _floatingHeroItem(IconData icon, Color color, {double? top, double? bottom, double? left, double? right}) {
-    return Positioned(
-      top: top, bottom: bottom, left: left, right: right,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle),
-        child: Icon(icon, color: color.withOpacity(0.6), size: 30),
-      ).animate(onPlay: (c) => c.repeat(reverse: true))
-       .moveY(begin: -10, end: 10, duration: (2 + Random().nextInt(3)).seconds)
-       .fadeIn(duration: 800.ms),
-    );
-  }
-
-  Widget _buildHeroSection(bool keyboardOpen) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 100, height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [Colors.white, AppColors.anaMavi.withOpacity(0.1)]),
-                boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.2), blurRadius: 30)],
-              ),
-            ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 4.seconds),
-            Image.asset(
-              'assets/image/elEleKarsilama2.png',
-              height: 80,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.handshake_rounded, color: AppColors.anaMavi, size: 60),
-            ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+            ),
           ],
         ),
-        const SizedBox(height: 10),
-        const Text(
-          'KAHRAMAN KAYDI 🚀',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.yaziRengi, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1.2),
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
-      ],
+      ),
     );
   }
 
-  Widget _buildHeader({required bool compact}) {
-    return Row(
-      children: [
-        IconButton(
-          onPressed: () => Navigator.pop(context),
-          style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black12, elevation: 6),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi, size: 18),
-        ),
-        const Spacer(),
-        if (!compact) _statusBadge('Yeni Üyelik', Icons.auto_awesome_rounded, AppColors.oyunSarisi),
-      ],
-    ).animate().fadeIn().slideX(begin: -0.1);
-  }
-
-  Widget _statusBadge(String text, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(25), 
-        boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 10)],
-        border: Border.all(color: color.withOpacity(0.3))
-      ),
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(color: AppColors.yaziRengi, fontSize: 12, fontWeight: FontWeight.w900)),
+          Container(
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF475569)),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          const Expanded(
+            child: Text(
+              "Yeni Kahraman Kaydı",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+            ),
+          ),
+          const SizedBox(width: 48),
         ],
       ),
     );
   }
 
-  Widget _buildFormCard(bool compact) {
+  Widget _buildHeroSection() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.1), shape: BoxShape.circle),
+          child: const Icon(Icons.rocket_launch_rounded, size: 40, color: Color(0xFF6366F1)),
+        ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+        const SizedBox(height: 16),
+        const Text("Maceraya Hazır Mısın?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+        const SizedBox(height: 8),
+        const Text("Kendi kahramanını oluştur ve iyilik yolculuğuna başla!", textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _buildFormCard() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: compact ? 12 : 24),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(compact ? 35 : 45),
-        boxShadow: [
-          BoxShadow(color: AppColors.anaMavi.withOpacity(.1), blurRadius: 40, offset: const Offset(0, 15)),
-        ],
-        border: Border.all(color: Colors.white, width: 2.5),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildInput(label: 'Kahraman Adın', hint: 'Örn: ali_kahraman', icon: Icons.face_rounded, controller: _usernameController, color: AppColors.anaMavi, compact: compact),
-          SizedBox(height: compact ? 8 : 16),
-          _buildInput(label: 'Gizli PIN (6 Rakam)', hint: '••••••', icon: Icons.lock_rounded, controller: _pinController, pin: true, color: AppColors.yumusakMor, compact: compact),
-          SizedBox(height: compact ? 12 : 24),
-          _buildAgeSelector(compact: compact),
-          SizedBox(height: compact ? 8 : 20),
-          _buildPrivacy(compact: compact),
-          SizedBox(height: compact ? 12 : 24),
-          _buildRegisterButton(compact: compact),
+          _buildInput("Kullanıcı Adın", Icons.face_rounded, _usernameController, false),
+          const SizedBox(height: 20),
+          _buildInput("6 Haneli PIN", Icons.lock_rounded, _pinController, true),
+          const SizedBox(height: 24),
+          _buildAgeSelector(),
+          const SizedBox(height: 24),
+          _buildPrivacyToggle(),
+          const SizedBox(height: 30),
+          _buildRegisterButton(),
         ],
       ),
-    ).animate().fadeIn(delay: 500.ms).scale(begin: const Offset(0.98, 0.98), curve: Curves.fastOutSlowIn);
+    );
   }
 
-  Widget _buildInput({required String label, required String hint, required IconData icon, required TextEditingController controller, required Color color, bool pin = false, required bool compact}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildInput(String label, IconData icon, TextEditingController controller, bool isPin) {
+    return TextField(
+      controller: controller,
+      obscureText: isPin && !_showPin,
+      keyboardType: isPin ? TextInputType.number : TextInputType.text,
+      maxLength: isPin ? 6 : 20,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        counterText: "",
+        suffixIcon: isPin ? IconButton(icon: Icon(_showPin ? Icons.visibility_off : Icons.visibility, size: 18), onPressed: () => setState(() => _showPin = !_showPin)) : null,
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5)),
+      ),
+    );
+  }
+
+  Widget _buildAgeSelector() {
+    return Row(
       children: [
-        if (!compact) Padding(
-          padding: const EdgeInsets.only(left: 10, bottom: 6),
-          child: Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
-        ),
-        SizedBox(
-          height: compact ? 45 : 55,
-          child: TextField(
-            controller: controller,
-            obscureText: pin && !_showPin,
-            keyboardType: pin ? TextInputType.number : TextInputType.text,
-            maxLength: pin ? 6 : 20,
-            style: TextStyle(color: AppColors.yaziRengi, fontSize: compact ? 14 : 16, fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              counterText: '',
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-              prefixIcon: Icon(icon, color: color, size: compact ? 18 : 22),
-              suffixIcon: pin
-                  ? IconButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => setState(() => _showPin = !_showPin),
-                icon: Icon(_showPin ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: color.withOpacity(0.4), size: 18),
-              )
-                  : null,
-              filled: true,
-              fillColor: color.withOpacity(0.05),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: color, width: 2)),
-            ),
-          ),
-        ),
+        _ageButton('6-12', '6-12 Yaş', Icons.child_care_rounded, const Color(0xFF10B981)),
+        const SizedBox(width: 12),
+        _ageButton('13-18', '13-18 Yaş', Icons.person_rounded, const Color(0xFF6366F1)),
       ],
     );
   }
 
-  Widget _buildAgeSelector({required bool compact}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!compact) const Padding(
-          padding: EdgeInsets.only(left: 10, bottom: 8),
-          child: Text('YAŞ GRUBUNU SEÇ 🎂', style: TextStyle(color: AppColors.yaziRengi, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        ),
-        Row(
-          children: [
-            _buildAgeCard(group: '6-12', title: '6 - 12 Yaş', icon: Icons.child_care_rounded, color: const Color(0xFF00A896), compact: compact),
-            const SizedBox(width: 10),
-            _buildAgeCard(group: '13-18', title: '13 - 18 Yaş', icon: Icons.person_rounded, color: const Color(0xFF6C63FF), compact: compact),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAgeCard({required String group, required String title, required IconData icon, required Color color, required bool compact}) {
-    final selected = seciliGrup == group;
+  Widget _ageButton(String val, String label, IconData icon, Color color) {
+    bool isSel = seciliGrup == val;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => seciliGrup = group),
-        child: AnimatedContainer(
-          duration: 300.ms,
-          padding: EdgeInsets.symmetric(vertical: compact ? 10 : 16),
+      child: InkWell(
+        onTap: () => setState(() => seciliGrup = val),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? color : Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: selected ? color : Colors.grey.shade200, width: 2),
-            boxShadow: [
-              if (selected) BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6)),
-            ],
+            color: isSel ? color : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isSel ? color : const Color(0xFFE2E8F0), width: 1.5),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: selected ? Colors.white : color, size: compact ? 22 : 30),
-              SizedBox(height: compact ? 2 : 6),
-              Text(title, style: TextStyle(color: selected ? Colors.white : AppColors.yaziRengi, fontSize: compact ? 11 : 13, fontWeight: FontWeight.w900)),
+              Icon(icon, color: isSel ? Colors.white : color, size: 24),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(color: isSel ? Colors.white : const Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 12)),
             ],
           ),
         ),
@@ -525,78 +318,39 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
-  Widget _buildPrivacy({required bool compact}) {
-    return GestureDetector(
+  Widget _buildPrivacyToggle() {
+    return InkWell(
       onTap: () => setState(() => _privacyAccepted = !_privacyAccepted),
-      child: Container(
-        padding: EdgeInsets.all(compact ? 8 : 12),
-        decoration: BoxDecoration(color: AppColors.anaMavi.withOpacity(0.03), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.anaMavi.withOpacity(0.05))),
-        child: Row(
-          children: [
-            Container(
-              width: compact ? 20 : 24, height: compact ? 20 : 24,
-              decoration: BoxDecoration(
-                color: _privacyAccepted ? AppColors.basariYesili : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _privacyAccepted ? AppColors.basariYesili : Colors.grey.shade300, width: 2),
-              ),
-              child: _privacyAccepted ? Icon(Icons.check_rounded, color: Colors.white, size: compact ? 12 : 16) : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GizlilikPolitikasiEkrani())),
-                child: Text.rich(
-                  TextSpan(
-                    style: TextStyle(color: Colors.blueGrey, fontSize: compact ? 8.5 : 10, fontWeight: FontWeight.w700, height: 1.4),
-                    children: [
-                      if (seciliGrup == '6-12') const TextSpan(text: 'Ebeveynimin gözetiminde '),
-                      const TextSpan(text: 'Gizlilik Politikasını', style: TextStyle(color: AppColors.anaMavi, fontWeight: FontWeight.w900, decoration: TextDecoration.underline)),
-                      const TextSpan(text: ' okudum ve kabul ediyorum.'),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: Row(
+        children: [
+          Checkbox(value: _privacyAccepted, onChanged: (v) => setState(() => _privacyAccepted = v!), activeColor: const Color(0xFF6366F1)),
+          const Expanded(child: Text("Gizlilik Politikasını okudum ve kabul ediyorum.", style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+        ],
       ),
     );
   }
 
-  Widget _buildRegisterButton({required bool compact}) {
-    return Container(
+  Widget _buildRegisterButton() {
+    return SizedBox(
       width: double.infinity,
-      height: compact ? 50 : 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]),
-        boxShadow: [
-          BoxShadow(color: AppColors.anaMavi.withOpacity(.3), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
+      height: 55,
       child: ElevatedButton(
         onPressed: _loading ? null : _kayitBaslat,
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0),
-        child: _loading
-            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-            : Text('MACERAYA BAŞLA! 🚀', style: TextStyle(color: Colors.white, fontSize: compact ? 14 : 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6366F1),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text("KAYIT OL VE BAŞLA 🚀", style: TextStyle(fontWeight: FontWeight.w900)),
       ),
-    ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(delay: 3.seconds, duration: 2.seconds);
+    );
   }
 
-  Widget _buildLoginButton({required bool compact}) {
+  Widget _buildLoginLink() {
     return TextButton(
       onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const GirisEkrani())),
-      child: Text.rich(
-        TextSpan(
-          style: TextStyle(color: Colors.blueGrey, fontSize: compact ? 12 : 14, fontWeight: FontWeight.w700),
-          children: const [
-            TextSpan(text: 'Zaten bir kahraman mısın? '),
-            TextSpan(text: 'Giriş Yap', style: TextStyle(color: AppColors.anaMavi, fontWeight: FontWeight.w900)),
-          ],
-        ),
-      ),
+      child: const Text("Zaten bir hesabın var mı? Giriş Yap", style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
     );
   }
 

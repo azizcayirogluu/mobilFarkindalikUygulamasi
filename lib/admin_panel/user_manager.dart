@@ -31,7 +31,7 @@ class UserManager extends StatelessWidget {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Kahraman Veri Merkezi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            Text("Kullanıcı Yönetim Ekranı", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
             Text("Tüm kullanıcıların ilerleme süreçlerini ve güvenlik analizlerini yönetin.", style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
           ],
         ),

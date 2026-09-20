@@ -17,6 +17,7 @@ import 'services/ai_analysis_service.dart';
 import 'services/tts_service.dart';
 import 'services/notification_service.dart';
 import 'services/analytics_service.dart';
+import 'services/ad_manager.dart';
 
 final sl = GetIt.instance;
 
@@ -31,6 +32,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => TtsService());
   sl.registerLazySingleton(() => AnalyticsService());
   sl.registerLazySingleton(() => NotificationService());
+  sl.registerLazySingleton(() => AdManager());
 
   sl.registerLazySingleton<ScenarioRepository>(
     () => ScenarioRepositoryImpl(),

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -28,7 +29,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   bool _isProcessing = false;
   List<String> _bilinenSoruIds = [];
 
-  // KANIT: Her soru için verilen kararı tutar [{id: "...", choice: "GÜVENLİ"}, ...]
   final List<Map<String, String>> _gameProof = [];
 
   @override
@@ -117,7 +117,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     final mevcutSoru = _soruHavuzu[_currentIndex];
     bool dogruMu = mevcutSoru["durum"] == karar;
 
-    // KANIT: Verilen kararı (doğru veya yanlış) kanıt listesine ekliyoruz
     _gameProof.add({"id": mevcutSoru["id"], "choice": karar});
 
     if (dogruMu) {
@@ -129,40 +128,82 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       }
     }
 
-    _showFeedback(dogruMu, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
+    _showInteractiveFeedback(dogruMu, mevcutSoru["aciklama"], mevcutSoru["gercekIkon"]);
+  }
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-          if (_currentIndex < _soruHavuzu.length - 1) {
-            _currentIndex++;
-          } else {
-            _oyunBitti = true;
-            if (_kazanilanPuan >= 60) {
-              _confettiController.play();
-            }
-            _verileriSenkronizeEt();
-          }
-        });
+  void _nextStep() {
+    setState(() {
+      _isProcessing = false;
+      if (_currentIndex < _soruHavuzu.length - 1) {
+        _currentIndex++;
+      } else {
+        _oyunBitti = true;
+        if (_kazanilanPuan >= 60) {
+          _confettiController.play();
+        }
+        _verileriSenkronizeEt();
       }
     });
   }
 
-  void _showFeedback(bool isCorrect, String msg, IconData icon) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
+  void _showInteractiveFeedback(bool isCorrect, String msg, IconData icon) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (c) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(isCorrect ? "HARİKA! $msg" : "DİKKAT! $msg")),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isCorrect ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isCorrect ? Icons.check_circle_rounded : Icons.warning_rounded,
+                size: 60,
+                color: isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+              ),
+            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+            const SizedBox(height: 20),
+            Text(
+              isCorrect ? "HARİKA KARAR! 🏆" : "DİKKATLİ OL! 🛡️",
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                color: isCorrect ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              msg,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: Color(0xFF475569), fontWeight: FontWeight.w600, height: 1.5),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isCorrect ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
+              ),
+              onPressed: () {
+                Navigator.pop(c);
+                _nextStep();
+              },
+              child: const Text("DEVAM ET 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+            )
           ],
         ),
-        backgroundColor: isCorrect ? Colors.green.shade600 : Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -170,48 +211,40 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   Future<void> _verileriSenkronizeEt() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
     try {
-      // Kanıt listesini de (proof) gönderiyoruz
       await AnalyticsService().aktiviteGuncelle(user.uid, 0, proof: List.from(_gameProof));
-      debugPrint("Dedektif senkronizasyonu başarılı.");
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
-      if (mounted) {
-        String mesaage = "Puanın sunucuya kaydedilemedi! 🌐";
-        if (e.toString().contains("unauthenticated")) {
-          mesaage = "Oturum doğrulanamadı, puanın korunması için tekrar dene. 🔐";
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(mesaage),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 2),
-            action: SnackBarAction(
-              label: "TEKRAR",
-              textColor: Colors.white,
-              onPressed: _verileriSenkronizeEt,
-            ),
-          ),
-        );
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F9FF),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppColors.anaMavi, size: 30),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text("KAHRAMAN DEDEKTİF",
-            style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, letterSpacing: 1.5 , fontSize: 18)),
         centerTitle: true,
+        title: const Padding(
+          padding: EdgeInsets.only(top: 25),
+          child: Text(
+            "KAHRAMAN DEDEKTİF",
+            style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1),
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16, top: 25),
+          child: Container(
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))]),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF475569)),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
       ),
       body: SafeArea(
         child: _isLoading
@@ -230,47 +263,39 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("DAVA İLERLEMESİ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 11)),
-                      Text("${_currentIndex + 1}/${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.anaMavi)),
+                      const Text("DAVA İLERLEMESİ 🔍", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.2)),
+                      Text("${_currentIndex + 1} / ${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6366F1), fontSize: 12)),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: LinearProgressIndicator(
                       value: (_currentIndex + 1) / _soruHavuzu.length,
                       backgroundColor: Colors.white,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.anaMavi),
-                      minHeight: 14,
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                      minHeight: 12,
                     ),
                   ),
                 ],
               ),
             ),
             const Spacer(),
-            Draggable(
-              feedback: Material(color: Colors.transparent, child: _buildCard(soru, opacity: 0.8)),
-              childWhenDragging: Opacity(opacity: 0.2, child: _buildCard(soru)),
-              onDragEnd: (details) {
-                if (details.offset.dx < -100) _kararVer("TEHLİKELİ");
-                else if (details.offset.dx > 100) _kararVer("GÜVENLİ");
-              },
-              child: _buildCard(soru),
-            ).animate().slideY(begin: 0.2, duration: 300.ms, curve: Curves.easeOutBack).fadeIn(),
+            _buildCard(soru).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutBack),
             const Spacer(),
             Padding(
-              padding: const EdgeInsets.only(bottom: 40),
+              padding: const EdgeInsets.only(bottom: 50),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _actionButton("TEHLİKELİ", const Color(0xFFFF5252), Icons.gpp_bad_rounded),
-                  _actionButton("GÜVENLİ", const Color(0xFF4CAF50), Icons.verified_user_rounded),
+                  _actionButton("TEHLİKELİ", const Color(0xFFEF4444), Icons.gpp_bad_rounded),
+                  _actionButton("GÜVENLİ", const Color(0xFF10B981), Icons.verified_user_rounded),
                 ],
               ),
             ),
@@ -288,69 +313,50 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     );
   }
 
-  Widget _buildCard(Map<String, dynamic> soru, {double opacity = 1.0}) {
+  Widget _buildCard(Map<String, dynamic> soru) {
     final size = MediaQuery.of(context).size;
     return Container(
-      width: size.width * 0.88,
-      constraints: BoxConstraints(
-        minHeight: size.height * 0.35,
-        maxHeight: size.height * 0.52,
-      ),
+      width: size.width * 0.85,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(opacity),
-        borderRadius: BorderRadius.circular(45),
-        boxShadow: [
-          BoxShadow(color: AppColors.anaMavi.withOpacity(0.12), blurRadius: 40, offset: const Offset(0, 20)),
-        ],
-        border: Border.all(color: AppColors.anaMavi.withOpacity(0.15), width: 8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, 15))],
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(37),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -30, top: -30,
-              child: Icon(Icons.search_rounded, size: 180, color: AppColors.anaMavi.withOpacity(0.03)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(31)),
             ),
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(15)),
-                    child: Text("GİZEMLİ MESAJ", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.amber.shade900, fontSize: 11, letterSpacing: 1)),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.75,
-                          ),
-                          child: Text(
-                            soru["metin"],
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1A1D2E),
-                              height: 1.4,
-                              decoration: TextDecoration.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.fingerprint_rounded, size: 18, color: Colors.blueGrey),
+                const SizedBox(width: 8),
+                Text("GİZEMLİ MESAJ #0${_currentIndex + 1}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.5)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(25, 35, 25, 45),
+            child: Text(
+              soru["metin"],
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E293B),
+                height: 1.5,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -361,17 +367,17 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         GestureDetector(
           onTap: () => _kararVer(label),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+              boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
             ),
-            child: Icon(icon, color: Colors.white, size: 35),
+            child: Icon(icon, color: Colors.white, size: 32),
           ),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05), duration: 1.seconds),
+        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.08, 1.08), duration: 1.seconds),
         const SizedBox(height: 12),
-        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, decoration: TextDecoration.none)),
+        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1)),
       ],
     );
   }
@@ -379,25 +385,29 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   Widget _buildResultArea() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(30.0),
+        padding: const EdgeInsets.all(35.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.stars_rounded, size: 120, color: Colors.orangeAccent).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 20),
-            const Text("GÖREV TAMAMLANDI!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
-            const SizedBox(height: 10),
-            Text("Harika bir dedektifsin!\n$_kazanilanPuan Puan kazandın.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: Colors.blueGrey, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 40),
+            Container(
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(color: const Color(0xFFFEF3C7), shape: BoxShape.circle),
+              child: const Icon(Icons.stars_rounded, size: 80, color: Color(0xFFF59E0B)),
+            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+            const SizedBox(height: 30),
+            const Text("GÖREV TAMAMLANDI!", textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+            const SizedBox(height: 12),
+            Text("Harika bir dedektifsin!\n$_kazanilanPuan Puan başarı koleksiyonuna eklendi.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: Color(0xFF64748B), fontWeight: FontWeight.w600, height: 1.4)),
+            const SizedBox(height: 45),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.anaMavi,
-                minimumSize: const Size(double.infinity, 65),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                elevation: 10,
+                backgroundColor: const Color(0xFF6366F1),
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
               ),
               onPressed: () => Navigator.pop(context),
-              child: const Text("AKADEMİYE DÖN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              child: const Text("AKADEMİYE DÖN 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
             ),
           ],
         ),
@@ -410,11 +420,17 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.verified_rounded, size: 100, color: Colors.green).animate().shake(),
-          const SizedBox(height: 20),
-          const Text("HİÇ GİZEM KALMADI!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.anaMavi)),
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: const Icon(Icons.verified_rounded, size: 60, color: Color(0xFF10B981)),
+          ).animate().shake(),
+          const SizedBox(height: 24),
+          const Text("HİÇ GİZEM KALMADI!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+          const SizedBox(height: 8),
+          const Text("Bütün davaları çözdün Kahraman!", style: TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
           const SizedBox(height: 40),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri Dön", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri Dön", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF6366F1)))),
         ],
       ),
     );

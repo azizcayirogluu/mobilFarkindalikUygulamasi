@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/senaryo_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:math' as math;
 import 'guvenlik_rehberi_ekrani.dart';
 
 class EgitimEkrani extends StatelessWidget {
@@ -96,21 +94,22 @@ class EgitimEkrani extends StatelessWidget {
 
   Widget _buildSliverAppBar(Color bgColor) {
     return SliverAppBar(
-      expandedHeight: 90.0,
       floating: true,
       pinned: false,
       backgroundColor: bgColor,
       elevation: 0,
+      toolbarHeight: 90, // Yükseklik artırıldı
       centerTitle: true,
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: true,
-        title: Text(
+      title: Padding(
+        padding: const EdgeInsets.only(top: 20), // Üstten boşluk verildi
+        child: Text(
           "KAHRAMANLIK AKADEMİSİ",
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF2C3E50),
             fontWeight: FontWeight.w900,
-            fontSize: 14,
-            letterSpacing: 1,
+            fontSize: 16, // Biraz daha belirgin yapıldı
+            letterSpacing: 1.5,
             shadows: [
               Shadow(
                 color: Colors.black.withOpacity(0.05),
@@ -204,6 +203,8 @@ class EgitimEkrani extends StatelessWidget {
                       children: [
                         Text(
                           title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF1E293B),
                             fontSize: 17,
@@ -213,6 +214,8 @@ class EgitimEkrani extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           desc,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 12,

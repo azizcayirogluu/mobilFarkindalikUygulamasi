@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class StoryManager extends StatefulWidget {
   const StoryManager({super.key});
@@ -37,7 +36,7 @@ class _StoryManagerState extends State<StoryManager> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Eğitici Hikaye Kütüphanesi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            Text("Hikaye Yönetim Ekranı", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
             Text("Çocukların okuma listesindeki içerikleri yönetin ve yeni öyküler ekleyin.", style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
           ],
         ),

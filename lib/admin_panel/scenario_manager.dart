@@ -11,7 +11,6 @@ class ScenarioManager extends StatefulWidget {
 }
 
 class _ScenarioManagerState extends State<ScenarioManager> {
-  // Firestore bağlantısı başlatılıyor
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -79,7 +78,7 @@ class _ScenarioManagerState extends State<ScenarioManager> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("SENARYO MİMARI",
+            Text("Senaryo Yönetim Ekranı",
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.yaziRengi)),
             const Text("Eğitici içerikleri ve interaktif soruları buradan yönetin.",
                 style: TextStyle(color: Colors.blueGrey)),

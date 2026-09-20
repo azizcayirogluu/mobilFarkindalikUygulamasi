@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 import '../app_theme.dart';
 import 'siber_asistan_ekrani.dart';
 
@@ -129,36 +132,57 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
 
   Future<void> _playAsset(String asset) async {
     try {
-      setState(() => _audioError = null);
-
       if (_loadedAsset == asset) {
-        if (_audioPlayer.processingState == ProcessingState.completed) {
-          await _audioPlayer.seek(Duration.zero);
-        }
         if (_audioPlayer.playing) {
           await _audioPlayer.pause();
         } else {
+          if (_audioPlayer.processingState == ProcessingState.completed) {
+            await _audioPlayer.seek(Duration.zero);
+          }
           await _audioPlayer.play();
         }
         return;
       }
 
+      setState(() => _audioError = null);
       await _audioPlayer.stop();
-      final duration = await _audioPlayer.setAsset(asset);
+      
+      // Asset dosyasını rootBundle ile byte olarak okuyup geçici bir dosyaya yazıyoruz.
+      // Bu yöntem ExoPlayer'ın yerel localhost sunucusu üzerinden varlık yüklerken
+      // yaşadığı "UnrecognizedInputFormatException" hatasını %100 kesin olarak çözer.
+      final ByteData data = await rootBundle.load(asset);
+      final Directory tempDir = await getTemporaryDirectory();
+      final String fileName = asset.split('/').last;
+      final File tempFile = File('${tempDir.path}/$fileName');
+      
+      await tempFile.writeAsBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        flush: true,
+      );
+      
+      final duration = await _audioPlayer.setFilePath(tempFile.path);
+      
       if (!mounted) return;
-
       setState(() {
         _loadedAsset = asset;
         _duration = duration ?? Duration.zero;
         _position = Duration.zero;
       });
       await _audioPlayer.play();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Ses Oynatma Hatası: $e');
       if (!mounted) return;
       _isPlayingNotifier.value = false;
       setState(() {
-        _audioError = 'Ses dosyası oynatılamadı.';
+        _audioError = 'Ses dosyası açılamadı. Lütfen tekrar deneyin.';
       });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ses yüklenemedi: $asset'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -351,7 +375,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
 
   Widget _buildSectionPicker() {
     return SizedBox(
-      height: 96,
+      height: 110, // Yükseklik biraz artırıldı
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 18),
         scrollDirection: Axis.horizontal,
@@ -365,7 +389,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             onTap: () => _selectSection(index),
             child: AnimatedContainer(
               duration: 200.ms,
-              width: 90,
+              width: 100, // Genişlik biraz artırıldı
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: selected ? item.color : Colors.white,
@@ -393,15 +417,17 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                     size: 26,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    item.shortTitle,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: selected ? Colors.white : AppColors.yaziRengi,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
+                  Flexible(
+                    child: Text(
+                      item.shortTitle,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.visible,
+                      style: TextStyle(
+                        color: selected ? Colors.white : AppColors.yaziRengi,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],

@@ -5,6 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'firebase_options.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
@@ -12,8 +15,6 @@ import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/onboarding_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/services/notification_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'injection_container.dart' as di;
 
 @pragma('vm:entry-point')
@@ -22,121 +23,71 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  bool isFirstRun = true;
-  bool initFailed = false;
-
-  try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    await _activateAppCheck();
 
+    // Crashlytics Yapılandırması
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+
+    await _activateAppCheck();
     await di.init();
     await StorageService().init();
 
     if (!kIsWeb) {
       try {
-        await MobileAds.instance.initialize();
-        await MobileAds.instance.updateRequestConfiguration(
-          RequestConfiguration(
-            tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
-            maxAdContentRating: MaxAdContentRating.g,
-          ),
-        );
-      } catch (e) {
-        debugPrint("AdMob başlatılamadı (Mobil): $e");
+        unawaited(MobileAds.instance.initialize().then((_) {
+          MobileAds.instance.updateRequestConfiguration(
+            RequestConfiguration(
+              tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
+              maxAdContentRating: MaxAdContentRating.g,
+            ),
+          );
+        }));
+      } catch (e, stack) {
+        debugPrint("AdMob Init Error: $e");
+        FirebaseCrashlytics.instance.recordError(e, stack, reason: 'AdMob Initialization Failed');
       }
     }
 
-    isFirstRun = StorageService().isFirstRun();
     _applyPostInitSettings();
-  } catch (e) {
-    debugPrint("Kritik başlatma hatası: $e");
-    initFailed = true;
-  }
 
-  if (initFailed) {
-    runApp(const _InitErrorApp());
-    return;
-  }
-
-  runApp(MyApp(isFirstRun: isFirstRun));
+    final bool isFirstRun = StorageService().isFirstRun();
+    runApp(MyApp(isFirstRun: isFirstRun));
+  }, (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+  });
 }
 
 Future<void> _activateAppCheck() async {
-  if (kIsWeb ||
-      (defaultTargetPlatform != TargetPlatform.android &&
-          defaultTargetPlatform != TargetPlatform.iOS)) {
+  if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
     return;
   }
-
-  await FirebaseAppCheck.instance.activate(
-    providerAndroid: kDebugMode
-        ? const AndroidDebugProvider()
-        : const AndroidPlayIntegrityProvider(),
-    providerApple: kDebugMode
-        ? const AppleDebugProvider()
-        : const AppleAppAttestWithDeviceCheckFallbackProvider(),
-  );
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode ? AndroidDebugProvider() : AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode ? AppleDebugProvider() : AppleAppAttestWithDeviceCheckFallbackProvider(),
+    );
+  } catch (e, stack) {
+    debugPrint("App Check Activation Error: $e");
+    FirebaseCrashlytics.instance.recordError(e, stack, reason: 'App Check Activation Failed');
+  }
 }
 
 void _applyPostInitSettings() {
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 20 * 1024 * 1024;
-  try {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: 100 * 1024 * 1024,
-    );
-  } catch (e) {
-    debugPrint("Firestore ayar hatası: $e");
-  }
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 30 * 1024 * 1024;
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-}
-
-class _InitErrorApp extends StatelessWidget {
-  const _InitErrorApp();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.wifi_off_rounded,
-                  size: 80,
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  "Bağlantı Sorunu! 📡",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "Kahramanlık profilini hazırlayamadık.\nİnternetini kontrol edip uygulamayı\nyeniden açar mısın?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.blueGrey, height: 1.5),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: () => main(),
-                  child: const Text("TEKRAR DENE"),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class MyApp extends StatelessWidget {
@@ -163,11 +114,9 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        if (snapshot.hasData) {
+        if (snapshot.hasData && snapshot.data != null) {
           return UserDataGate(uid: snapshot.data!.uid);
         }
         return const KarsilamaEkrani();
@@ -176,119 +125,33 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-enum _UserDataStatus { loading, ready, error }
-
-class UserDataGate extends StatefulWidget {
+/// UserDataGate: Kullanıcı profili oluşana kadar bekleyen ve veri senkronizasyonu sağlayan katman.
+class UserDataGate extends StatelessWidget {
   final String uid;
   const UserDataGate({super.key, required this.uid});
 
   @override
-  State<UserDataGate> createState() => _UserDataGateState();
-}
-
-class _UserDataGateState extends State<UserDataGate> {
-  _UserDataStatus _status = _UserDataStatus.loading;
-  int _retryCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkUserProfile();
-  }
-
-  /// SEC-03: Kullanıcı verilerinin Cloud Function (onUserCreated) tarafından oluşturulmasını bekler.
-  /// Client-side veri oluşturma (recovery) kaldırıldı, güvenli hale getirildi.
-  Future<void> _checkUserProfile() async {
-    if (!mounted) return;
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .get(const GetOptions(source: Source.serverAndCache))
-          .timeout(const Duration(seconds: 10));
-
-      if (doc.exists) {
-        if (mounted) setState(() => _status = _UserDataStatus.ready);
-      } else {
-        // Cloud Function veriyi henüz oluşturmamış olabilir, 2 saniye sonra tekrar dene.
-        if (_retryCount < 5) {
-          _retryCount++;
-          await Future.delayed(const Duration(seconds: 1));
-          _checkUserProfile();
-        } else {
-          if (mounted) setState(() => _status = _UserDataStatus.error);
-        }
-      }
-    } catch (e) {
-      debugPrint("Profil kontrol hatası: $e");
-      if (mounted) setState(() => _status = _UserDataStatus.error);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    switch (_status) {
-      case _UserDataStatus.loading:
-        return const Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 20),
-                Text(
-                  "Kahraman profili yükleniyor...",
-                  style: TextStyle(color: Colors.blueGrey),
-                ),
-              ],
-            ),
-          ),
-        );
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _ErrorView(onRetry: () => FirebaseAuth.instance.signOut());
+        }
 
-      case _UserDataStatus.error:
-        return Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Colors.redAccent,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Bağlantı kurulamadı veya profil henüz hazır değil.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _status = _UserDataStatus.loading;
-                        _retryCount = 0;
-                      });
-                      _checkUserProfile();
-                    },
-                    child: const Text("YENİDEN DENE"),
-                  ),
-                  TextButton(
-                    onPressed: () => FirebaseAuth.instance.signOut(),
-                    child: const Text("Giriş Sayfasına Dön"),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _LoadingView(message: "Kahraman profili yükleniyor...");
+        }
 
-      case _UserDataStatus.ready:
-        return const AppInitializer();
-    }
+        final doc = snapshot.data;
+        if (doc != null && doc.exists) {
+          return const AppInitializer();
+        }
+
+        // Profil henüz oluşmamış (örneğin Cloud Function çalışıyor)
+        return const _LoadingView(message: "Kahramanlık hazırlıkları yapılıyor...");
+      },
+    );
   }
 }
 
@@ -300,21 +163,19 @@ class AppInitializer extends StatefulWidget {
 }
 
 class _AppInitializerState extends State<AppInitializer> {
-  final NotificationService _notificationService = NotificationService();
-  bool _started = false;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_started) return;
-      _started = true;
-      _notificationService.initialize();
-      _updateLastSeen();
-    });
+    _onAppStarted();
   }
 
-  Future<void> _updateLastSeen() async {
+  void _onAppStarted() {
+    final notificationService = NotificationService();
+    notificationService.initialize();
+    _updateUserActivity();
+  }
+
+  Future<void> _updateUserActivity() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
@@ -322,19 +183,58 @@ class _AppInitializerState extends State<AppInitializer> {
         'sonGorulme': FieldValue.serverTimestamp(),
         'isOnline': true,
       }, SetOptions(merge: true));
-    } catch (e) {
-      debugPrint("Son görülme güncellenemedi: $e");
-    }
+    } catch (_) {}
   }
 
   @override
-  void dispose() {
-    _notificationService.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) => const AnaNavigation();
+}
+
+class _LoadingView extends StatelessWidget {
+  final String message;
+  const _LoadingView({required this.message});
 
   @override
   Widget build(BuildContext context) {
-    return const AnaNavigation();
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            Text(message, style: const TextStyle(color: Colors.blueGrey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ErrorView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              const Text("Bağlantı Sorunu", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 8),
+              const Text("Profiline ulaşılamadı. Lütfen internetini kontrol et.", textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton(onPressed: onRetry, child: const Text("TEKRAR DENE")),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

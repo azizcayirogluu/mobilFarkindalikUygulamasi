@@ -7,7 +7,7 @@ import 'package:zorbalik_uygulamasi/admin_panel/story_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/video_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/user_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/detective_manager.dart';
-import 'package:zorbalik_uygulamasi/admin_panel/incident_manager.dart';
+import 'package:zorbalik_uygulamasi/admin_panel/badge_manager.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 
@@ -28,7 +28,7 @@ class _AdminHomeState extends State<AdminHome> {
     const VideoManager(),
     const UserManager(),
     const DetectiveManager(),
-    const IncidentManager(),
+    const BadgeManager(),
   ];
 
   @override
@@ -57,35 +57,31 @@ class _AdminHomeState extends State<AdminHome> {
                       _sidebarItem(
                         0,
                         Icons.dashboard_customize_rounded,
-                        "Yönetim Paneli",
-                      ),
-                      _sidebarItem(
-                        6,
-                        Icons.report_problem_rounded,
-                        "Olay Bildirimleri",
+                        "Sistem Özeti",
                       ),
                       const SizedBox(height: 20),
                       _menuHeader("İÇERİK OPERASYONLARI"),
                       _sidebarItem(
                         1,
                         Icons.account_tree_rounded,
-                        "Senaryo Mimarisi",
+                        "Senaryo Yönetimi",
                       ),
                       _sidebarItem(
                         2,
                         Icons.auto_stories_rounded,
-                        "Hikaye Kütüphanesi",
+                        "Hikaye Yönetimi",
                       ),
                       _sidebarItem(
                         3,
                         Icons.video_library_rounded,
-                        "Eğitim Arşivi",
+                        "Video Yönetimi",
                       ),
                       _sidebarItem(
-                        5,
-                        Icons.psychology_rounded,
-                        "Dedektif Soruları",
+                        6,
+                        Icons.emoji_events_rounded,
+                        "Rozet Yönetimi",
                       ),
+                      _sidebarItem(5, Icons.filter_frames, "Dedektif Yönetimi"),
                       const SizedBox(height: 20),
                       _menuHeader("SİSTEM"),
                       _sidebarItem(
@@ -138,7 +134,7 @@ class _AdminHomeState extends State<AdminHome> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "KAHRAMAN",
+                "KAHRAMAN\nDOSTUM",
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
@@ -146,14 +142,9 @@ class _AdminHomeState extends State<AdminHome> {
                   letterSpacing: 1,
                 ),
               ),
-              Text(
-                "DOSTUM CMS",
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text("Yönetim Paneli" , style: TextStyle(
+                color: Colors.white
+              ),)
             ],
           ),
         ],

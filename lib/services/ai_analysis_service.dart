@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/ai/offline_ai_engine.dart';
+import '../utils/app_logger.dart';
 
 class AiAnalysisService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,7 +21,7 @@ class AiAnalysisService {
         'son_hatalar': FieldValue.arrayUnion([mistake]),
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint("Hata kaydedilemedi: $e");
+      AppLogger.error("Hata kaydedilemedi", e);
     }
   }
 
@@ -35,7 +35,7 @@ class AiAnalysisService {
         return List<String>.from(doc.data()?['son_hatalar'] ?? []);
       }
     } catch (e) {
-      debugPrint("Hatalar getirilemedi: $e");
+      AppLogger.error("Hatalar getirilemedi", e);
     }
     return [];
   }
@@ -47,7 +47,7 @@ class AiAnalysisService {
         'son_hatalar': [],
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint("Hatalar temizlenemedi: $e");
+      AppLogger.error("Hatalar temizlenemedi", e);
     }
   }
 
@@ -59,7 +59,7 @@ class AiAnalysisService {
       bool hasInternet = connectivityResult.any((r) => r != ConnectivityResult.none);
                          
       if (!hasInternet) {
-        debugPrint("Çevrimdışı mod: Gemini yerine Kural Tabanlı Motor çalışıyor.");
+        AppLogger.log("Çevrimdışı mod: Gemini yerine Kural Tabanlı Motor çalışıyor.");
         final mistakes = await getMistakes(uid);
         final offlineResult = await _offlineEngine.analyzeMistakes(mistakes);
         return {
@@ -75,11 +75,11 @@ class AiAnalysisService {
       final neden = result.data['neden'] ?? 'Analiz sonucu okunamadı.';
 
       return {"durum": durum, "neden": neden};
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint("YZ Analiz Hatası: ${e.code} - ${e.message}");
+    } on FirebaseFunctionsException catch (e, stack) {
+      AppLogger.error("YZ Analiz Hatası (Functions)", e, stack);
       return {"durum": "HATA", "neden": "Sunucu şu an çok meşgul, lütfen biraz sonra tekrar dene."};
-    } catch (e) {
-      debugPrint("Bağlantı Hatası: $e");
+    } catch (e, stack) {
+      AppLogger.error("YZ Analiz Bağlantı Hatası", e, stack);
       return {"durum": "HATA", "neden": "Bağlantı çok yavaş veya koptu. Lütfen internetini kontrol et."};
     }
   }

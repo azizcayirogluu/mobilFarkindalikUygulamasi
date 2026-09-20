@@ -47,61 +47,87 @@ class _AnaNavigationState extends State<AnaNavigation> {
   }
 
   Widget _buildKahramanFAB() {
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberAsistanEkrani())),
-      child: Container(
-        height: 65, width: 65,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF3B82F6)]),
-          border: Border.all(color: Colors.white, width: 4),
-          // Sadece çok hafif bir gölge (Performans için)
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+    return Container(
+      height: 65,
+      width: 65,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
         ),
-        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 32),
+        border: Border.all(color: Colors.white, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SiberAsistanEkrani()),
+          ),
+          customBorder: const CircleBorder(),
+          child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
+        ),
       ),
     );
   }
 
   Widget _buildModernBottomBar() {
     return BottomAppBar(
-      height: 75,
       color: Colors.white,
       shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      elevation: 10,
-      padding: EdgeInsets.zero,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.grid_view_rounded, "Keşfet", 0),
-          _buildNavItem(Icons.auto_stories_rounded, "Eğitim", 1),
-          const SizedBox(width: 40), // FAB boşluğu
-          _buildNavItem(Icons.emoji_events_rounded, "Rozetler", 2),
-          _buildNavItem(Icons.face_retouching_natural_rounded, "Profil", 3),
-        ],
+      notchMargin: 10,
+      elevation: 15,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.grid_view_rounded, "Keşfet", 0),
+            _buildNavItem(Icons.auto_stories_rounded, "Eğitim", 1),
+            const SizedBox(width: 48), // FAB boşluğu
+            _buildNavItem(Icons.emoji_events_rounded, "Rozetler", 2),
+            _buildNavItem(Icons.face_retouching_natural_rounded, "Profil", 3),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isSelected = _secilenIndeks == index;
-    final Color color = isSelected ? const Color(0xFF3B82F6) : Colors.grey.shade400;
+    final Color color =
+        isSelected ? const Color(0xFF3B82F6) : Colors.grey.shade400;
 
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _secilenIndeks = index),
+        borderRadius: BorderRadius.circular(15),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: isSelected ? 26 : 24),
-            const SizedBox(height: 2),
+            Icon(
+              icon,
+              color: color,
+              size: isSelected ? 26 : 24,
+            ),
+            const SizedBox(height: 4),
             Text(
               label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: color,
                 fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
               ),
             ),
           ],

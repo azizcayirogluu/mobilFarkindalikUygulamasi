@@ -5,6 +5,7 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/senaryo_detay_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_detay_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_detay_ekrani.dart';
+import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/services/content_service.dart';
 
@@ -59,6 +60,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
         return Icons.auto_stories_rounded;
       case 'play':
         return Icons.play_circle_filled_rounded;
+      case 'search':
+        return Icons.search_rounded;
       default:
         return Icons.stars_rounded;
     }
@@ -196,7 +199,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
                             tamamlananSayisi,
                             puan,
                             ilerleme,
-                            size,
                           ),
                         ),
                       ),
@@ -214,7 +216,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
                                   (c, i) =>
                                       _buildModernContentCard(
                                             _kesifHavuzu[i],
-                                            size,
                                           )
                                           .animate(delay: (i * 30).ms)
                                           .fadeIn(duration: 300.ms)
@@ -243,63 +244,71 @@ class _AnaSayfaState extends State<AnaSayfa> {
       floating: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      toolbarHeight: 110,
-      title: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "KAHRAMAN GÜNLÜĞÜ 🧾",
-                  style: TextStyle(
-                    color: Colors.indigo.shade300,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "Selam, $ad! ✨",
-                  style: TextStyle(
-                    color: Colors.indigo.shade900,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: widget.onProfileTap,
-            child: Hero(
-              tag: 'profile_avatar',
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.indigo.withOpacity(0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+      toolbarHeight: 90, // AppBar yüksekliği artırıldı
+      titleSpacing: 0,
+      title: Padding(
+        padding: EdgeInsets.fromLTRB(padding, 20, padding, 8), // Üstten boşluk eklendi
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "KAHRAMAN GÜNLÜĞÜ 🧾",
+                    style: TextStyle(
+                      color: Colors.indigo.shade300,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
                     ),
-                  ],
-                  border: Border.all(color: Colors.indigo.shade50, width: 2),
-                ),
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white,
-                  backgroundImage: AssetImage(avatarPath),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Selam, $ad! ✨",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.indigo.shade900,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: widget.onProfileTap,
+              child: Hero(
+                tag: 'profile_avatar',
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.indigo.withOpacity(0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.indigo.shade50, width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white,
+                    backgroundImage: AssetImage(avatarPath),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -308,11 +317,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
     int tamamlanan,
     int puan,
     double ilerleme,
-    Size size,
   ) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 180),
+      constraints: const BoxConstraints(minHeight: 160),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(35),
         color: Colors.white.withOpacity(0.45),
@@ -348,84 +356,90 @@ class _AnaSayfaState extends State<AnaSayfa> {
               size: 80,
             ),
 
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 18,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.orange.withOpacity(0.2),
-                                blurRadius: 8,
-                              ),
-                            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 22,
+                vertical: 18,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 15,
+                    runSpacing: 10,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.8),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.2),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome,
+                              color: Colors.orangeAccent,
+                              size: 24,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.auto_awesome,
-                            color: Colors.orangeAccent,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "MACERA SEVİYESİ",
-                                style: TextStyle(
-                                  color: Colors.indigo.shade900.withOpacity(
-                                    0.5,
+                          const SizedBox(width: 15),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "MACERA SEVİYESİ",
+                                  style: TextStyle(
+                                    color: Colors.indigo.shade900.withOpacity(
+                                      0.5,
+                                    ),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
                                   ),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.5,
                                 ),
-                              ),
-                              Text(
-                                "${(ilerleme * 100).toInt()}% Tamamlandı! ✨",
-                                style: TextStyle(
-                                  color: Colors.indigo.shade900,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
+                                Text(
+                                  "${(ilerleme * 100).toInt()}% Tamamlandı! ✨",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.indigo.shade900,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        _buildPointBadge(puan),
-                      ],
+                        ],
+                      ),
+                      _buildPointBadge(puan),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildLinearProgress(ilerleme),
+                  const SizedBox(height: 10),
+                  Text(
+                    _ilerlemeMesaji(ilerleme),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.indigo.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 16),
-                    _buildLinearProgress(ilerleme),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _ilerlemeMesaji(ilerleme),
-                          style: TextStyle(
-                            color: Colors.indigo.shade700,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -520,7 +534,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
-  Widget _buildModernContentCard(Map item, Size size) {
+  Widget _buildModernContentCard(Map item,) {
     final Color color = item['renk'];
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -535,20 +549,22 @@ class _AnaSayfaState extends State<AnaSayfa> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(item['ikon'], color: color, size: 30),
+                child: Icon(item['ikon'], color: color, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       item['tip'],
@@ -562,12 +578,16 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     const SizedBox(height: 4),
                     Text(
                       item['baslik'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                         color: Color(0xFF1E293B),
+                        height: 1.2,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       item['tip'] == "HİKAYE"
                           ? (item['data']['feedbackMessage'] != null &&
@@ -577,21 +597,23 @@ class _AnaSayfaState extends State<AnaSayfa> {
                                 ? item['data']['feedbackMessage']
                                 : "Kahramanlık yolunda yeni bir öykü! ✨")
                           : item['altBaslik'],
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blueGrey.shade300,
                         fontWeight: FontWeight.w500,
+                        height: 1.2,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 color: color.withOpacity(0.2),
-                size: 16,
+                size: 14,
               ),
             ],
           ),
@@ -688,6 +710,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
             youtubeId: data['youtubeId'],
             tumVideolarJson: _kesifHavuzu,
           ),
+        ),
+      );
+    } else if (item['tip'] == "SİBER DEDEKTİF") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SiberDedektifOyunu(),
         ),
       );
     }

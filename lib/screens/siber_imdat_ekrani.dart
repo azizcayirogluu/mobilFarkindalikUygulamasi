@@ -10,54 +10,59 @@ class SiberImdatEkrani extends StatefulWidget {
 }
 
 class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
-  // Kullanıcının kriz anında yapması gerekenleri takip edebileceği yerel yapı
-  final List<Map<String, dynamic>> _kontrolListesi = [
-    {"baslik": "Ekran görüntüsü (kanıt) aldım", "tamamlandi": false},
-    {"baslik": "Zorbalık yapanı hemen engelledim", "tamamlandi": false},
-    {"baslik": "Güvendiğim bir büyüğüme anlattım", "tamamlandi": false},
-    {"baslik": "Kahraman Rehberim ile durumu paylaştım", "tamamlandi": false},
+  final List<Map<String, dynamic>> _savunmaAdimlari = [
+    {
+      "baslik": "Kanıt Topla",
+      "alt": "Ekran görüntüsü almayı unutma!",
+      "ikon": Icons.camera_enhance_rounded,
+      "tamam": false
+    },
+    {
+      "baslik": "Kalkanı Aç",
+      "alt": "Zorbalık yapanı hemen engelle!",
+      "ikon": Icons.shield_rounded,
+      "tamam": false
+    },
+    {
+      "baslik": "Yardım İste",
+      "alt": "Güvendiğin bir büyüğüne anlat.",
+      "ikon": Icons.record_voice_over_rounded,
+      "tamam": false
+    },
+    {
+      "baslik": "Sessiz Kalma",
+      "alt": "Durumu Kahraman Rehberinle paylaş.",
+      "ikon": Icons.volunteer_activism_rounded,
+      "tamam": false
+    },
   ];
 
-  // Cihazın varsayılan telefon uygulamasını güvenle başlatır
   Future<void> _ara(String num) async {
     try {
       final Uri uri = Uri.parse("tel:$num");
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else {
-        _hataGoster("Bu cihaz telefon aramalarını desteklemiyor. 📞");
+        _hataGoster("Arama yapılamadı. 📞");
       }
     } catch (e) {
-      debugPrint("Arama başlatma hatası: $e");
-      _hataGoster("Arama yapılamadı.");
+      _hataGoster("Hata oluştu.");
     }
   }
 
-  // Google Haritalar'ı harici uygulamada güvenle açar
   Future<void> _haritaGit(String yer) async {
     try {
-      final Uri uri = Uri.parse(
-        "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(yer)}",
-      );
+      final Uri uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(yer)}");
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        _hataGoster("Harita açacak bir uygulama bulunamadı. 🗺️");
       }
-    } catch (e) {
-      debugPrint("Harita açma hatası: $e");
-      _hataGoster("Harita açılamadı.");
-    }
+    } catch (_) {}
   }
 
   void _hataGoster(String mesaj) {
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          mesaj,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        content: Text(mesaj, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -68,29 +73,36 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FD),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           _buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildSectionTitle("ACİL YARDIM HATLARI 🚨"),
+                  const SizedBox(height: 16),
                   _buildEmergencySection(),
-                  const SizedBox(height: 25),
-                  const SizedBox(height: 5),
-                  _buildSectionTitle("YARDIM NOKTALARI"),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle("KAHRAMAN SAVUNMA KİTİ 🛡️"),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Güvende kalmak için bu adımları aktifleştir!",
+                    style: TextStyle(color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDefenseGrid(),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle("YAKIN YARDIM NOKTALARI 📍"),
+                  const SizedBox(height: 16),
                   _buildModernMapGrid(),
-                  const SizedBox(height: 30),
-                  _buildSectionTitle("GÜVENLİ ADIMLAR"),
-                  const SizedBox(height: 15),
-                  _buildChecklistSection(),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
                   _buildLegalFooter(),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -100,35 +112,30 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
     );
   }
 
-  // SliverAppBar: Sayfa kaydırıldığında başlığın yukarıda sabit kalmasını sağlayan appBar
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 180,
-      floating: false,
+      expandedHeight: 160,
       pinned: true,
-      backgroundColor: const Color(0xFFE74C3C),
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: true,
-        title: const Text(
-          "GÜVENLİK MERKEZİ",
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            color: Colors.white,
+      backgroundColor: const Color(0xFFEF4444),
+      elevation: 0,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: CircleAvatar(
+          backgroundColor: Colors.white24,
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        title: const Text("GÜVENLİK MERKEZİ", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
         background: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFE74C3C), Color(0xFFC0392B)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           ),
-          child: Opacity(
-            opacity: 0.2,
-            child: const Icon(Icons.security, size: 150, color: Colors.white),
-          ),
+          child: Center(child: Opacity(opacity: 0.15, child: const Icon(Icons.shield_rounded, size: 120, color: Colors.white))),
         ),
       ),
     );
@@ -137,252 +144,124 @@ class _SiberImdatEkraniState extends State<SiberImdatEkrani> {
   Widget _buildEmergencySection() {
     return Row(
       children: [
-        Expanded(
-          child: _buildPanicCapsule(
-            "112",
-            "ACİL SERVİS",
-            const Color(0xFFE74C3C),
-            Icons.emergency_share,
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: _buildPanicCapsule(
-            "183",
-            "DESTEK HATTI",
-            const Color(0xFFF39C12),
-            Icons.support_agent_rounded,
-          ),
-        ),
+        _panicButton("112", "POLİS / AMBULANS", const Color(0xFFEF4444)),
+        const SizedBox(width: 16),
+        _panicButton("183", "DESTEK HATTI", const Color(0xFFF59E0B)),
       ],
     );
   }
 
-  // Acil durum butonları
-  Widget _buildPanicCapsule(
-    String num,
-    String label,
-    Color color,
-    IconData icon,
-  ) {
-    return GestureDetector(
-          onTap: () => _ara(num),
-          child: Container(
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 30),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  num,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 10,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
+  Widget _panicButton(String num, String label, Color color) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _ara(num),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: color.withOpacity(0.2), width: 2),
+            boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))],
           ),
-        )
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(delay: 1.seconds, duration: 200.ms);
+          child: Column(
+            children: [
+              Text(num, style: TextStyle(color: color, fontSize: 28, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text(label, style: const TextStyle(color: Colors.blueGrey, fontSize: 9, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+      ),
+    ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.02, 1.02), duration: 2.seconds);
+  }
+
+  Widget _buildDefenseGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: _savunmaAdimlari.length,
+      itemBuilder: (context, index) => _defenseCard(index),
+    );
+  }
+
+  Widget _defenseCard(int index) {
+    final item = _savunmaAdimlari[index];
+    final bool isDone = item["tamam"];
+    final Color color = isDone ? const Color(0xFF10B981) : const Color(0xFF6366F1);
+
+    return GestureDetector(
+      onTap: () => setState(() => _savunmaAdimlari[index]["tamam"] = !isDone),
+      child: AnimatedContainer(
+        duration: 300.ms,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDone ? color.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isDone ? color : const Color(0xFFF1F5F9), width: 2.5),
+          boxShadow: [if (!isDone) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(item["ikon"], color: color, size: 32),
+            const SizedBox(height: 12),
+            Text(item["baslik"], style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 14)),
+            const SizedBox(height: 2),
+            Text(item["alt"], textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 9, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    ).animate(target: isDone ? 1 : 0).shimmer(duration: 1.seconds);
   }
 
   Widget _buildModernMapGrid() {
     return Row(
       children: [
-        Expanded(
-          child: _buildMapCard(
-            "Polis",
-            Icons.local_police_rounded,
-            Colors.blueAccent,
-            "en yakın polis merkezi",
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: _buildMapCard(
-            "Yardım",
-            Icons.volunteer_activism,
-            Colors.green,
-            "en yakın sosyal hizmetler",
-          ),
-        ),
+        _mapBtn("Polis Merkezi", Icons.local_police_rounded, const Color(0xFF3B82F6), "en yakın polis merkezi"),
+        const SizedBox(width: 16),
+        _mapBtn("Sosyal Yardım", Icons.volunteer_activism, const Color(0xFF10B981), "en yakın sosyal hizmetler"),
       ],
     );
   }
 
-  Widget _buildMapCard(String title, IconData icon, Color color, String query) {
-    return InkWell(
-      onTap: () => _haritaGit(query),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ],
+  Widget _mapBtn(String title, IconData icon, Color color, String query) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => _haritaGit(query),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF1F5F9))),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF1E293B)))),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Kullanıcının psikolojik olarak sakinleşmesini sağlayan ve somut adımları gösteren alan
-  Widget _buildChecklistSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20),
-        ],
-      ),
-      child: Column(
-        children: [
-          ..._kontrolListesi.asMap().entries.map((entry) {
-            return _buildCheckItem(entry.key);
-          }).toList(),
-          const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.lightbulb_outline, color: Colors.orange, size: 20),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Bu adımları takip etmek seni daha güvende tutar!",
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.1);
-  }
-
-  //Tıklandığında 'tamamlandı' durumunu değiştirir ve UI'ı günceller
-  Widget _buildCheckItem(int index) {
-    bool isDone = _kontrolListesi[index]["tamamlandi"];
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _kontrolListesi[index]["tamamlandi"] = !isDone;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDone
-              ? Colors.green.withOpacity(0.1)
-              : const Color(0xFFF8F9FB),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDone ? Colors.green.withOpacity(0.3) : Colors.transparent,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isDone
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: isDone ? Colors.green : Colors.grey.shade400,
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                _kontrolListesi[index]["baslik"],
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: isDone
-                      ? Colors.green.shade700
-                      : Colors.blueGrey.shade800,
-                  decoration: isDone
-                      ? TextDecoration.lineThrough
-                      : null, // Tamamlanınca yazının üstünü çizer
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String t) => Text(
-    t,
-    style: const TextStyle(
-      fontWeight: FontWeight.w900,
-      color: Color(0xFF2C3E50),
-      fontSize: 13,
-      letterSpacing: 1.2,
-    ),
-  );
+  Widget _buildSectionTitle(String t) => Text(t, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E293B), fontSize: 13, letterSpacing: 1));
 
   Widget _buildLegalFooter() {
-    return Center(
-      child: Text(
-        "Yalnız değilsin, her zaman bir yardım yolu vardır.\nTehlike anında vakit kaybetmeden 112'yi ara.",
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.grey.shade500,
-          height: 1.5,
-          fontStyle: FontStyle.italic,
+    return Column(
+      children: [
+        const Divider(),
+        const SizedBox(height: 16),
+        Text(
+          "Yalnız değilsin, her zaman bir yardım yolu vardır.\nTehlike anında vakit kaybetmeden 112'yi ara.",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500, height: 1.6, fontStyle: FontStyle.italic),
         ),
-      ),
+      ],
     );
   }
 }

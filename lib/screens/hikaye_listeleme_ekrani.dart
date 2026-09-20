@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_detay_ekrani.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -9,17 +11,52 @@ class HikayeListelemeEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final paddingValue = size.width * 0.05;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // Daha modern, açık bir zemin
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("KAHRAMANLIK ÖYKÜLERİ",
-            style: TextStyle(fontSize: 18, color: Color(0xFF4A90E2), letterSpacing: 1.5)),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B)),
-          onPressed: () => Navigator.pop(context),
+        title: const Padding(
+          padding: EdgeInsets.only(top: 25),
+          child: Text(
+            "Kahramanlık Öyküleri",
+            style: TextStyle(
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w900,
+              fontSize: 22,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16, top: 25),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.indigo.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: Color(0xFF475569),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -28,39 +65,56 @@ class HikayeListelemeEkrani extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.anaMavi));
           }
+          
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _buildEmptyState();
           }
 
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // Çocuklar için daha keşif odaklı 2'li grid
-              crossAxisSpacing: 15,
-              mainAxisSpacing: 15,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-              return _buildHeroCard(context, data, index)
-                  .animate(delay: (index * 15).ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.05, curve: Curves.easeOutQuad);
-            },
+          final docs = snapshot.data!.docs;
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 100),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.75,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      var data = docs[index].data() as Map<String, dynamic>;
+                      return _buildModernStoryCard(context, data, index)
+                          .animate(delay: (index * 50).ms)
+                          .fadeIn(duration: 400.ms)
+                          .scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack);
+                    },
+                    childCount: docs.length,
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildHeroCard(BuildContext context, Map<String, dynamic> data, int index) {
-    // Çocukların dikkatini çekecek canlı renk paleti
-    List<Color> kartRenkleri = [
-      const Color(0xFFFF9F1C), const Color(0xFF2EC4B6),
-      const Color(0xFFE71D36), const Color(0xFF3A86FF)
+  Widget _buildModernStoryCard(BuildContext context, Map<String, dynamic> data, int index) {
+    List<Color> palette = [
+      const Color(0xFF6366F1), // Indigo
+      const Color(0xFFEC4899), // Pink
+      const Color(0xFFF59E0B), // Amber
+      const Color(0xFF10B981), // Emerald
+      const Color(0xFF3B82F6), // Blue
     ];
-    Color renk = kartRenkleri[index % kartRenkleri.length];
+    Color cardColor = palette[index % palette.length];
+    
+    String gorsel = data['gorselYolu'] ?? "";
+    String baslik = data['baslik'] ?? "Macera Başlıyor";
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -68,9 +122,9 @@ class HikayeListelemeEkrani extends StatelessWidget {
         MaterialPageRoute(
           builder: (c) => HikayeDetayEkrani(
             feedbackMessage: data['feedbackMessage'] ?? "",
-            baslik: data['baslik'] ?? "Eğitici Öykü",
-            gorselYolu: data['gorselYolu'] ?? "assets/image/books.png",
-            temaRengi: renk,
+            baslik: baslik,
+            gorselYolu: gorsel.isNotEmpty ? gorsel : "assets/image/books.png",
+            temaRengi: cardColor,
             hikayeMetni: data['hikayeMetni'] ?? data['icerik'] ?? "",
           ),
         ),
@@ -78,34 +132,109 @@ class HikayeListelemeEkrani extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [BoxShadow(color: renk.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: renk.withOpacity(0.1), borderRadius: const BorderRadius.vertical(top: Radius.circular(30))),
-                child: Icon(Icons.auto_stories_rounded, size: 50, color: renk),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  data['baslik'] ?? "Macera Başlıyor",
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF334155)),
-                ),
-              ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // VERİ DOSTU ALAN: İnternetten görsel indirmek yerine renkli lokal ikon alanı
+              Expanded(
+                flex: 4,
+                child: Container(
+                  width: double.infinity,
+                  color: cardColor.withOpacity(0.08),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(
+                        Icons.auto_stories_rounded,
+                        size: 42,
+                        color: cardColor,
+                      ),
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            "HİKAYE",
+                            style: TextStyle(
+                              color: cardColor,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // METİN ALANI: Taşma hatası asla olamaz
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          baslik,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1E293B),
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.arrow_right_alt_rounded, size: 14, color: cardColor),
+                          const SizedBox(width: 2),
+                          Text(
+                            "Hemen Oku",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: cardColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildFallbackIcon(Color color) {
+    return Container(
+      color: color.withOpacity(0.1),
+      child: Icon(Icons.auto_stories_rounded, size: 40, color: color.withOpacity(0.5)),
     );
   }
 
@@ -114,12 +243,41 @@ class HikayeListelemeEkrani extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.menu_book_rounded, size: 80, color: Colors.grey),
-          const SizedBox(height: 20),
-          Text("Henüz bir hikaye yok.\nKütüphanemiz hazırlanıyor!",
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.indigo.withOpacity(0.05),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.auto_stories_rounded, size: 60, color: Color(0xFFCBD5E1)),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "Kütüphane Hazırlanıyor!",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Yeni hikayeler çok yakında burada olacak.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF94A3B8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
-      ),
+      ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
     );
   }
 }

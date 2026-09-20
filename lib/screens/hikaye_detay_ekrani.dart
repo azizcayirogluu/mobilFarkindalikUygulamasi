@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/injection_container.dart';
 import 'package:zorbalik_uygulamasi/services/tts_service.dart';
 import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
 class HikayeDetayEkrani extends StatefulWidget {
   final String baslik;
   final String gorselYolu;
@@ -39,7 +41,6 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
     if (_currentUser == null) return;
 
     final String uid = _currentUser.uid;
-    // Merkezi servis üzerinden görev tamamlama (Kusursuz Rozet Sistemi)
     await AnalyticsService().gorevTamamla(
       uid: uid,
       gorevId: widget.baslik,
@@ -58,31 +59,42 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
+        backgroundColor: Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.stars_rounded, size: 80, color: Colors.amber),
+            const Icon(Icons.stars_rounded, size: 80, color: Colors.amber)
+                .animate(onPlay: (c) => c.repeat())
+                .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.1, 1.1), duration: 1.seconds),
             const SizedBox(height: 20),
-            Text(widget.baslik, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 10),
-            Text(
-              widget.feedbackMessage.isNotEmpty ? widget.feedbackMessage : "Harika! Bir hikaye daha bitti.",
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.blueGrey),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                widget.baslik,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B)),
+              ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 12),
+            Text(
+              widget.feedbackMessage.isNotEmpty ? widget.feedbackMessage : "Harika! Bir hikaye daha bitti. Sen gerçek bir kahramansın!",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 30),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: widget.temaRengi,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                minimumSize: const Size(double.infinity, 50),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                minimumSize: const Size(double.infinity, 55),
+                elevation: 0,
               ),
               onPressed: () {
                 Navigator.pop(context); // Diyaloğu kapat
                 Navigator.pop(context); // Ekrandan çık
               },
-              child: const Text("DEVAM ET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text("DEVAM ET 🚀", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
             ),
           ],
         ),
@@ -109,53 +121,137 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 320,
+            expandedHeight: 350,
             pinned: true,
+            stretch: true,
             backgroundColor: widget.temaRengi,
-            actions: [
-              IconButton(
-                icon: Icon(isReading ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded, color: Colors.white, size: 30),
-                onPressed: _seslendir,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black26,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
-              const SizedBox(width: 10),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: isReading ? Colors.white : Colors.black26,
+                  child: IconButton(
+                    icon: Icon(
+                      isReading ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                      color: isReading ? widget.temaRengi : Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: _seslendir,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [StretchMode.zoomBackground],
               background: Hero(
                 tag: widget.baslik,
-                child: widget.gorselYolu.startsWith("http")
-                    ? CachedNetworkImage(
-                        imageUrl: widget.gorselYolu,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
-                      )
-                    : Image.asset(
-                        widget.gorselYolu,
-                        fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => Container(
-                          color: widget.temaRengi,
-                          child: const Icon(Icons.book, size: 80, color: Colors.white),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    widget.gorselYolu.startsWith("http")
+                        ? CachedNetworkImage(
+                            imageUrl: widget.gorselYolu,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(color: widget.temaRengi.withOpacity(0.1), child: const Center(child: CircularProgressIndicator())),
+                            errorWidget: (context, url, error) => Container(color: widget.temaRengi, child: const Icon(Icons.error, color: Colors.white)),
+                          )
+                        : Image.asset(
+                            widget.gorselYolu,
+                            fit: BoxFit.cover,
+                            errorBuilder: (c, e, s) => Container(
+                              color: widget.temaRengi,
+                              child: const Icon(Icons.book, size: 80, color: Colors.white),
+                            ),
+                          ),
+                    // Görselin alt kısmına yumuşak bir geçiş
+                    Positioned(
+                      bottom: -1,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                         ),
                       ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(25),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.baslik, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.temaRengi)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: widget.temaRengi.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      "MACERA HİKAYESİ",
+                      style: TextStyle(color: widget.temaRengi, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.baslik,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: -0.5,
+                      height: 1.1,
+                    ),
+                  ),
                   const SizedBox(height: 20),
-                  Text(widget.hikayeMetni, style: const TextStyle(fontSize: 17, height: 1.6, color: Colors.black87)),
-                  const SizedBox(height: 40),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      widget.hikayeMetni,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        height: 1.7,
+                        color: Color(0xFF334155),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                   if (widget.feedbackMessage.isNotEmpty) _buildHeroNote(),
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -163,12 +259,32 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
         ],
       ),
       bottomSheet: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(color: Colors.white),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
         child: ElevatedButton(
           onPressed: _hikayeyiBitir,
-          style: ElevatedButton.styleFrom(backgroundColor: widget.temaRengi, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-          child: const Text("OKUMAYI TAMAMLADIM ✅", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.temaRengi,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 60),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 0,
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("OKUMAYI TAMAMLADIM ✅", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            ],
+          ),
         ),
       ),
     );
@@ -176,16 +292,45 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
 
   Widget _buildHeroNote() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: widget.temaRengi.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: widget.temaRengi.withOpacity(0.3))),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: widget.temaRengi.withOpacity(0.2), width: 2),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [Icon(Icons.lightbulb, color: widget.temaRengi), const SizedBox(width: 10), const Text("KAHRAMAN NOTU", style: TextStyle(fontWeight: FontWeight.bold))]),
-          const SizedBox(height: 10),
-          Text(widget.feedbackMessage, style: const TextStyle(fontStyle: FontStyle.italic)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: widget.temaRengi.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.lightbulb_rounded, color: widget.temaRengi, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "KAHRAMAN NOTU",
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E293B)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            widget.feedbackMessage,
+            style: const TextStyle(
+              fontStyle: FontStyle.italic,
+              fontSize: 14,
+              color: Color(0xFF475569),
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
   }
 }

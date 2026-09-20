@@ -85,8 +85,6 @@ class StatisticsModel {
   }
 
   factory StatisticsModel.fromMap(Map<String, dynamic> map) {
-    // Audit CRIT-02: Support both flat and nested structure (karar_yapisi)
-    // and both camelCase/snake_case for production stability.
     final kararYapisi = map['karar_yapisi'] as Map?;
 
     return StatisticsModel(

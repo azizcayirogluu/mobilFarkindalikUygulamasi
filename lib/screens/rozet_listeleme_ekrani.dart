@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
@@ -47,7 +48,7 @@ class RozetlerEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
-    const Color backgroundSubtle = Color(0xFFF0F9FF); // Akıcı bulut mavisi zemin
+    const Color backgroundSubtle = Color(0xFFF8FAFC); // Ferah zemin
 
     if (user == null) {
       return const Scaffold(
@@ -59,109 +60,98 @@ class RozetlerEkrani extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundSubtle,
       appBar: AppBar(
-        title: const Text(
-          "BAŞARI KOLEKSİYONU 🏆",
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-            letterSpacing: -0.3,
-          ),
-        ),
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
-      ),
-      body: Stack(
-        children: [
-          // Arka Plan Dekoratif Halka Efektleri
-          Positioned(
-            top: 120,
-            right: -60,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF3B82F6).withOpacity(0.02)),
+        title: const Padding(
+          padding: EdgeInsets.only(top: 25),
+          child: Text(
+            "BAŞARI KOLEKSİYONU 🏆",
+            style: TextStyle(
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: -0.3,
             ),
           ),
+        ),
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).snapshots(),
+        builder: (context, userSnap) {
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('badges').snapshots(),
+            builder: (context, badgeSnap) {
+              if (!userSnap.hasData || !badgeSnap.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                );
+              }
 
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).snapshots(),
-            builder: (context, userSnap) {
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('badges').snapshots(),
-                builder: (context, badgeSnap) {
-                  if (!userSnap.hasData || !badgeSnap.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
-                    );
-                  }
+              final userData = userSnap.data!.data() as Map<String, dynamic>?;
+              final List kazanilanIds = userData?['rozetler'] ?? [];
 
-                  final userData = userSnap.data!.data() as Map<String, dynamic>?;
-                  final List kazanilanIds = userData?['rozetler'] ?? [];
+              final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
 
-                  final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
+              // Sıralama Mantığı: Kazanılan rozetleri her zaman en başa alır
+              tumRozetler.sort((a, b) {
+                bool aKazanildi = kazanilanIds.contains(a.id);
+                bool bKazanildi = kazanilanIds.contains(b.id);
+                if (aKazanildi && !bKazanildi) return -1;
+                if (!aKazanildi && bKazanildi) return 1;
+                return 0;
+              });
 
-                  // Sıralama Mantığı: Kazanılan rozetleri her zaman en başa alır
-                  tumRozetler.sort((a, b) {
-                    bool aKazanildi = kazanilanIds.contains(a.id);
-                    bool bKazanildi = kazanilanIds.contains(b.id);
-                    if (aKazanildi && !bKazanildi) return -1;
-                    if (!aKazanildi && bKazanildi) return 1;
-                    return 0;
-                  });
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildEnhancedHeader(kazanilanIds.length, tumRozetler.length),
+                  ),
 
-                  return CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: _buildEnhancedHeader(kazanilanIds.length, tumRozetler.length),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 5, 20, 120),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.75, // Alt metinler için daha fazla dikey alan
                       ),
-
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 5, 20, 100),
-                        sliver: SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.78,
-                          ),
-                          delegate: SliverChildBuilderDelegate((context, index) {
-                            final rozet = tumRozetler[index];
-                            final data = rozet.data() as Map<String, dynamic>;
-                            final bool isEarned = kazanilanIds.contains(rozet.id);
-                            return _buildModernBadgeCard(context, data, isEarned, index);
-                          }, childCount: tumRozetler.length),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final rozet = tumRozetler[index];
+                        final data = rozet.data() as Map<String, dynamic>;
+                        final bool isEarned = kazanilanIds.contains(rozet.id);
+                        return _buildModernBadgeCard(context, data, isEarned, index);
+                      }, childCount: tumRozetler.length),
+                    ),
+                  ),
+                ],
               );
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  // Kullanıcının ilerlemesini gösteren Oyunbaz Cam Kart
+  // Kullanıcının ilerlemesini gösteren Premium Cam Kart
   Widget _buildEnhancedHeader(int current, int total) {
     double progress = total > 0 ? (current / total) : 0;
     return Container(
-      margin: const EdgeInsets.fromLTRB(22, 15, 22, 20),
+      margin: const EdgeInsets.fromLTRB(22, 10, 22, 20),
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(35),
-        color: Colors.white.withOpacity(0.45),
-        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.08),
-            blurRadius: 25,
+            color: Colors.indigo.withOpacity(0.04),
+            blurRadius: 20,
             offset: const Offset(0, 10),
           )
         ],
@@ -170,10 +160,8 @@ class RozetlerEkrani extends StatelessWidget {
         borderRadius: BorderRadius.circular(35),
         child: Stack(
           children: [
-            // Arka plandaki renkli "Oyun Bulutları"
-            _buildBlob(right: -20, top: -20, color: Colors.blue.shade100, size: 120),
-            _buildBlob(left: -30, bottom: -40, color: Colors.purple.shade100, size: 140),
-            _buildBlob(right: 40, bottom: -20, color: Colors.pink.shade100, size: 80),
+            _buildBlob(right: -20, top: -20, color: Colors.blue.shade50.withOpacity(0.5), size: 120),
+            _buildBlob(left: -30, bottom: -40, color: Colors.purple.shade50.withOpacity(0.5), size: 140),
 
             Padding(
               padding: const EdgeInsets.all(22),
@@ -182,17 +170,16 @@ class RozetlerEkrani extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      // Başarı İkonu
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.2), blurRadius: 8)],
+                          boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.15), blurRadius: 8)],
                         ),
                         child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 24)
                             .animate(onPlay: (c) => c.repeat())
-                            .shimmer(duration: 1000.ms),
+                            .shimmer(duration: 1500.ms),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
@@ -201,6 +188,8 @@ class RozetlerEkrani extends StatelessWidget {
                           children: [
                             Text(
                               "KOLEKSİYON DURUMU",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.indigo.shade900.withOpacity(0.5),
                                 fontSize: 10,
@@ -208,27 +197,29 @@ class RozetlerEkrani extends StatelessWidget {
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            Text(
+                            const Text(
                               "Süper Kahraman! ✨",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.indigo.shade900,
-                                fontSize: 20,
+                                color: Color(0xFF1E293B),
+                                fontSize: 18,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      // Yüzde Rozeti
+                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.indigo.shade900,
-                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           "%${(progress * 100).toInt()}",
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
@@ -236,18 +227,13 @@ class RozetlerEkrani extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildLinearProgress(progress),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Kazanılan: $current / $total Rozet",
-                        style: TextStyle(
-                          color: Colors.indigo.shade700,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    "Kazanılan: $current / $total Rozet",
+                    style: TextStyle(
+                      color: Colors.indigo.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -266,7 +252,7 @@ class RozetlerEkrani extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withOpacity(0.5),
+          color: color,
         ),
       ),
     );
@@ -274,10 +260,10 @@ class RozetlerEkrani extends StatelessWidget {
 
   Widget _buildLinearProgress(double value) {
     return Container(
-      height: 14,
+      height: 12,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(20),
       ),
       child: LayoutBuilder(builder: (context, constraints) {
@@ -286,11 +272,11 @@ class RozetlerEkrani extends StatelessWidget {
             AnimatedContainer(
               duration: const Duration(milliseconds: 800),
               curve: Curves.easeOutQuart,
-              height: 14,
+              height: 12,
               width: constraints.maxWidth * value.clamp(0.0, 1.0),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                  colors: [Color(0xFF6366F1), Color(0xFF3B82F6)],
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -313,14 +299,14 @@ class RozetlerEkrani extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isEarned ? badgeColor.withOpacity(0.15) : Colors.transparent,
+            color: isEarned ? badgeColor.withOpacity(0.1) : const Color(0xFFF1F5F9),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: isEarned ? badgeColor.withOpacity(0.08) : const Color(0xFF0F172A).withOpacity(0.02),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+              color: isEarned ? badgeColor.withOpacity(0.04) : Colors.black.withOpacity(0.01),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -330,26 +316,24 @@ class RozetlerEkrani extends StatelessWidget {
             Stack(
               alignment: Alignment.center,
               children: [
-                // Dış Halka Parlaması
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: isEarned ? badgeColor.withOpacity(0.08) : const Color(0xFFF1F5F9),
+                    color: isEarned ? badgeColor.withOpacity(0.08) : const Color(0xFFF8FAFC),
                     shape: BoxShape.circle,
                   ),
                 ),
-                // İkon Alanı
                 Icon(
                   isEarned ? badgeIcon : Icons.lock_rounded,
-                  color: isEarned ? badgeColor : const Color(0xFF94A3B8),
-                  size: 26,
+                  color: isEarned ? badgeColor : const Color(0xFFCBD5E1),
+                  size: 24,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 data['ad'] ?? "Gizemli",
                 textAlign: TextAlign.center,
@@ -364,7 +348,6 @@ class RozetlerEkrani extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            // Kriter Bilgisi (Küçük İpucu)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -373,14 +356,16 @@ class RozetlerEkrani extends StatelessWidget {
                   : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                data['kriter_tipi'] == 'puan' 
-                  ? "${data['hedef_deger'] ?? '100'} Puan" 
-                  : "Görev",
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w800,
-                  color: isEarned ? badgeColor : const Color(0xFF94A3B8),
+              child: FittedBox(
+                child: Text(
+                  data['kriter_tipi'] == 'puan' 
+                    ? "${data['hedef_deger'] ?? '100'} P" 
+                    : "GÖREV",
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: isEarned ? badgeColor : const Color(0xFF94A3B8),
+                  ),
                 ),
               ),
             ),
@@ -404,69 +389,76 @@ class RozetlerEkrani extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
         padding: const EdgeInsets.fromLTRB(30, 20, 30, 35),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 45,
-              height: 5,
-              decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
-            ),
-            const SizedBox(height: 25),
-
-            // Yuva İkonu Parlaması
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: color.withOpacity(0.2), width: 2)
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 45,
+                height: 5,
+                decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
               ),
-              child: Icon(
-                isEarned ? icon : Icons.lock_outline_rounded,
-                size: 55,
-                color: color,
-              ),
-            ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 18),
+              const SizedBox(height: 25),
 
-            Text(
-              data['ad'] ?? "Gizemli Rozet",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
-            ),
-            const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color.withOpacity(0.1), width: 2)
+                ),
+                child: Icon(
+                  isEarned ? icon : Icons.lock_outline_rounded,
+                  size: 55,
+                  color: color,
+                ),
+              ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
+              const SizedBox(height: 18),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                isEarned
-                    ? "Harika iş çıkardın! Zorbalığa karşı verdiğin mücadele ve kazandığın bu rozet projemizin en değerli parçası. Kahramanlığa devam et!"
-                    : "Bu güç kalkanı henüz aktifleşmedi. $kriterMetni bu rozeti başarı koleksiyonuna katabilirsin! ⚡",
+              Text(
+                data['ad'] ?? "Gizemli Rozet",
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.5, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.3),
               ),
-            ),
-            const SizedBox(height: 30),
+              const SizedBox(height: 12),
 
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isEarned ? color : const Color(0xFF64748B),
-                minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  isEarned
+                      ? "Harika iş çıkardın! Zorbalığa karşı verdiğin mücadele ve kazandığın bu rozet projemizin en değerli parçası. Kahramanlığa devam et!"
+                      : "Bu güç kalkanı henüz aktifleşmedi. $kriterMetni bu rozeti başarı koleksiyonuna katabilirsin! ⚡",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w600),
+                ),
               ),
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "KAHRAMAN KÜTÜPHANESİNE DÖN",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.2),
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isEarned ? color : const Color(0xFF64748B),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "TAMAM",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.2),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

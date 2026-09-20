@@ -74,7 +74,6 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
     _currentId = widget.youtubeId;
     _currentTitle = widget.baslik;
 
-    // Web ve Mobil Uyumlu Gelişmiş Iframe Yapılandırması
     _controller = YoutubePlayerController(
       params: const YoutubePlayerParams(
         showControls: true,
@@ -116,8 +115,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
   }
 
   void _videoDegistir(String id, String baslik) {
-    if (id == _currentId)
-      return; // Zaten oynatılan videoya tıklandıysa işlem yapma
+    if (id == _currentId) return;
 
     if (!_isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,54 +156,49 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    const Color backgroundSubtle = Color(0xFFF0F9FF);
+    const Color backgroundSubtle = Color(0xFFF8FAFC);
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
       appBar: AppBar(
+        toolbarHeight: 75,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              shape: BoxShape.circle,
+          padding: const EdgeInsets.only(left: 12),
+          child: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B), size: 16),
             ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Color(0xFF1E293B),
-                size: 16,
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
         title: Text(
-          " $_currentTitle 🎬",
+          _currentTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF1E293B),
             fontWeight: FontWeight.w900,
             fontSize: 16,
-            letterSpacing: -0.3,
           ),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Sinematik Oynatıcı Alanı
           Container(
             width: double.infinity,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.38,
+              maxHeight: MediaQuery.of(context).size.height * 0.35,
             ),
             decoration: BoxDecoration(
               color: Colors.black,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0F172A).withOpacity(0.15),
+                  color: const Color(0xFF0F172A).withOpacity(0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -224,7 +217,6 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
             ),
           ),
 
-          // Video Bilgileri Kısmı
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
             child: Column(
@@ -233,10 +225,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: widget.temaRengi.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -254,41 +243,39 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Harika bir içerik, $_userName! ✨",
+                        "Selam, $_userName! ✨",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Text(
-                      _currentTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
-                        height: 1.3,
-                        letterSpacing: -0.3,
-                      ),
-                    )
-                    .animate(key: ValueKey(_currentId))
-                    .fadeIn(duration: 300.ms)
-                    .slideX(begin: -0.05),
+                  _currentTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                    height: 1.3,
+                  ),
+                ).animate(key: ValueKey(_currentId)).fadeIn().slideX(begin: -0.05),
               ],
             ),
           ),
 
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 22),
-            child: Divider(color: Color(0xFFE2E8F0), thickness: 1.5),
+            child: Divider(color: Color(0xFFE2E8F0)),
           ),
 
-          // Liste Başlığı
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 10),
             child: Row(
@@ -298,7 +285,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                 const Text(
                   "SIRADAKİ EĞİTİMLER",
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF475569),
                     letterSpacing: 1.2,
@@ -308,40 +295,24 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
             ),
           ),
 
-          // Önerilen Video Listesi
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(22, 2, 22, 30),
               physics: const BouncingScrollPhysics(),
               itemCount: _videoList.where((video) {
-                final String yId =
-                    (video['youtubeId'] ?? video['data']?['youtubeId'])
-                        ?.toString()
-                        .trim() ??
-                    '';
+                final String yId = (video['youtubeId'] ?? video['data']?['youtubeId'])?.toString().trim() ?? '';
                 return yId.isNotEmpty && yId != _currentId;
               }).length,
               itemBuilder: (context, index) {
                 final otherVideos = _videoList.where((video) {
-                  final String yId =
-                      (video['youtubeId'] ?? video['data']?['youtubeId'])
-                          ?.toString()
-                          .trim() ??
-                      '';
+                  final String yId = (video['youtubeId'] ?? video['data']?['youtubeId'])?.toString().trim() ?? '';
                   return yId.isNotEmpty && yId != _currentId;
                 }).toList();
 
                 final video = otherVideos[index];
-                final String yId =
-                    (video['youtubeId'] ?? video['data']?['youtubeId'])
-                        ?.toString()
-                        .trim() ??
-                    '';
-                if (yId.isEmpty) return const SizedBox.shrink();
-
-                final bool isPlayingNow = false;
-
-                return _buildVideoKarti(video, yId, isPlayingNow, index);
+                final String yId = (video['youtubeId'] ?? video['data']?['youtubeId'])?.toString().trim() ?? '';
+                
+                return _buildVideoKarti(video, yId, index);
               },
             ),
           ),
@@ -350,197 +321,91 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
     );
   }
 
-  // Oyunlaştırılmış Hücre Kartı Tasarımı
-  Widget _buildVideoKarti(
-    dynamic video,
-    String yId,
-    bool isPlayingNow,
-    int index,
-  ) {
-    final title =
-        (video['baslik'] ?? video['data']?['baslik'] ?? 'İsimsiz Video')
-            .toString();
+  Widget _buildVideoKarti(dynamic video, String yId, int index) {
+    final title = (video['baslik'] ?? video['data']?['baslik'] ?? 'İsimsiz Video').toString();
     final duration = video['sure'] ?? video['data']?['sure'];
 
     return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          decoration: BoxDecoration(
-            color: isPlayingNow ? const Color(0xFFEFF6FF) : Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: isPlayingNow
-                  ? const Color(0xFFBFDBFE)
-                  : Colors.transparent,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(
-                  0xFF0F172A,
-                ).withOpacity(isPlayingNow ? 0.04 : 0.02),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
-              ),
-            ],
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () =>
-                    _videoDegistir(yId, video['baslik'] ?? "İsimsiz Video"),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => _videoDegistir(yId, title),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: CachedNetworkImage(
+                    imageUrl: "https://img.youtube.com/vi/$yId/mqdefault.jpg",
+                    width: 105,
+                    height: 68,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: CachedNetworkImage(
-                              imageUrl:
-                                  "https://img.youtube.com/vi/$yId/mqdefault.jpg",
-                              width: 105,
-                              height: 68,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          if (isPlayingNow)
-                            Container(
-                              width: 105,
-                              height: 68,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB).withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child:
-                                  const Icon(
-                                        Icons.volume_up_rounded,
-                                        color: Colors.white,
-                                        size: 24,
-                                      )
-                                      .animate(
-                                        onPlay: (c) => c.repeat(reverse: true),
-                                      )
-                                      .scale(
-                                        begin: const Offset(0.8, 0.8),
-                                        end: const Offset(1.1, 1.1),
-                                      ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13.5,
-                                color: isPlayingNow
-                                    ? const Color(0xFF1D4ED8)
-                                    : const Color(0xFF1E293B),
-                                height: 1.3,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (isPlayingNow) ...[
-                              const SizedBox(height: 5),
-                              const Text(
-                                "Şu An Oynatılıyor 🎯",
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF2563EB),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ] else if (duration != null) ...[
-                              const SizedBox(height: 5),
-                              Text(
-                                duration.toString(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.blueGrey.shade300,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ],
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                          height: 1.3,
                         ),
                       ),
+                      if (duration != null) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          duration.toString(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.blueGrey.shade300,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-        )
-        .animate()
-        .fadeIn(duration: 350.ms, delay: (index * 30).ms)
-        .slideY(begin: 0.08, curve: Curves.easeOut);
+        ),
+      ),
+    ).animate().fadeIn(duration: 350.ms, delay: (index * 30).ms).slideY(begin: 0.08);
   }
 
-  // İnternet Koptuğunda Gösterilecek İnteraktif ve Eğlenceli Tasarım
   Widget _buildNoInternet() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: Colors.white38, size: 55)
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .shake(hz: 2, duration: 1.seconds),
+          const Icon(Icons.wifi_off_rounded, color: Colors.white38, size: 50).animate(onPlay: (c) => c.repeat(reverse: true)).shake(),
           const SizedBox(height: 12),
-          const Text(
-            "Sinyal Aranıyor...",
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
+          const Text("İnternet Aranıyor...", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
           const SizedBox(height: 14),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white12,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
+          TextButton(
             onPressed: _checkInitialConnection,
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: Colors.white,
-              size: 16,
-            ),
-            label: const Text(
-              "YENİDEN DENE",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            child: const Text("YENİDEN DENE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
           ),
         ],
       ),

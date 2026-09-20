@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminGuard extends StatelessWidget {
   final Widget child;
@@ -12,8 +11,6 @@ class AdminGuard extends StatelessWidget {
     if (user == null) return false;
 
     try {
-      // SEC-06: Sadece Custom Claims (admin) üzerinden yetki kontrolü yapılır.
-      // Firestore'daki isAdmin alanı artık tek başına yetki vermez (Security Rules'a uygun).
       final idTokenResult = await user.getIdTokenResult(true);
       return idTokenResult.claims?['admin'] == true;
     } catch (e) {
@@ -34,9 +31,8 @@ class AdminGuard extends StatelessWidget {
           return child;
         }
 
-        // Yetkisiz erişim durumunda ana sayfaya yönlendir ve uyarı ver
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.of(context).pop(); // Admin sayfasına girişi iptal et
+          Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Erişim Reddedildi: Yönetici yetkiniz bulunmuyor."),

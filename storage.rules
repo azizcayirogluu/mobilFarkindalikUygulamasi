@@ -12,7 +12,25 @@ service firebase.storage {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-      allow write: if false; // Sadece Console üzerinden veya Admin SDK ile
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Kullanıcı profilleri ve özel dosyaları
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // Uygulama içi genel içerikler (Rozetler, görseller vb.)
+    match /assets/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Varsayılan Reddetme
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

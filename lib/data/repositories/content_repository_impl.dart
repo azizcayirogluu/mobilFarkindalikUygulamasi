@@ -35,10 +35,9 @@ class ContentRepositoryImpl implements ContentRepository {
   @override
   Future<Map<String, dynamic>> fetchDiscoveryData() async {
     // 1. Önbellek Kontrolü: Eğer son 10 dakika içinde veri çekilmişse, hafızadaki veriyi dön.
-    if (_cacheDiscoveryData != null && _lastFetchTime != null) {
-      if (DateTime.now().difference(_lastFetchTime!).inMinutes < 10) {
-        return _cacheDiscoveryData!;
-      }
+    if (_cacheDiscoveryData != null &&
+        DateTime.now().difference(_lastFetchTime ?? DateTime(0)).inMinutes < 10) {
+      return _cacheDiscoveryData!;
     }
 
     final connectivityResult = await Connectivity().checkConnectivity();
@@ -73,43 +72,56 @@ class ContentRepositoryImpl implements ContentRepository {
       final scenarioCount = results[3] as int;
       final storyCount = results[4] as int;
       final detectiveCount = results[5] as int;
-      final videoCount = results[6] as int;
 
       List<Map<String, dynamic>> pool = [];
-
-      for (var d in sSnap.docs) {
+      if (sSnap.docs.isNotEmpty) {
+        var d = sSnap.docs.first;
         pool.add({
           "id": d.id,
           "tip": "SENARYO",
           "baslik": d.data()['baslik'] ?? "Senaryo",
-          "altBaslik": d.data()['altBaslik'] ?? "",
+          "altBaslik": d.data()['altBaslik'] ?? "Kararlarınla Olayları Yönet!",
           "renkStr": d.data()['renk'],
           "ikonStr": d.data()['ikon'],
           "data": d.data(),
         });
       }
-      for (var d in hSnap.docs) {
+
+      if (hSnap.docs.isNotEmpty) {
+        var d = hSnap.docs.first;
         pool.add({
           "id": d.id,
           "tip": "HİKAYE",
           "baslik": d.data()['baslik'] ?? "Hikaye",
-          "altBaslik": d.data()['altBaslik'] ?? "",
+          "altBaslik": d.data()['altBaslik'] ?? "Yeni bir macera seni bekliyor!",
           "renkStr": d.data()['renk'] ?? "0xFFFFB74D",
           "ikonStr": "auto_stories",
           "data": d.data(),
         });
       }
-      for (var d in vSnap.docs) {
+
+      if (vSnap.docs.isNotEmpty) {
+        var d = vSnap.docs.first;
         pool.add({
           "id": d.id,
           "tip": "VİDEO",
           "baslik": d.data()['baslik'] ?? "Video",
-          "altBaslik": d.data()['altBaslik'] ?? "",
+          "altBaslik": d.data()['altBaslik'] ?? "Eğlenceli videolarla öğren!",
           "renkStr": d.data()['renk'] ?? "0xFFE57373",
           "ikonStr": "play",
           "data": d.data(),
         });
       }
+
+      pool.add({
+        "id": "siber_dedektif_game",
+        "tip": "SİBER DEDEKTİF",
+        "baslik": "Kahraman Dedektif 🔍",
+        "altBaslik": "Olayları bir dedektif gibi incele!",
+        "renkStr": "0xFF10B981",
+        "ikonStr": "search",
+        "data": {},
+      });
 
       pool.shuffle();
       final cleanedPool = sanitizeDiscoveryPool(pool);
@@ -119,7 +131,6 @@ class ContentRepositoryImpl implements ContentRepository {
         'kesifHavuzu': cleanedPool.take(4).toList(),
       };
 
-      // 2. Önbelleği Güncelle
       _cacheDiscoveryData = result;
       _lastFetchTime = DateTime.now();
 

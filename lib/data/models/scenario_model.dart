@@ -39,7 +39,6 @@ class ScenarioModel {
             : null,
       );
     } catch (e) {
-      // Hata durumunda boş bir model dönerek uygulamanın çökmesini engelliyoruz
       return ScenarioModel(firebaseId: id, baslik: 'Veri Hatası');
     }
   }

@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+/// Kahraman Dostum uygulaması için bildirim (FCM & Yerel) servisi.
+/// flutter_local_notifications 22.3.1 API'sine tam uyumludur.
 class NotificationService {
-  // Singleton pattern: Uygulamada tek bir NotificationService nesnesi olmasını garanti eder.
+  // Singleton pattern
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -19,25 +21,24 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _messageOpenedSubscription;
   bool _initialized = false;
 
-  // Bildirim kanalını tanımlıyoruz (Android 8.0+ için şart)
+  // Bildirim kanalı (Android 8.0+)
   static const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'high_importance_channel', // id
-    'Kahraman Bildirimleri', // title
+    'high_importance_channel',
+    'Kahraman Bildirimleri',
     description: 'Önemli görev ve başarı bildirimleri.',
-    importance: Importance.max, // En yüksek öncelik (Anlık görünmesi için)
+    importance: Importance.max,
     playSound: true,
     enableVibration: true,
   );
 
   Future<void> initialize() async {
     if (_initialized) {
-      // Farklı bir kullanıcı giriş yapmış olabilir, token'ı tazeleyelim.
       await _saveTokenToFirestore();
       return;
     }
     _initialized = true;
 
-    // 1. İzin iste (iOS ve Android 13+)
+    // 1. İzin iste
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,
       badge: true,
@@ -55,9 +56,10 @@ class NotificationService {
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
 
+    // flutter_local_notifications 22.3.1: initialize({required settings, ...})
     await _localNotifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (details) {
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse details) {
         if (kDebugMode) debugPrint("Bildirime tıklandı: ${details.payload}");
       },
     );
@@ -68,27 +70,27 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     // 4. Token Yönetimi
-    _saveTokenToFirestore();
+    await _saveTokenToFirestore();
     
-    // Token yenilendiğinde otomatik güncelle
     _tokenRefreshSubscription = _fcm.onTokenRefresh.listen((newToken) {
       _updateTokenInFirestore(newToken);
     });
 
-    // 5. Uygulama Ön Plandayken gelen mesajları dinle
+    // 5. Ön Plan Mesajları
     _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
       if (notification != null && android != null && !kIsWeb) {
+        // show metodu artık named parametreler kullanıyor.
         _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
+          id: notification.hashCode,
+          title: notification.title,
+          body: notification.body,
+          notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
+              channel.id, // Positional: channelId
+              channel.name, // Positional: channelName
               channelDescription: channel.description,
               icon: android.smallIcon ?? '@mipmap/ic_launcher',
               importance: Importance.max,
@@ -101,24 +103,21 @@ class NotificationService {
       }
     });
 
-    // 6. Arka planda bildirime tıklandığında açılma durumunu kontrol et
+    // 6. Arka Plan Mesaj Tıklama
     _messageOpenedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       if (kDebugMode) debugPrint('Arka plandaki bildirime tıklandı: ${message.data}');
     });
 
-    // 7. Uygulama kapalıyken (Terminated) bildirimle açıldıysa yakala
+    // 7. Initial Message
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       if (kDebugMode) debugPrint('Uygulama bildirimle başlatıldı.');
     }
   }
 
-  // Firestore'a Token kaydetme (Gecikmeli ve Güvenli)
   Future<void> _saveTokenToFirestore() async {
     try {
-      // Servislerin ısınması için kısa bir bekleme (SERVICE_NOT_AVAILABLE hatasını önler)
       await Future.delayed(const Duration(seconds: 1));
-      
       String? token = await _fcm.getToken();
       if (token != null) {
         await _updateTokenInFirestore(token);
@@ -128,7 +127,6 @@ class NotificationService {
     }
   }
 
-  // Token güncelleme mantığı (Merkezi)
   Future<void> _updateTokenInFirestore(String token) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -147,16 +145,16 @@ class NotificationService {
     }
   }
 
-  // Manuel bildirim tetikleme (Örn: Bir görev bittiğinde)
+  /// Manuel yerel bildirim gösterimi.
   Future<void> showLocalNotification(String title, String body) async {
     await _localNotifications.show(
-      DateTime.now().millisecond,
-      title,
-      body,
-      NotificationDetails(
+      id: DateTime.now().millisecond,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          channel.id,
-          channel.name,
+          channel.id, // Positional
+          channel.name, // Positional
           channelDescription: channel.description,
           importance: Importance.max,
           priority: Priority.high,

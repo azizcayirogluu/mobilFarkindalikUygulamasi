@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 class AppLogger {
   // Sadece debug modda log yazar, release modda sessiz kalır.
@@ -10,12 +11,19 @@ class AppLogger {
     }
   }
 
-  // Kritik hataları loglamak için (Release modda bile gerekirse - örn: Crashlytics entegrasyonu için)
+  // Kritik hataları loglamak için hem konsola hem Crashlytics'e gönderir
   static void error(String message, Object e, [StackTrace? s]) {
     if (kDebugMode) {
       debugPrint('❌ KRİTİK HATA: $message - $e');
+      if (s != null) debugPrint(s.toString());
     }
-    // Burada Firebase Crashlytics gibi araçlara gönderim yapılabilir:
-    // FirebaseCrashlytics.instance.recordError(e, s, reason: message);
+    
+    // Üretim ortamında hatayı takip etmek için Crashlytics'e gönderiyoruz
+    FirebaseCrashlytics.instance.recordError(
+      e, 
+      s, 
+      reason: message,
+      fatal: false, // Uygulama çökmedi ama bir işlem başarısız oldu
+    );
   }
 }

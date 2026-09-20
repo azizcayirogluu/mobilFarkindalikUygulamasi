@@ -37,7 +37,7 @@ class _VideoManagerState extends State<VideoManager> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Eğitim Video Stüdyosu", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            Text("Video Yönetim Ekranı", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
             Text("Multimedya içeriklerini ve YouTube entegrasyonlarını buradan yönetin.", style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
           ],
         ),
