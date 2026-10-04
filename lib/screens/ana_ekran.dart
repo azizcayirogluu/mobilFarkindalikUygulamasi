@@ -8,6 +8,7 @@ import 'package:zorbalik_uygulamasi/screens/video_detay_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/services/content_service.dart';
+import 'package:zorbalik_uygulamasi/widgets/profile_avatar.dart';
 
 class AnaSayfa extends StatefulWidget {
   final VoidCallback onProfileTap;
@@ -134,16 +135,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
               aktifAd = uData['kullaniciAdi'] ?? aktifAd;
               String? dbAvatar = uData['avatarUrl'];
               if (dbAvatar != null && dbAvatar.isNotEmpty) {
-                // GÜVENLİK: Eğer path yanlışsa (image/ eksikse) otomatik düzelt
-                if (dbAvatar.startsWith("assets/") &&
-                    !dbAvatar.startsWith("assets/image/")) {
-                  aktifAvatar = dbAvatar.replaceFirst(
-                    "assets/",
-                    "assets/image/",
-                  );
-                } else {
-                  aktifAvatar = dbAvatar;
-                }
+                aktifAvatar = normalizeProfileAvatar(dbAvatar);
               }
             }
 
@@ -299,10 +291,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     ],
                     border: Border.all(color: Colors.indigo.shade50, width: 2),
                   ),
-                  child: CircleAvatar(
+                  child: ProfileAvatar(
+                    image: avatarPath,
                     radius: 28,
                     backgroundColor: Colors.white,
-                    backgroundImage: AssetImage(avatarPath),
                   ),
                 ),
               ),

@@ -14,6 +14,27 @@ import 'hakkinda_ekrani.dart';
 import 'gizlilik_politikasi_ekrani.dart';
 import 'siber_imdat_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
+import 'package:zorbalik_uygulamasi/widgets/profile_avatar.dart';
+
+const _diceBearAvatarSeeds = [
+  'kahraman-mavi-01',
+  'kahraman-mavi-02',
+  'kahraman-mavi-03',
+  'kahraman-mavi-04',
+  'kahraman-mavi-05',
+  'kahraman-mavi-06',
+  'kahraman-mavi-07',
+  'kahraman-mavi-08',
+];
+
+String _diceBearAvatarUrl(String seed) => Uri.https(
+  'api.dicebear.com',
+  '/9.x/adventurer/png',
+  {
+    'seed': seed,
+    'backgroundColor': 'b6e3f4,c0aede,d1d4f9,ffd5dc',
+  },
+).toString();
 
 class ProfilEkrani extends StatefulWidget {
   final String kullaniciAdi;
@@ -51,10 +72,9 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           .doc(_user!.uid)
           .get();
       if (doc.exists && mounted) {
-        String avatar = doc.data()?['avatarUrl'] ?? "assets/image/boy.png";
-        if (avatar.startsWith("assets/") && !avatar.startsWith("assets/image/")) {
-          avatar = avatar.replaceFirst("assets/", "assets/image/");
-        }
+        final avatar = normalizeProfileAvatar(
+          doc.data()?['avatarUrl'] ?? "assets/image/boy.png",
+        );
         setState(() {
           _currentAvatar = avatar;
           _currentYasGrubu = doc.data()?['yasGrubu'] ?? "6-12";
@@ -122,15 +142,23 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                 ),
                 const SizedBox(height: 20),
                 const Text("Karakterini Seç", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 4),
+                const Text(
+                  "Yeni avatarlar DiceBear üzerinden internetten yüklenir.",
+                  style: TextStyle(fontSize: 11, color: Colors.blueGrey),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 12, runSpacing: 12,
                   children: [
                     _avatarOption("assets/image/boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/image/girls-boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/image/superhero-man.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    _avatarOption("assets/image/superhero-girls.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                    for (final seed in _diceBearAvatarSeeds)
+                      _avatarOption(
+                        _diceBearAvatarUrl(seed),
+                        tempAvatar,
+                        (path) => setDialogState(() => tempAvatar = path),
+                      ),
                   ],
                 ),
               ],
@@ -196,7 +224,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         duration: 200.ms,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? AppColors.anaMavi : Colors.transparent, width: 3)),
-        child: CircleAvatar(radius: 28, backgroundImage: AssetImage(path)),
+        child: ProfileAvatar(image: path, radius: 28),
       ),
     );
   }
@@ -352,7 +380,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10))]),
-                      child: CircleAvatar(radius: 55, backgroundColor: const Color(0xFFF0F9FF), backgroundImage: AssetImage(_currentAvatar)),
+                      child: ProfileAvatar(image: _currentAvatar, radius: 55),
                     ),
                     Positioned(
                       bottom: -10,

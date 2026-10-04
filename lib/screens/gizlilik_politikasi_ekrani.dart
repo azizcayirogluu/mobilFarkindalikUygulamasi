@@ -62,7 +62,12 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
             // Üst Bilgi Kartı
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(paddingValue, 15, paddingValue, 20),
+                padding: EdgeInsets.fromLTRB(
+                  paddingValue,
+                  15,
+                  paddingValue,
+                  20,
+                ),
                 child: _buildHeroBanner(),
               ),
             ),
@@ -75,48 +80,53 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
                   _buildModernInfoCard(
                     icon: Icons.face_rounded,
                     title: "Hangi Bilgileri Kullanıyoruz? 🎭",
-                    content: "Sadece oyundaki takma adını, yaş grubunu ve kazandığın harika rozetleri biliyoruz. Gerçek adın, e-posta adresin veya ev adresin gibi gizli bilgilerini KESİNLİKLE istemiyoruz!",
+                    content:
+                        "Hesap açarken kullanıcı adını, yaş grubunu (6-12 veya 13-18) ve giriş için 6 rakamlı PIN'ini girersin. Gerçek adını, gerçek e-posta adresini, telefonunu veya ev adresini istemeyiz. Firebase giriş hesabı için kullanıcı adından bir tanımlayıcı oluşturulur; bu gerçek bir e-posta adresi değildir. Seçtiğin avatar, ilerlemen ve rozetlerin de hesabında saklanır. DiceBear avatarları internetten yüklenir; genel seed kullanılır, kullanıcı adın avatar isteğine eklenmez.",
                     color: AppColors.anaMavi,
                   ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.05),
-                  
+
                   _buildModernInfoCard(
                     icon: Icons.shield_rounded,
                     title: "Güvenli Süper Kalkan 🔒",
-                    content: "Bütün verilerin dünyanın en güvenli dijital kasalarında saklanır. Bilgilerine senden ve sistem koruyucularından başka hiç kimse asla erişemez.",
+                    content:
+                        "Hesap ve ilerleme bilgilerin uygulamanın çalışması için Firebase hizmetlerinde saklanır. Uygulama hatalarını incelemek için teknik tanılama kayıtları da işlenebilir. Bu hizmetler bilgileri korumak ve uygulamayı çalıştırmak için kullanılır; ayrıntılar için aşağıdaki e-posta adresinden bize ulaşabilirsin.",
                     color: AppColors.basariYesili,
                   ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
                     icon: Icons.smart_toy_rounded,
                     title: "Dost Canlısı Yapay Zeka 🤖",
-                    content: "Siber Asistan arkadaşımız, sana en doğru tavsiyeleri vermek için çalışır. Sohbetleriniz tamamen gizli kalır ve asla reklamcılarla paylaşılmaz.",
+                    content:
+                        "Siber Asistan yanıt vermek için mesajlarını, sohbet geçmişini ve yaş grubunu Google Gemini hizmetine gönderir; profilde ad bilgisi varsa bu da kullanılabilir. Sohbet geçmişin hesabında saklanır ve asistan ekranındaki silme düğmesiyle temizlenebilir. Gerçek adını, okulunu, adresini veya telefonunu mesajlara yazma. İsteğe bağlı ödüllü reklamlar Google AdMob tarafından sunulur.",
                     color: AppColors.yumusakMor,
                   ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
                     icon: Icons.child_care_rounded,
                     title: "Çocuk Dostu Kurallar ✨",
-                    content: "Uygulamamız KVKK ve çocuk gizliliği standartlarına %100 uygundur. Tek amacımız senin dijital dünyada güvenle eğlenmeni sağlamaktır.",
+                    content:
+                        "Kayıt sırasında 6-12 veya 13-18 yaş grubunu seçersin. 6-12 yaş grubundaysan kayıt adımında bir yetişkinden yardım iste. İnternette kendini tanıtabilecek bilgileri paylaşmamaya dikkat et.",
                     color: AppColors.uyariTuruncusu,
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
                     icon: Icons.delete_forever_rounded,
                     title: "Verilerini İstediğin An Sil 🗑️",
-                    content: "Profil ayarlarından hesabını tek bir tıkla silebilirsin. Sildiğin an tüm puanların ve rozetlerin sistemimizden tamamen uçup gider.",
+                    content:
+                        "Profil ayarlarından hesap silmeyi seçip onaylayabilirsin. İşlem tamamlandığında uygulama hesabın ve ilişkili ilerleme kayıtların silinir. Google gibi hizmet sağlayıcıların güvenlik kayıtları kendi saklama kurallarına tabi olabilir.",
                     color: const Color(0xFFEF4444),
                   ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.05),
 
                   const SizedBox(height: 10),
-                  
+
                   // Sadeleştirilmiş, Şık İletişim Alanı
                   _buildMinimalContactCard(),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Alt Kurumsal Bilgi
                   _buildFooterInfo(),
-                  
+
                   const SizedBox(height: 40),
                 ]),
               ),
@@ -293,7 +303,11 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.mail_outline_rounded, color: Color(0xFF475569), size: 18),
+                  Icon(
+                    Icons.mail_outline_rounded,
+                    color: Color(0xFF475569),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     "siberkahramanapp@gmail.com",
@@ -332,7 +346,7 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          "Son Güncelleme: Mayıs 2026",
+          "Son Güncelleme: Ekim 2026",
           style: TextStyle(
             fontSize: 10,
             color: Colors.blueGrey.shade200,
