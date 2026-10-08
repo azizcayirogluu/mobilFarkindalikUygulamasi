@@ -44,4 +44,31 @@ class OfflineAIEngine {
 
     return {"durum": "BİLİNMİYOR", "neden": defaultResponse};
   }
+
+  Future<String> getResponseForMessage(String message) async {
+    if (_rulesData == null) {
+      await init();
+    }
+
+    final defaultResponse = _rulesData?['default'] as String? ??
+        "İnternet dünyasında en önemli şey saygı, güvenlik ve kendini korumaktır. Rahatsız olduğun bir durum varsa bunu mutlaka güvendiğin bir yetişkinle paylaşmalısın.";
+
+    if (_rulesData == null || message.trim().isEmpty) {
+      return defaultResponse;
+    }
+
+    final rules = _rulesData!['rules'] as List? ?? [];
+    final textToAnalyze = message.toLowerCase();
+
+    for (var rule in rules) {
+      final keywords = rule['keywords'] as List? ?? [];
+      for (var keyword in keywords) {
+        if (textToAnalyze.contains(keyword.toString().toLowerCase())) {
+          return rule['response'] as String;
+        }
+      }
+    }
+
+    return defaultResponse;
+  }
 }

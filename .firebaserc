@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "tubitak-akran-zorbaligi"
-  }
+  },
+  "targets": {
+    "tubitak-akran-zorbaligi": {
+      "hosting": {
+        "kahraman-dostum": [
+          "kahraman-dostum"
+        ],
+        "tubitak-akran-zorbaligi": [
+          "tubitak-akran-zorbaligi"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

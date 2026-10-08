@@ -11,9 +11,10 @@ class EgitimEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final double paddingValue = size.width * 0.06;
-    const Color backgroundSubtle = Color(0xFFF0F9FF);
+    final size = MediaQuery.sizeOf(context);
+    final double paddingValue = size.width > 600 ? 32 : 20;
+    const Color backgroundSubtle = Color(0xFFF8FAFC);
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 80;
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
@@ -22,17 +23,17 @@ class EgitimEkrani extends StatelessWidget {
         slivers: [
           _buildSliverAppBar(backgroundSubtle),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 20),
+            padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, bottomInset),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildWelcomeHeader(),
-                const SizedBox(height: 25),
+                const SizedBox(height: 24),
 
                 _buildKidEgitimCard(
                   context,
                   title: "Zorbalık Rehberi 🛡️",
                   desc: "Zorbalık nedir, nasıl başa çıkılır? Kahramanlık rehberini oku!",
-                  icon: Icons.auto_awesome_sharp,
+                  icon: Icons.auto_awesome_rounded,
                   accentColor: const Color(0xFF8B5CF6),
                   label: "TEMEL BİLGİLER",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GuvenlikRehberiEkrani())),
@@ -45,7 +46,7 @@ class EgitimEkrani extends StatelessWidget {
                   desc: "Zor durumlar karşısında en doğru kararı sen ver, kahraman ol!",
                   icon: Icons.psychology_alt_rounded,
                   accentColor: const Color(0xFF6366F1),
-                  label: "KAHRAMANLUK GÖREVİ",
+                  label: "KAHRAMANLIK GÖREVİ",
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
                   delay: 20.ms,
                 ),
@@ -82,8 +83,6 @@ class EgitimEkrani extends StatelessWidget {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
                   delay: 90.ms,
                 ),
-
-                const SizedBox(height: 130),
               ]),
             ),
           ),
@@ -98,26 +97,15 @@ class EgitimEkrani extends StatelessWidget {
       pinned: false,
       backgroundColor: bgColor,
       elevation: 0,
-      toolbarHeight: 90, // Yükseklik artırıldı
       centerTitle: true,
-      title: Padding(
-        padding: const EdgeInsets.only(top: 20), // Üstten boşluk verildi
-        child: Text(
-          "KAHRAMANLIK AKADEMİSİ",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFF2C3E50),
-            fontWeight: FontWeight.w900,
-            fontSize: 16, // Biraz daha belirgin yapıldı
-            letterSpacing: 1.5,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.05),
-                offset: const Offset(0, 2),
-                blurRadius: 2,
-              )
-            ],
-          ),
+      title: const Text(
+        "KAHRAMANLIK AKADEMİSİ",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.w900,
+          fontSize: 16,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -129,7 +117,7 @@ class EgitimEkrani extends StatelessWidget {
         const Text(
           "Bugün hangi süper gücünü geliştirmek istersin? 🛡️",
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             color: Color(0xFF475569),
             fontWeight: FontWeight.w700,
           ),
@@ -137,10 +125,10 @@ class EgitimEkrani extends StatelessWidget {
         ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
         const SizedBox(height: 10),
         Container(
-          width: 35,
-          height: 5,
+          width: 36,
+          height: 4,
           decoration: BoxDecoration(
-            color: const Color(0xFF3B82F6).withOpacity(0.4),
+            color: const Color(0xFF3B82F6).withAlpha(100),
             borderRadius: BorderRadius.circular(10),
           ),
         ).animate().scaleX(duration: 200.ms, curve: Curves.easeOutQuad),
@@ -148,7 +136,6 @@ class EgitimEkrani extends StatelessWidget {
     );
   }
 
-  // Yenilenen, Beyaz ve Temiz Çocuksu Eğitim Kart Tasarımı
   Widget _buildKidEgitimCard(
       BuildContext context, {
         required String title,
@@ -163,17 +150,18 @@ class EgitimEkrani extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 15,
+            color: accentColor.withAlpha(12),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -183,35 +171,52 @@ class EgitimEkrani extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 75,
-                    height: 75,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: accentColor.withAlpha(20),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: Icon(
                       icon,
-                      size: 36,
+                      size: 32,
                       color: accentColor,
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: accentColor.withAlpha(20),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              color: accentColor,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Text(
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF1E293B),
-                            fontSize: 17,
+                            fontSize: 16,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           desc,
                           maxLines: 2,
@@ -219,17 +224,18 @@ class EgitimEkrani extends StatelessWidget {
                           style: const TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
+                            fontWeight: FontWeight.w500,
+                            height: 1.25,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: accentColor.withOpacity(0.3),
-                    size: 14,
+                    Icons.chevron_right_rounded,
+                    color: const Color(0xFF94A3B8),
+                    size: 20,
                   ),
                 ],
               ),

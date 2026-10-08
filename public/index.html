@@ -4,129 +4,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <meta name="theme-color" content="#4F46E5">
+
   <title>Kahraman Dostum | Zorbalık ve Siber Zorbalık Farkındalık Platformu</title>
-  <meta name="description"
-    content="Kahraman Dostum, TÜBİTAK destekli yenilikçi bir farkındalık platformudur. Zorbalık, siber zorbalık ve dijital güvenlik konularında çocuklar, gençler ve aileler için interaktif, pedagojik bir eğitim rehberi sunar.">
-  <link rel="canonical" href="https://tubitak-akran-zorbaligi.web.app/">
-  <link rel="icon" type="image/png" href="assets/image/app_icon.png">
-  <link rel="apple-touch-icon" href="assets/image/app_icon.png">
 
-  <meta property="og:site_name" content="Kahraman Dostum">
-  <meta property="og:locale" content="tr_TR">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://tubitak-akran-zorbaligi.web.app/">
-  <meta property="og:title" content="Kahraman Dostum | Zorbalık ve Siber Zorbalık Farkındalık Platformu">
-  <meta property="og:description"
-    content="TÜBİTAK destekli, çocuklar, gençler ve aileler için interaktif ve pedagojik zorbalık farkındalık rehberi.">
-  <meta property="og:image" content="https://tubitak-akran-zorbaligi.web.app/assets/image/app_icon.png">
-  <meta name="twitter:card" content="summary">
-  <script
-    type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Kahraman Dostum","url":"https://tubitak-akran-zorbaligi.web.app/"}</script>
+  <meta
+          name="description"
+          content="Kahraman Dostum, çocuklar, gençler ve aileler için geliştirilmiş yenilikçi bir farkındalık platformudur. Zorbalık, siber zorbalık ve dijital güvenlik konularında interaktif ve pedagojik eğitim rehberi sunar."
+  >
 
+  <!-- SEO -->
+  <link
+          rel="canonical"
+          href="https://kahraman-dostum.web.app/"
+  >
+
+  <!-- Favicon -->
+  <link
+          rel="icon"
+          type="image/png"
+          href="assets/logo.png"
+  >
+
+  <link
+          rel="apple-touch-icon"
+          href="assets/logo.png"
+  >
+
+  <!-- Open Graph / Social -->
+  <meta
+          property="og:site_name"
+          content="Kahraman Dostum"
+  >
+
+  <meta
+          property="og:locale"
+          content="tr_TR"
+  >
+
+  <meta
+          property="og:type"
+          content="website"
+  >
+
+  <meta
+          property="og:url"
+          content="https://kahraman-dostum.web.app/"
+  >
+
+  <meta
+          property="og:title"
+          content="Kahraman Dostum | Zorbalık ve Siber Zorbalık Farkındalık Platformu"
+  >
+
+  <meta
+          property="og:description"
+          content="Çocuklar, gençler ve ebeveynler için siber ve akran zorbalığına karşı güvenli, interaktif ve pedagojik farkındalık platformu."
+  >
+
+  <meta
+          property="og:image"
+          content="https://kahraman-dostum.web.app/assets/logo.png"
+  >
+
+  <!-- Twitter -->
+  <meta
+          name="twitter:card"
+          content="summary"
+  >
+
+  <meta
+          name="twitter:title"
+          content="Kahraman Dostum | Zorbalık ve Siber Zorbalık Farkındalık Platformu"
+  >
+
+  <meta
+          name="twitter:description"
+          content="Zorbalık ve siber zorbalık konusunda güvenli, interaktif ve pedagojik farkındalık platformu."
+  >
+
+  <meta
+          name="twitter:image"
+          content="https://kahraman-dostum.web.app/assets/logo.png"
+  >
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Kahraman Dostum",
+      "url": "https://kahraman-dostum.web.app/",
+      "author": {
+        "@type": "Organization",
+        "name": "Aziz Digital"
+      }
+    }
+  </script>
+
+</head>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap"
-    media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" media="print" onload="this.media='all'">
   <noscript>
-    <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap">
   </noscript>
 
   <style>
     :root {
-      --p: #4F46E5;
-      --p-d: #4338CA;
-      --p-l: #EEF2FF;
+      /* Brand Color Tokens */
+      --p-primary: #4F46E5;
+      --p-dark: #3730A3;
+      --p-deep: #1E1B4B;
+      --p-light: #EEF2FF;
       --p-line: #C7D2FE;
+      --p-glow: rgba(79, 70, 229, 0.15);
+
+      /* Accent Tokens */
+      --accent-emerald: #059669;
+      --accent-emerald-bg: #ECFDF5;
+      --accent-rose: #E11D48;
+      --accent-rose-bg: #FFF1F2;
+      --accent-amber: #D97706;
+      --accent-amber-bg: #FFFBEB;
+
+      /* Neutral Tokens */
       --ink: #0F172A;
-      --mute: #475569;
+      --mute: #334155;
       --sub: #64748B;
-      --bg: #F8FAFC;
-      --surf: #fff;
+      --bg-surface: #F8FAFC;
+      --surf: #FFFFFF;
       --line: #E2E8F0;
+      --line-subtle: #F1F5F9;
+
+      /* Layout & Geometry */
       --r-s: 8px;
       --r-m: 14px;
-      --r-l: 28px;
-      --sh-s: 0 1px 2px rgb(15 23 42/.06);
-      --sh-l: 0 20px 40px -12px rgb(15 23 42/.14);
-      --gut: clamp(16px, 4vw, 48px);
+      --r-l: 24px;
+      --r-xl: 32px;
+      --sh-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --sh-s: 0 4px 12px rgba(15, 23, 42, 0.05);
+      --sh-m: 0 12px 28px -6px rgba(15, 23, 42, 0.08);
+      --sh-l: 0 24px 48px -12px rgba(15, 23, 42, 0.12);
+
+      --gut: clamp(16px, 4vw, 40px);
       --max: 1200px;
       --hdr: 72px;
-      --ease: cubic-bezier(.16, 1, .3, 1);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
       --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
 
-    @media(min-width:1700px) {
+    @media (min-width: 1600px) {
       :root {
-        --max: 1360px
+        --max: 1280px;
       }
     }
 
-    /* Renk tonları: tek tanım, tüm bileşenlerde yeniden kullanılır */
-    .t-rose {
-      --c: #BE123C;
-      --cb: #FFF1F2
-    }
-
-    .t-em {
-      --c: #047857;
-      --cb: #ECFDF5
-    }
-
-    .t-am {
-      --c: #B45309;
-      --cb: #FFFBEB
-    }
-
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0
+      padding: 0;
     }
 
     html {
       scroll-behavior: smooth;
-      scroll-padding-top: calc(var(--hdr) + 16px);
-      -webkit-text-size-adjust: 100%
+      scroll-padding-top: calc(var(--hdr) + 20px);
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
       min-height: 100vh;
       font-family: var(--font);
-      background: var(--bg);
+      background: var(--bg-surface);
       color: var(--ink);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      overflow-x: clip
+      overflow-x: clip;
     }
 
     img {
       max-width: 100%;
       height: auto;
-      display: block
+      display: block;
     }
 
     a {
       color: inherit;
-      text-decoration: none
+      text-decoration: none;
     }
 
-    ul {
-      list-style: none
+    ul, ol {
+      list-style: none;
     }
 
     :focus-visible {
-      outline: 3px solid var(--p);
+      outline: 3px solid var(--p-primary);
       outline-offset: 3px;
-      border-radius: var(--r-s)
+      border-radius: var(--r-s);
     }
 
     .container {
-      width: min(var(--max), 100% - 2*var(--gut));
-      margin-inline: auto
+      width: min(var(--max), 100% - (2 * var(--gut)));
+      margin-inline: auto;
     }
 
     .skip {
@@ -134,33 +216,39 @@
       left: var(--gut);
       top: -100px;
       z-index: 200;
-      background: var(--p);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: var(--r-s)
+      background: var(--p-primary);
+      color: #FFF;
+      padding: 10px 18px;
+      border-radius: var(--r-s);
+      font-weight: 700;
+      transition: top 0.2s;
     }
 
     .skip:focus {
-      top: 8px
+      top: 12px;
     }
 
-    .bg {
+    /* Ambient Background Elements */
+    .bg-ambience {
       position: absolute;
-      inset: 0 0 auto;
-      height: 640px;
+      inset: 0 0 auto 0;
+      height: 720px;
       z-index: -1;
       pointer-events: none;
-      background: radial-gradient(ellipse 60% 70% at 15% 0, #E0E7FF, transparent 70%), radial-gradient(ellipse 50% 60% at 90% 10%, #CFFAFE, transparent 70%)
+      background:
+        radial-gradient(ellipse 60% 50% at 20% -10%, rgba(224, 231, 255, 0.7), transparent 70%),
+        radial-gradient(ellipse 50% 50% at 85% 10%, rgba(207, 250, 254, 0.6), transparent 70%);
     }
 
-    /* Header */
+    /* Header & Navigation */
     header {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgb(255 255 255/.9);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--line)
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
     }
 
     .navbar {
@@ -168,7 +256,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px
+      gap: 16px;
     }
 
     .brand {
@@ -176,738 +264,821 @@
       align-items: center;
       gap: 12px;
       font-weight: 800;
-      font-size: 1.1rem;
-      letter-spacing: -.02em;
-      line-height: 1.2
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: var(--ink);
     }
 
     .brand img {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgb(79 70 229/.22)
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px var(--p-glow);
+      object-fit: cover;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
     }
 
     .brand small {
-      display: block;
-      font-size: .72rem;
+      font-size: 0.72rem;
       font-weight: 600;
-      color: var(--p)
+      color: var(--p-primary);
+      letter-spacing: 0.01em;
     }
 
     nav ul {
       display: flex;
-      gap: 26px;
-      font-size: .9rem;
+      gap: 28px;
+      font-size: 0.92rem;
       font-weight: 600;
-      color: var(--mute)
+      color: var(--mute);
     }
 
     nav a {
-      padding: 6px 2px;
-      transition: color .2s
+      padding: 6px 0;
+      transition: color 0.2s;
     }
 
     nav a:hover {
-      color: var(--p)
+      color: var(--p-primary);
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 8px
+      gap: 12px;
     }
 
     .menu-btn {
       display: none;
-      background: none;
-      border: 0;
+      background: transparent;
+      border: 1px solid var(--line);
       color: var(--ink);
       cursor: pointer;
-      padding: 10px;
-      border-radius: var(--r-s)
+      padding: 8px 10px;
+      border-radius: var(--r-s);
+      transition: background 0.2s;
     }
 
-    /* Butonlar */
+    .menu-btn:hover {
+      background: var(--line-subtle);
+    }
+
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-height: 44px;
-      padding: 12px 24px;
+      min-height: 46px;
+      padding: 12px 22px;
       border-radius: var(--r-m);
-      font: 700 .92rem var(--font);
+      font-family: var(--font);
+      font-size: 0.92rem;
+      font-weight: 700;
       border: 1px solid transparent;
       cursor: pointer;
-      transition: transform .2s var(--ease), background .2s, box-shadow .2s
+      transition: transform 0.2s var(--ease), background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
     }
 
     .btn:hover {
-      transform: translateY(-2px)
+      transform: translateY(-2px);
     }
 
-    .btn svg,
-    .chip svg {
-      flex-shrink: 0
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn svg {
+      flex-shrink: 0;
     }
 
     .btn-primary {
-      background: var(--p);
-      color: #fff;
-      box-shadow: 0 8px 22px rgb(79 70 229/.28)
+      background: var(--p-primary);
+      color: #FFFFFF;
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.25);
     }
 
     .btn-primary:hover {
-      background: var(--p-d)
+      background: var(--p-dark);
+      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
     }
 
     .btn-secondary {
       background: var(--surf);
+      color: var(--ink);
       border-color: var(--line);
-      box-shadow: var(--sh-s)
+      box-shadow: var(--sh-xs);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-surface);
+      border-color: #CBD5E1;
     }
 
     .btn-soft {
-      background: var(--p-l);
-      color: var(--p);
-      padding: 9px 18px;
+      background: var(--p-light);
+      color: var(--p-primary);
+      border-color: var(--p-line);
+      padding: 8px 18px;
+      min-height: 40px;
       border-radius: 999px;
-      font-size: .85rem
+      font-size: 0.85rem;
     }
 
     .btn-soft:hover {
-      background: var(--p);
-      color: #fff
+      background: var(--p-primary);
+      color: #FFFFFF;
     }
 
     .btn-white {
-      background: #fff;
-      color: var(--p)
+      background: #FFFFFF;
+      color: var(--p-primary);
+      box-shadow: var(--sh-s);
+    }
+
+    .btn-white:hover {
+      background: var(--p-light);
     }
 
     .btn-ghost {
-      background: rgb(255 255 255/.15);
-      color: #fff;
-      border-color: rgb(255 255 255/.35)
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.25);
     }
 
     .btn-ghost:hover {
-      background: rgb(255 255 255/.25)
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
-    .store {
+    .store-badge {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      background: #0F172A;
-      color: #fff;
+      background: var(--p-deep);
+      color: #FFFFFF;
       padding: 9px 18px;
       border-radius: var(--r-m);
-      line-height: 1.25
+      line-height: 1.2;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .store span {
+    .store-badge span {
       display: block;
-      font-size: .66rem;
-      font-weight: 700;
-      color: #CBD5E1
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
-    .store strong {
-      font-size: .85rem;
-      font-weight: 800
+    .store-badge strong {
+      font-size: 0.88rem;
+      font-weight: 800;
     }
 
-    /* Bölümler */
+    /* Common Section Styles */
     section {
-      padding: clamp(48px, 7vw, 88px) 0
+      padding: clamp(52px, 7vw, 92px) 0;
     }
 
     .sec-head {
       text-align: center;
-      max-width: 680px;
-      margin: 0 auto clamp(32px, 5vw, 52px)
-    }
-
-    h2.title {
-      font-size: clamp(1.75rem, 3.5vw, 2.4rem);
-      font-weight: 800;
-      letter-spacing: -.03em;
-      line-height: 1.2;
-      margin-bottom: 14px
-    }
-
-    .lead {
-      font-size: 1rem;
-      color: var(--mute);
-      max-width: 65ch
-    }
-
-    .sec-head .lead {
-      margin-inline: auto
+      max-width: 660px;
+      margin: 0 auto clamp(36px, 5vw, 56px);
     }
 
     .eyebrow {
       display: inline-block;
-      font-size: .85rem;
+      font-size: 0.82rem;
       font-weight: 800;
-      color: var(--p);
-      margin-bottom: 10px
+      color: var(--p-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
     }
 
-    /* Hero */
+    h2.title {
+      font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.22;
+      color: var(--ink);
+      margin-bottom: 14px;
+    }
+
+    .lead {
+      font-size: 1.02rem;
+      color: var(--mute);
+      line-height: 1.65;
+    }
+
+    /* Hero Section */
     .hero {
       position: relative;
-      padding-top: clamp(36px, 6vw, 72px)
+      padding-top: clamp(32px, 5vw, 64px);
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.15fr .85fr;
+      grid-template-columns: 1.1fr 0.9fr;
       align-items: center;
-      gap: clamp(32px, 5vw, 64px)
+      gap: clamp(32px, 5vw, 60px);
     }
 
-    .pill {
+    .pill-tag {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 6px 14px;
       border-radius: 999px;
       background: var(--surf);
-      border: 1px solid var(--line);
-      box-shadow: var(--sh-s);
-      font-size: .82rem;
-      font-weight: 600;
-      color: var(--mute);
-      margin-bottom: 22px
+      border: 1px solid var(--p-line);
+      box-shadow: var(--sh-xs);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--p-primary);
+      margin-bottom: 20px;
     }
 
-    .pill b {
-      background: var(--p-l);
-      color: var(--p);
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: .72rem
+    .pill-tag svg {
+      color: var(--p-primary);
     }
 
     h1 {
-      font-size: clamp(2.1rem, 4.6vw, 3.4rem);
-      line-height: 1.12;
+      font-size: clamp(2.2rem, 4.5vw, 3.3rem);
+      line-height: 1.15;
       font-weight: 800;
-      letter-spacing: -.035em;
+      letter-spacing: -0.035em;
+      color: var(--ink);
       margin-bottom: 20px;
-      text-wrap: balance
+      text-wrap: balance;
     }
 
     h1 em {
       font-style: normal;
-      color: var(--p)
+      color: var(--p-primary);
+      position: relative;
     }
 
     .hero .lead {
-      font-size: 1.1rem;
-      margin-bottom: 30px
+      font-size: 1.08rem;
+      margin-bottom: 32px;
     }
 
     .actions {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 14px
+      gap: 14px;
     }
 
-    .metrics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px 36px;
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
       margin-top: 40px;
-      padding-top: 26px;
-      border-top: 1px solid var(--line)
+      padding-top: 28px;
+      border-top: 1px solid var(--line);
     }
 
-    .metrics strong {
+    .metric-item strong {
       display: block;
-      font-size: 1.2rem;
+      font-size: 1.05rem;
       font-weight: 800;
-      letter-spacing: -.02em;
-      line-height: 1.3
+      color: var(--ink);
+      line-height: 1.25;
     }
 
-    .metrics span {
-      font-size: .8rem;
+    .metric-item span {
+      font-size: 0.8rem;
       font-weight: 600;
-      color: var(--sub)
+      color: var(--sub);
     }
 
-    .mock {
+    /* Hero Mockup Card */
+    .mock-card {
       background: var(--surf);
       border: 1px solid var(--line);
-      border-radius: var(--r-l);
-      padding: clamp(18px, 3vw, 28px);
+      border-radius: var(--r-xl);
+      padding: clamp(20px, 3.5vw, 30px);
       box-shadow: var(--sh-l);
-      animation: rise .8s var(--ease) both
+      position: relative;
     }
 
-    .mock-top {
+    .mock-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding-bottom: 18px;
+      padding-bottom: 16px;
       margin-bottom: 18px;
-      border-bottom: 1px solid var(--line)
+      border-bottom: 1px solid var(--line-subtle);
     }
 
-    .who {
-      display: flex;
-      align-items: center;
-      gap: 12px
-    }
-
-    .ico {
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      background: var(--cb, var(--p-l));
-      color: var(--c, var(--p))
-    }
-
-    .who .ico {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      font-size: 1.3rem;
-      border: 1px solid var(--p-line)
-    }
-
-    .who p {
-      font-weight: 800;
-      font-size: .95rem;
-      line-height: 1.3
-    }
-
-    .who small {
-      font-size: .75rem;
-      font-weight: 700;
-      color: #047857
-    }
-
-    .ver {
-      font-size: .75rem;
-      font-weight: 700;
-      color: var(--sub);
-      background: var(--bg);
-      padding: 4px 10px;
-      border-radius: 999px
-    }
-
-    .mod {
-      background: linear-gradient(135deg, #1E1B4B, #312E81);
-      border-radius: 20px;
-      padding: 22px;
-      color: #fff;
-      margin-bottom: 16px
-    }
-
-    .mod small {
-      display: inline-block;
-      font-size: .7rem;
-      font-weight: 700;
-      background: rgb(255 255 255/.18);
-      padding: 3px 10px;
-      border-radius: 999px;
-      margin-bottom: 10px
-    }
-
-    .mod h2 {
-      font-size: 1.1rem;
-      font-weight: 800;
-      margin-bottom: 4px
-    }
-
-    .mod p {
-      font-size: .82rem;
-      color: #C7D2FE
-    }
-
-    .tools {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px
-    }
-
-    .tool {
+    .user-profile {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 14px;
-      border-radius: var(--r-m);
-      background: var(--bg);
-      border: 1px solid var(--line)
     }
 
-    .tool .ico {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      font-size: 1.05rem
-    }
-
-    .tool h3 {
-      font-size: .82rem;
-      font-weight: 700;
-      line-height: 1.3
-    }
-
-    .tool span {
-      font-size: .72rem;
-      color: var(--sub)
-    }
-
-    /* Güven çubuğu */
-    .trust {
-      background: var(--surf);
-      border-block: 1px solid var(--line);
-      padding: 30px 0
-    }
-
-    .trust ul {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 24px
-    }
-
-    .trust li {
-      display: flex;
-      align-items: center;
-      gap: 14px
-    }
-
-    .trust .ico {
+    .avatar-box {
       width: 44px;
       height: 44px;
-      border-radius: 12px
+      border-radius: 12px;
+      background: var(--p-light);
+      color: var(--p-primary);
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+      border: 1px solid var(--p-line);
+      flex-shrink: 0;
     }
 
-    .trust h3 {
-      font-size: .92rem;
+    .user-info p {
       font-weight: 800;
-      line-height: 1.3
+      font-size: 0.95rem;
+      line-height: 1.2;
+      color: var(--ink);
     }
 
-    .trust p {
-      font-size: .78rem;
-      color: var(--sub)
+    .user-info small {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    /* Modüller */
-    .cards {
+    .badge-ver {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--sub);
+      background: var(--bg-surface);
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .module-banner {
+      background: linear-gradient(135deg, var(--p-deep), var(--p-dark));
+      border-radius: var(--r-l);
+      padding: 22px;
+      color: #FFFFFF;
+      margin-bottom: 16px;
+    }
+
+    .module-banner small {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      background: rgba(255, 255, 255, 0.18);
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .module-banner h2 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .module-banner p {
+      font-size: 0.84rem;
+      color: var(--p-line);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .tool-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: var(--r-m);
+      background: var(--bg-surface);
+      border: 1px solid var(--line);
+    }
+
+    .tool-ico {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      background: var(--p-light);
+      flex-shrink: 0;
+    }
+
+    .tool-item.rose .tool-ico {
+      background: var(--accent-rose-bg);
+    }
+
+    .tool-text h3 {
+      font-size: 0.8rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--ink);
+    }
+
+    .tool-text span {
+      font-size: 0.7rem;
+      color: var(--sub);
+    }
+
+    /* Trust & Key Features Bar */
+    .trust-bar {
+      background: var(--surf);
+      border-block: 1px solid var(--line);
+      padding: 32px 0;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .trust-ico {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--p-light);
+      color: var(--p-primary);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      border: 1px solid var(--p-line);
+    }
+
+    .trust-info h3 {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.25;
+    }
+
+    .trust-info p {
+      font-size: 0.78rem;
+      color: var(--sub);
+    }
+
+    /* Modules Section */
+    .modules-cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-      gap: 24px
+      gap: 24px;
     }
 
-    .card {
+    .feature-card {
+      background: var(--surf);
+      border: 1px solid var(--line);
+      border-radius: var(--r-l);
+      padding: 28px 24px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      background: var(--surf);
-      border: 1px solid var(--line);
-      border-radius: var(--r-l);
-      padding: 30px 26px;
-      box-shadow: var(--sh-s);
-      transition: transform .3s var(--ease), box-shadow .3s, border-color .3s
+      box-shadow: var(--sh-xs);
+      transition: transform 0.25s var(--ease), box-shadow 0.25s, border-color 0.25s;
     }
 
-    .card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 30px -8px rgb(79 70 229/.16);
-      border-color: var(--p-line)
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--sh-m);
+      border-color: var(--p-line);
     }
 
-    .card .ico {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      font-size: 1.5rem;
-      margin-bottom: 20px
+    .feature-card .card-ico {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      font-size: 1.4rem;
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      background: var(--p-light);
     }
 
-    .card h3 {
-      font-size: 1.15rem;
+    .feature-card.t-rose .card-ico {
+      background: var(--accent-rose-bg);
+    }
+
+    .feature-card.t-em .card-ico {
+      background: var(--accent-emerald-bg);
+    }
+
+    .feature-card.t-am .card-ico {
+      background: var(--accent-amber-bg);
+    }
+
+    .feature-card h3 {
+      font-size: 1.12rem;
       font-weight: 800;
-      letter-spacing: -.02em;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 10px;
       line-height: 1.3;
-      margin-bottom: 10px
     }
 
-    .card p {
-      font-size: .92rem;
+    .feature-card p {
+      font-size: 0.9rem;
       color: var(--mute);
-      margin-bottom: 22px
+      margin-bottom: 20px;
+      line-height: 1.55;
     }
 
-    .card footer {
-      padding-top: 16px;
-      border-top: 1px solid var(--line);
-      font-size: .82rem;
+    .feature-card footer {
+      padding-top: 14px;
+      border-top: 1px solid var(--line-subtle);
+      font-size: 0.8rem;
       font-weight: 700;
-      color: var(--c, var(--p))
+      color: var(--p-primary);
     }
 
-    /* Yaklaşım */
-    .approach {
+    .feature-card.t-rose footer { color: var(--accent-rose); }
+    .feature-card.t-em footer { color: var(--accent-emerald); }
+    .feature-card.t-am footer { color: var(--accent-amber); }
+
+    /* Approach / Methodology Section */
+    .approach-sec {
       background: var(--surf);
-      border-block: 1px solid var(--line)
+      border-block: 1px solid var(--line);
     }
 
-    .split {
+    .split-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: clamp(32px, 5vw, 64px);
-      align-items: center
+      align-items: center;
     }
 
-    .steps {
-      margin-top: 30px;
+    .step-list {
+      margin-top: 28px;
       display: grid;
-      gap: 24px;
-      counter-reset: s
+      gap: 20px;
+      counter-reset: step-counter;
     }
 
-    .steps li {
+    .step-item {
       display: flex;
-      gap: 18px;
-      counter-increment: s
+      gap: 16px;
+      counter-increment: step-counter;
     }
 
-    .steps li::before {
-      content: counter(s);
+    .step-item::before {
+      content: counter(step-counter);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--p-light);
+      color: var(--p-primary);
+      font-weight: 800;
+      font-size: 0.95rem;
       display: grid;
       place-items: center;
       flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      background: var(--p-l);
-      color: var(--p);
-      font-weight: 800
+      border: 1px solid var(--p-line);
     }
 
-    .steps h3 {
+    .step-content h3 {
       font-size: 1rem;
       font-weight: 800;
-      margin-bottom: 4px
+      color: var(--ink);
+      margin-bottom: 4px;
     }
 
-    .steps p {
-      font-size: .9rem;
-      color: var(--mute)
+    .step-content p {
+      font-size: 0.88rem;
+      color: var(--mute);
     }
 
-    .panel {
+    .mascot-panel {
       text-align: center;
-      background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+      background: linear-gradient(135deg, var(--p-light), #E0E7FF);
       border: 1px solid var(--p-line);
-      border-radius: var(--r-l);
-      padding: clamp(28px, 4vw, 44px)
+      border-radius: var(--r-xl);
+      padding: clamp(28px, 4vw, 44px);
     }
 
-    .panel img {
-      width: min(220px, 60%);
+    .mascot-panel img {
+      width: min(200px, 55%);
       margin: 0 auto 20px;
-      filter: drop-shadow(0 12px 24px rgb(79 70 229/.2))
+      filter: drop-shadow(0 10px 20px rgba(79, 70, 229, 0.2));
     }
 
-    .panel h3 {
+    .mascot-panel h3 {
       font-size: 1.25rem;
       font-weight: 800;
-      margin-bottom: 8px
+      color: var(--ink);
+      margin-bottom: 8px;
     }
 
-    .panel p {
-      font-size: .9rem;
+    .mascot-panel p {
+      font-size: 0.88rem;
       color: var(--mute);
-      max-width: 380px;
-      margin-inline: auto
+      max-width: 360px;
+      margin-inline: auto;
     }
 
-    /* Ekran görüntüleri */
-    .showcase {
-      overflow: hidden
+    /* Showcase Carousel Section */
+    .showcase-sec {
+      overflow: hidden;
     }
 
-    .track {
+    .track-wrapper {
       display: flex;
-      gap: 28px;
+      gap: 24px;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
-      padding: 20px max(var(--gut), calc((100% - var(--max))/2)) 30px;
+      padding: 16px max(var(--gut), calc((100% - var(--max)) / 2)) 28px;
       scroll-padding-inline: var(--gut);
       cursor: grab;
-      overscroll-behavior-x: contain
+      overscroll-behavior-x: contain;
     }
 
-    .track::-webkit-scrollbar {
-      display: none
+    .track-wrapper::-webkit-scrollbar {
+      display: none;
     }
 
-    .track.drag {
+    .track-wrapper.drag {
       cursor: grabbing;
       scroll-snap-type: none;
-      user-select: none
+      user-select: none;
     }
 
-    .phone {
-      flex: 0 0 220px;
+    .phone-card {
+      flex: 0 0 210px;
       scroll-snap-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
-      margin: 0
+      gap: 12px;
+      margin: 0;
     }
 
-    .shell {
-      width: 220px;
-      background: #1E293B;
-      border-radius: 36px;
-      padding: 10px;
-      box-shadow: 0 20px 40px -10px rgb(15 23 42/.28);
-      transition: transform .25s var(--ease)
+    .phone-shell {
+      width: 210px;
+      background: #0F172A;
+      border-radius: 34px;
+      padding: 8px;
+      box-shadow: var(--sh-m);
+      transition: transform 0.25s var(--ease);
+      border: 1px solid #334155;
     }
 
-    .phone:hover .shell {
-      transform: translateY(-8px)
+    .phone-card:hover .phone-shell {
+      transform: translateY(-6px);
     }
 
-    .shell img {
+    .phone-shell img {
       width: 100%;
       aspect-ratio: 9/19.5;
       object-fit: cover;
-      border-radius: 28px;
-      background: #000;
-      pointer-events: none
+      border-radius: 26px;
+      background: #000000;
+      pointer-events: none;
     }
 
-    .phone figcaption {
-      font-size: .82rem;
+    .phone-card figcaption {
+      font-size: 0.82rem;
       font-weight: 700;
+      color: var(--ink);
       background: var(--surf);
       border: 1px solid var(--line);
-      padding: 5px 14px;
+      padding: 4px 14px;
       border-radius: 999px;
-      box-shadow: var(--sh-s)
+      box-shadow: var(--sh-xs);
     }
 
-    .dots {
+    .dots-nav {
       display: flex;
       justify-content: center;
-      gap: 2px
+      gap: 4px;
+      margin-top: 8px;
     }
 
-    .dot {
+    .dot-btn {
       display: grid;
       place-items: center;
       width: 24px;
       height: 24px;
-      background: none;
+      background: transparent;
       border: 0;
-      cursor: pointer
+      cursor: pointer;
     }
 
-    .dot::after {
+    .dot-btn::after {
       content: "";
       width: 8px;
       height: 8px;
       border-radius: 999px;
       background: #94A3B8;
-      transition: width .25s var(--ease), background .25s
+      transition: width 0.25s var(--ease), background 0.25s;
     }
 
-    .dot[aria-current="true"]::after {
-      width: 24px;
-      background: var(--p)
+    .dot-btn[aria-current="true"]::after {
+      width: 22px;
+      background: var(--p-primary);
     }
 
-    /* SSS */
-    .faq {
-      max-width: 800px;
-      margin: 0 auto;
-      display: grid;
-      gap: 14px
-    }
-
-    .about-preview {
+    /* Team / About Section */
+    .team-sec {
       background: var(--surf);
-      border-block: 1px solid var(--line)
+      border-block: 1px solid var(--line);
     }
 
-    .about-grid {
+    .team-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
-    .about-person {
+    .team-card {
       padding: 24px;
-      background: var(--bg);
+      background: var(--bg-surface);
       border: 1px solid var(--line);
-      border-radius: var(--r-l)
+      border-radius: var(--r-l);
     }
 
-    .about-person span {
+    .team-role {
       display: inline-block;
-      margin-bottom: 12px;
-      color: var(--p);
-      font-size: .78rem;
+      margin-bottom: 10px;
+      color: var(--p-primary);
+      font-size: 0.75rem;
       font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
 
-    .about-person h3 {
-      margin-bottom: 5px;
-      font-size: 1.08rem
+    .team-card h3 {
+      margin-bottom: 6px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--ink);
     }
 
-    .about-person p {
+    .team-card p {
       color: var(--mute);
-      font-size: .9rem
+      font-size: 0.88rem;
     }
 
-    .about-awards {
+    .team-awards {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 12px;
-      margin: 26px 0
+      margin: 28px 0;
     }
 
-    .about-awards span {
-      padding: 10px 16px;
+    .team-awards span {
+      padding: 8px 18px;
       border: 1px solid var(--p-line);
       border-radius: 999px;
-      background: var(--p-l);
-      color: var(--p-d);
-      font-size: .88rem;
-      font-weight: 800
+      background: var(--p-light);
+      color: var(--p-dark);
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    /* FAQ Section */
+    .faq-wrapper {
+      max-width: 780px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
     }
 
     details {
       background: var(--surf);
       border: 1px solid var(--line);
       border-radius: var(--r-m);
-      transition: border-color .2s, box-shadow .2s
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     details[open] {
       border-color: var(--p-line);
-      box-shadow: var(--sh-s)
+      box-shadow: var(--sh-s);
     }
 
     summary {
@@ -917,217 +1088,236 @@
       gap: 16px;
       padding: 18px 22px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.98rem;
+      color: var(--ink);
       cursor: pointer;
       list-style: none;
-      border-radius: var(--r-m)
+      border-radius: var(--r-m);
     }
 
     summary::-webkit-details-marker {
-      display: none
+      display: none;
     }
 
     summary::after {
       content: "+";
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 600;
-      color: var(--p);
-      line-height: 1
+      color: var(--p-primary);
+      line-height: 1;
     }
 
     details[open] summary::after {
-      content: "−"
+      content: "−";
     }
 
     details p {
       padding: 0 22px 20px;
-      font-size: .92rem;
-      color: var(--mute)
+      font-size: 0.9rem;
+      color: var(--mute);
+      line-height: 1.6;
     }
 
-    /* CTA */
-    .cta {
-      background: linear-gradient(135deg, #3730A3, var(--p) 55%, #0284C7);
-      border-radius: var(--r-l);
-      padding: clamp(40px, 6vw, 64px) clamp(20px, 4vw, 40px);
-      color: #fff;
+    /* CTA Section */
+    .cta-box {
+      background: linear-gradient(135deg, var(--p-dark), var(--p-primary) 60%, #0284C7);
+      border-radius: var(--r-xl);
+      padding: clamp(36px, 5vw, 60px) clamp(20px, 4vw, 40px);
+      color: #FFFFFF;
       text-align: center;
-      box-shadow: var(--sh-l)
+      box-shadow: var(--sh-l);
     }
 
-    .cta h2 {
-      font-size: clamp(1.65rem, 3.5vw, 2.4rem);
+    .cta-box h2 {
+      font-size: clamp(1.6rem, 3.2vw, 2.3rem);
       font-weight: 800;
-      letter-spacing: -.03em;
-      margin-bottom: 16px
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
     }
 
-    .cta p {
+    .cta-box p {
       color: #E0E7FF;
-      max-width: 600px;
-      margin: 0 auto 32px
+      max-width: 580px;
+      margin: 0 auto 28px;
+      font-size: 1rem;
     }
 
-    .cta .actions {
-      justify-content: center
-    }
-
-    .cta .store {
-      background: rgb(15 23 42/.7);
-      border: 1px solid rgb(255 255 255/.2)
+    .cta-box .actions {
+      justify-content: center;
     }
 
     /* Footer */
     .site-footer {
       background: var(--surf);
       border-top: 1px solid var(--line);
-      padding: 56px 0 32px;
-      font-size: .88rem;
-      color: var(--mute)
+      padding: 52px 0 32px;
+      font-size: 0.88rem;
+      color: var(--mute);
     }
 
-    .f-grid {
+    .footer-grid {
       display: grid;
       grid-template-columns: 1.4fr 1fr 1fr;
       gap: 40px;
-      margin-bottom: 44px
+      margin-bottom: 40px;
     }
 
-    .f-brand {
+    .footer-brand {
       display: flex;
       align-items: center;
       gap: 10px;
       font-size: 1.1rem;
       font-weight: 800;
       color: var(--ink);
-      margin-bottom: 14px
+      margin-bottom: 12px;
     }
 
-    .f-brand img {
+    .footer-brand img {
       width: 32px;
       height: 32px;
-      border-radius: 8px
+      border-radius: 8px;
     }
 
-    .f-grid p {
-      max-width: 340px
+    .footer-grid p {
+      max-width: 340px;
+      font-size: 0.88rem;
+      line-height: 1.55;
     }
 
-    .f-grid h2 {
-      font-size: .92rem;
+    .footer-grid h2 {
+      font-size: 0.9rem;
       font-weight: 800;
       color: var(--ink);
-      margin-bottom: 14px
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    .f-grid ul {
+    .footer-grid ul {
       display: grid;
-      gap: 4px
+      gap: 6px;
     }
 
-    .f-grid li a {
+    .footer-grid li a {
       display: inline-block;
-      padding: 4px 0;
-      transition: color .2s
+      padding: 3px 0;
+      transition: color 0.2s;
     }
 
-    .f-grid li a:hover {
-      color: var(--p)
+    .footer-grid li a:hover {
+      color: var(--p-primary);
     }
 
-    .f-bottom {
+    .footer-bottom {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      padding-top: 26px;
+      gap: 16px;
+      padding-top: 24px;
       border-top: 1px solid var(--line);
-      font-size: .82rem;
-      color: var(--sub)
+      font-size: 0.82rem;
+      color: var(--sub);
     }
 
-    .developer-logo {
-      display: block;
-      width: 88px;
-      height: 88px;
-      flex: 0 0 auto;
+    .developer-attribution {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .developer-attribution img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       object-fit: contain;
-      border-radius: 12px;
-      background: #fff
+      background: var(--bg-surface);
+      border: 1px solid var(--line);
     }
 
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(24px)
+    /* Responsive Breakpoints */
+    @media (max-width: 992px) {
+      .hero-grid, .split-grid, .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metrics {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
-    @media(max-width:992px) {
-
-      .hero-grid,
-      .split,
-      .f-grid {
-        grid-template-columns: 1fr
-      }
-    }
-
-    @media(max-width:680px) {
-      .about-grid {
-        grid-template-columns: 1fr
-      }
-    }
-
-    @media(max-width:820px) {
+    @media (max-width: 820px) {
       .menu-btn {
         display: grid;
-        place-items: center
+        place-items: center;
       }
 
       nav {
         position: absolute;
-        inset: var(--hdr) 0 auto;
+        inset: var(--hdr) 0 auto 0;
         background: var(--surf);
         border-bottom: 1px solid var(--line);
-        box-shadow: 0 12px 20px -8px rgb(15 23 42/.15);
-        padding: 12px var(--gut);
-        display: none
+        box-shadow: var(--sh-m);
+        padding: 16px var(--gut);
+        display: none;
       }
 
       nav.open {
-        display: block
+        display: block;
       }
 
       nav ul {
         flex-direction: column;
-        gap: 0
+        gap: 0;
       }
 
       nav a {
         display: block;
-        padding: 14px 8px
+        padding: 12px 8px;
       }
 
       .btn-soft span {
-        display: none
+        display: none;
       }
 
       .btn-soft {
-        padding: 12px
+        padding: 10px;
       }
     }
 
-    @media(prefers-reduced-motion:reduce) {
-      html {
-        scroll-behavior: auto
+    @media (max-width: 680px) {
+      .team-grid {
+        grid-template-columns: 1fr;
       }
 
-      *,
-      *::before,
-      *::after {
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metrics {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .actions .btn, .actions .store-badge {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *, *::before, *::after {
         animation: none !important;
-        transition: none !important
+        transition: none !important;
       }
     }
   </style>
@@ -1135,13 +1325,17 @@
 
 <body>
   <a class="skip" href="#icerik">Ana içeriğe geç</a>
-  <div class="bg" aria-hidden="true"></div>
+  <div class="bg-ambience" aria-hidden="true"></div>
 
+  <!-- Header Section -->
   <header>
     <div class="container navbar">
-      <a href="index.html" class="brand" aria-label="Kahraman Dostum ana sayfa">
-        <img src="assets/logo.png" alt="" width="42" height="42">
-        <span>Kahraman Dostum<small>Farkındalık Platformu</small></span>
+      <a href="" class="brand" aria-label="Kahraman Dostum ana sayfa">
+        <img src="assets/logo.png" alt="Kahraman Dostum Logo" width="40" height="40">
+        <div class="brand-text">
+          <span>Kahraman Dostum</span>
+          <small>Farkındalık Platformu</small>
+        </div>
       </a>
 
       <nav id="nav" aria-label="Ana menü">
@@ -1149,7 +1343,6 @@
           <li><a href="#moduller">Eğitim Modülleri</a></li>
           <li><a href="#yaklasim">Yaklaşımımız</a></li>
           <li><a href="#ekranlar">Uygulama Ekranları</a></li>
-          <li><a href="biz-kimiz.html">Biz Kimiz?</a></li>
           <li><a href="#sss">S.S.S.</a></li>
           <li><a href="gizlilik-politikasi.html">Gizlilik</a></li>
         </ul>
@@ -1157,16 +1350,13 @@
 
       <div class="nav-actions">
         <a href="geri-bildirim.html" class="btn btn-soft" aria-label="Geri bildirim yap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           <span>Geri Bildirim Yap</span>
         </a>
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Menüyü aç" aria-expanded="false"
-          aria-controls="nav">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            aria-hidden="true">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Menüyü aç" aria-expanded="false" aria-controls="nav">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
@@ -1174,38 +1364,46 @@
     </div>
   </header>
 
+  <!-- Main Content Area -->
   <main id="icerik">
 
+    <!-- Hero Section -->
     <section class="hero" aria-labelledby="h-hero">
       <div class="container hero-grid">
         <div>
-          <p class="pill"><b>TÜBİTAK</b> Akran Zorbalığı Farkındalık &amp; Eğitim Projesi</p>
+          <div class="pill-tag">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>Çocuklar ve Gençler İçin Dijital Farkındalık Rehberi</span>
+          </div>
+
           <h1 id="h-hero">Zorbalığa karşı <em>bilinçli, güçlü ve birlikte.</em></h1>
-          <p class="lead">Kahraman Dostum; çocukların ve gençlerin fiziksel, sözel, siber ve ilişkisel akran zorbalığını
-            tüm boyutlarıyla tanımasını, haklarını öğrenmesini ve zorlayıcı durumlarda doğru adımları güvenle
-            atabilmesini sağlayan bilimsel ve interaktif bir farkındalık platformudur.</p>
+
+          <p class="lead">Kahraman Dostum; çocukların ve gençlerin fiziksel, sözel, siber ve ilişkisel zorbalığı tüm boyutlarıyla tanımasını, haklarını öğrenmesini ve zorlayıcı durumlarda doğru adımları güvenle atabilmesini sağlayan interaktif bir eğitim ve farkındalık platformudur.</p>
 
           <div class="actions">
             <a href="#moduller" class="btn btn-primary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <path d="m10 8 6 4-6 4z" />
               </svg>
               Platformu Keşfet
             </a>
-            <div class="store">
-              <svg width="20" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <div class="store-badge">
+              <svg width="18" height="20" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3.6 1.8 13.7 12 3.6 22.2c-.4-.4-.6-1.1-.6-2V3.8c0-.9.2-1.6.6-2z" fill="#00C1A6" />
                 <path d="M17.1 8.6 13.7 12l3.4 3.4 3.9-2.2c1.1-.6 1.1-1.7 0-2.4z" fill="#FFD400" />
                 <path d="M3.6 22.2 13.7 12l3.4 3.4-11.7 6.8c-.6.3-1.3.3-1.8 0z" fill="#FF3333" />
                 <path d="m3.6 1.8 1.8-.4c.5-.3 1.2-.3 1.8 0l9.9 7.2L13.7 12z" fill="#00A0FF" />
               </svg>
-              <div><span>Çok yakında</span><strong>Google Play'de</strong></div>
+              <div>
+                <span>Çok yakında</span>
+                <strong>Google Play'de</strong>
+              </div>
             </div>
             <a href="#ekranlar" class="btn btn-secondary">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <rect x="5" y="2" width="14" height="20" rx="2" />
                 <path d="M12 18h.01" />
               </svg>
@@ -1213,47 +1411,51 @@
             </a>
           </div>
 
-          <dl class="metrics">
-            <div>
-              <dt><strong>Güvenli</strong></dt>
-              <dd><span>Çocuk Dostu Deneyim</span></dd>
+          <div class="hero-metrics">
+            <div class="metric-item">
+              <span>Çocuk Dostu Deneyim</span>
             </div>
-            <div>
-              <dt><strong>İnteraktif</strong></dt>
-              <dd><span>Senaryo Temelli Eğitim</span></dd>
+            <div class="metric-item">
+              <span>Senaryo Temelli Öğrenme</span>
             </div>
-            <div>
-              <dt><strong>Rehberlik</strong></dt>
-              <dd><span>Pedagojik Destek Metodu</span></dd>
+            <div class="metric-item">
+              <span>Pedagojik Destek Metodu</span>
             </div>
-          </dl>
+          </div>
         </div>
 
-        <div class="mock" role="img"
-          aria-label="Uygulamanın öğrenci portalı önizlemesi: Modül 1, zorbalık türlerini teşhis et">
-          <div class="mock-top">
-            <div class="who">
-              <span class="ico" aria-hidden="true">🦸</span>
-              <div>
-                <p>Öğrenci Portalı</p><small>● Aktif Öğrenme Alanı</small>
+        <!-- Interactive Mockup Card -->
+        <div class="mock-card" role="img" aria-label="Uygulama öğrenci portalı görsel önizlemesi">
+          <div class="mock-header">
+            <div class="user-profile">
+              <div class="avatar-box" aria-hidden="true">🦸</div>
+              <div class="user-info">
+                <p>Öğrenci Portalı</p>
+                <small>● Aktif Öğrenme Alanı</small>
               </div>
             </div>
-            <span class="ver">v1.2.0</span>
+            <span class="badge-ver">v1.2.0</span>
           </div>
-          <div class="mod">
+
+          <div class="module-banner">
             <small>MODÜL 1</small>
             <h2>Zorbalık Türlerini Teşhis Et</h2>
             <p>Fiziksel, sözel, siber ve ilişkisel zorbalık ayrımını öğren</p>
           </div>
-          <div class="tools">
-            <div class="tool"><span class="ico" aria-hidden="true">🎯</span>
-              <div>
-                <h3>Doğru Tepkiyi Analiz Et</h3><span>Pedagojik seçim rehberi</span>
+
+          <div class="tools-grid">
+            <div class="tool-item">
+              <div class="tool-ico" aria-hidden="true">🎯</div>
+              <div class="tool-text">
+                <h3>Doğru Tepkiyi Analiz Et</h3>
+                <span>Pedagojik seçim rehberi</span>
               </div>
             </div>
-            <div class="tool t-rose"><span class="ico" aria-hidden="true">🆘</span>
-              <div>
-                <h3>Destek Ağına Ulaş</h3><span>Rehber öğretmen &amp; aile</span>
+            <div class="tool-item rose">
+              <div class="tool-ico" aria-hidden="true">🆘</div>
+              <div class="tool-text">
+                <h3>Destek Ağına Ulaş</h3>
+                <span>Rehber öğretmen &amp; aile</span>
               </div>
             </div>
           </div>
@@ -1261,87 +1463,102 @@
       </div>
     </section>
 
-    <div class="trust">
-      <ul class="container" aria-label="Öne çıkan özellikler">
-        <li><span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
+    <!-- Key Features / Trust Bar -->
+    <div class="trust-bar">
+      <div class="container trust-grid" aria-label="Öne çıkan özellikler">
+        <div class="trust-item">
+          <div class="trust-ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg></span>
-          <div>
-            <h3>%100 Güvenli &amp; Pedagojik</h3>
+            </svg>
+          </div>
+          <div class="trust-info">
+            <h3>Güvenli &amp; Pedagojik</h3>
             <p>Uzman onaylı içerik mimarisi</p>
           </div>
-        </li>
-        <li><span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
+        </div>
+
+        <div class="trust-item">
+          <div class="trust-ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
-            </svg></span>
-          <div>
+            </svg>
+          </div>
+          <div class="trust-info">
             <h3>Dedektif &amp; Vaka Analizi</h3>
             <p>Fiziksel, sözel ve dijital olaylar</p>
           </div>
-        </li>
-        <li><span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
+        </div>
+
+        <div class="trust-item">
+          <div class="trust-ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 17.8 5.8 21l1.2-6.9-5-4.9 6.9-1z" />
-            </svg></span>
-          <div>
+            </svg>
+          </div>
+          <div class="trust-info">
             <h3>Kazanım Rozetleri</h3>
             <p>Oyunlaştırılmış motivasyon sistemi</p>
           </div>
-        </li>
-        <li><span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <path
-                d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
-            </svg></span>
-          <div>
-            <h3>Hızlı Destek &amp; Rehberlik</h3>
-            <p>Rehber öğretmen ve aile rehberliği</p>
+        </div>
+
+        <div class="trust-item">
+          <div class="trust-ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
+            </svg>
           </div>
-        </li>
-      </ul>
+          <div class="trust-info">
+            <h3>Rehberlik &amp; Destek</h3>
+            <p>Eğitimci ve aile rehberliği</p>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- Modules Section -->
     <section id="moduller" aria-labelledby="h-mod">
       <div class="container">
         <div class="sec-head">
           <p class="eyebrow">Kapsamlı İçerik Mimarisi</p>
-          <h2 class="title" id="h-mod">Akran Zorbalığına Karşı Bütünsel Çözüm</h2>
-          <p class="lead">Öğrencilerin, ebeveynlerin ve eğitimcilerin ihtiyaç duyduğu tüm farkındalık araçları
-            yapılandırılmış ve pedagojik ilkeler doğrultusunda sunulur.</p>
+          <h2 class="title" id="h-mod">Zorbalığa Karşı Bütünsel Çözüm</h2>
+          <p class="lead">Öğrencilerin, ebeveynlerin ve eğitimcilerin ihtiyaç duyduğu tüm farkındalık araçları yapılandırılmış ve pedagojik ilkeler doğrultusunda sunulur.</p>
         </div>
-        <div class="cards">
-          <article class="card">
-            <div><span class="ico" aria-hidden="true">🔍</span>
+
+        <div class="modules-cards">
+          <article class="feature-card">
+            <div>
+              <div class="card-ico" aria-hidden="true">🔍</div>
               <h3>Zorbalığı Teşhis ve Tanıma</h3>
-              <p>Zorbalık ile basit akran çatışması arasındaki farkları netleştiren, doğrudan senaryo örnekleriyle
-                kavratan modül.</p>
+              <p>Zorbalık ile olağan akran çatışması arasındaki farkları netleştiren, gerçek senaryo örnekleriyle kavratan modül.</p>
             </div>
             <footer>● Kavramsal Farkındalık</footer>
           </article>
-          <article class="card t-rose">
-            <div><span class="ico" aria-hidden="true">🛡️</span>
+
+          <article class="feature-card t-rose">
+            <div>
+              <div class="card-ico" aria-hidden="true">🛡️</div>
               <h3>Kendini Koru &amp; Sınır Çiz</h3>
-              <p>Zorbalık anında soğukkanlı kalma, kararlı beden dili geliştirme, net "Hayır" deme ve güvenli alan
-                oluşturma adımları.</p>
+              <p>Zorbalık anında soğukkanlı kalma, kararlı beden dili geliştirme, net "Hayır" deme ve güvenli alan oluşturma adımları.</p>
             </div>
             <footer>● Bireysel Güvenlik &amp; Tavır</footer>
           </article>
-          <article class="card t-em">
-            <div><span class="ico" aria-hidden="true">🤝</span>
+
+          <article class="feature-card t-em">
+            <div>
+              <div class="card-ico" aria-hidden="true">🤝</div>
               <h3>Olumlu Seyirci Olma</h3>
-              <p>Zorbalığa tanık olan gençlerin sessiz kalmayıp birer "olumlu arabulucu" haline gelerek arkadaşlarına
-                nasıl destek olacağını öğretir.</p>
+              <p>Zorbalığa tanık olan gençlerin sessiz kalmayıp birer "olumlu arabulucu" haline gelerek arkadaşlarına nasıl destek olacağını öğretir.</p>
             </div>
             <footer>● Empati &amp; Dayanışma</footer>
           </article>
-          <article class="card t-am">
-            <div><span class="ico" aria-hidden="true">🏆</span>
+
+          <article class="feature-card t-am">
+            <div>
+              <div class="card-ico" aria-hidden="true">🏆</div>
               <h3>Oyunlaştırılmış Rozet Sistemi</h3>
-              <p>Öğrencilerin her bir modülü ve oyunu tamamladıkça rozetler kazandığı, motivasyonlarını yüksek tutan
-                ödül mimarisi.</p>
+              <p>Öğrencilerin her bir modülü ve oyunu tamamladıkça rozetler kazandığı, motivasyonlarını yüksek tutan ödül mimarisi.</p>
             </div>
             <footer>● Öğrenme Çıktıları &amp; Başarı</footer>
           </article>
@@ -1349,202 +1566,176 @@
       </div>
     </section>
 
-    <section id="yaklasim" class="approach" aria-labelledby="h-app">
-      <div class="container split">
+    <!-- Approach / Methodology Section -->
+    <section id="yaklasim" class="approach-sec" aria-labelledby="h-app">
+      <div class="container split-grid">
         <div>
           <p class="eyebrow">Metodolojimiz</p>
           <h2 class="title" id="h-app">Bilimsel ve Pedagojik İlkelerimiz</h2>
-          <p class="lead">Akran zorbalığı olgusu, sadece ceza veya yasakla değil; bilinç, empati ve doğru iletişim
-            mekanizmalarıyla kalıcı olarak çözülebilir.</p>
-          <ol class="steps">
-            <li>
-              <div>
+          <p class="lead">Akran zorbalığı olgusu, sadece ceza veya yasakla değil; bilinç, empati ve doğru iletişim mekanizmalarıyla kalıcı olarak çözülebilir.</p>
+
+          <ol class="step-list">
+            <li class="step-item">
+              <div class="step-content">
                 <h3>Fark Et &amp; Teşhis Et</h3>
                 <p>Olayı doğru kavrayarak fiziksel, sözel veya siber zorbalık paternlerini görünür kılmak.</p>
               </div>
             </li>
-            <li>
-              <div>
+            <li class="step-item">
+              <div class="step-content">
                 <h3>Sınır Koy &amp; Güvenliği Sağla</h3>
                 <p>Fiziksel ve dijital ortamda sınırları net çizmek ve güvenli iletişime odaklanmak.</p>
               </div>
             </li>
-            <li>
-              <div>
+            <li class="step-item">
+              <div class="step-content">
                 <h3>Güvenilir Yetişkine Bildir &amp; Çözüm Üret</h3>
                 <p>Rehberlik servisleri ve aile desteğiyle şiddetsiz ve yapıcı çözüme ulaşmak.</p>
               </div>
             </li>
           </ol>
         </div>
-        <div class="panel">
-          <img src="assets/robot.png" alt="Kahraman Dostum maskotu" width="220" height="220" loading="lazy"
-            decoding="async">
+
+        <div class="mascot-panel">
+          <img src="assets/robot.png" alt="Kahraman Dostum maskotu" width="200" height="200" loading="lazy" decoding="async">
           <h3>Daha Güvenli Okullar ve Dijital Alanlar</h3>
-          <p>Kahraman Dostum, gençlerin özgüvenini ve dayanışma kültürünü güçlendirmeyi hedefleyen bir dijital
-            farkındalık projesidir.</p>
+          <p>Kahraman Dostum, gençlerin özgüvenini ve dayanışma kültürünü güçlendirmeyi hedefleyen bir dijital farkındalık projesidir.</p>
         </div>
       </div>
     </section>
 
-    <section id="ekranlar" class="showcase" aria-labelledby="h-scr">
+    <!-- App Screenshots Showcase Section -->
+    <section id="ekranlar" class="showcase-sec" aria-labelledby="h-scr">
       <div class="container sec-head">
         <p class="eyebrow">Mobil Uygulama</p>
         <h2 class="title" id="h-scr">Uygulamanın İçine Bir Bakış</h2>
-        <p class="lead">Keşfet, Eğitim, Rozet, Senaryolar ve daha fazlasını içeren Kahraman Dostum arayüzlerini
-          inceleyin.</p>
+        <p class="lead">Keşfet, Eğitim, Rozet, Senaryolar ve daha fazlasını içeren Kahraman Dostum arayüzlerini inceleyin.</p>
       </div>
 
-      <div class="track" id="track" tabindex="0" role="region" aria-roledescription="kaydırıcı"
-        aria-label="Uygulama ekran görüntüleri. Gezinmek için sağ ve sol ok tuşlarını kullanın.">
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-ana.png" alt="Ana ekran" width="200" height="433"
-              loading="lazy" decoding="async"></div>
+      <div class="track-wrapper" id="track" tabindex="0" role="region" aria-roledescription="kaydırıcı" aria-label="Uygulama ekran görüntüleri. Gezinmek için sağ ve sol ok tuşlarını kullanabilirsiniz.">
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-ana.png" alt="Ana ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Ana Ekran</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-akademi.png" alt="Kahramanlık Akademisi ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-akademi.png" alt="Kahramanlık Akademisi ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Kahramanlık Akademisi</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-senaryo.png" alt="Senaryo Çöz ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-senaryo.png" alt="Senaryo Çöz ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Senaryo Çöz</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-dedektif.png" alt="Kahraman Dedektif ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-dedektif.png" alt="Kahraman Dedektif ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Kahraman Dedektif</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-hikaye.png" alt="Hikaye Oku ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-hikaye.png" alt="Hikaye Oku ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Hikaye Oku</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-video.png" alt="Video rehberler ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-video.png" alt="Video rehberler ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Video Rehberler</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-rozet.png" alt="Başarı rozetleri ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-rozet.png" alt="Başarı rozetleri ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Başarı Rozetleri</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-siber-dost.png" alt="Siber Dost ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-siber-dost.png" alt="Siber Dost ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Siber Dost</figcaption>
         </figure>
-        <figure class="phone">
-          <div class="shell"><img src="assets/ekranlar/ekran-guvenlik.png" alt="Güvenlik rehberi ekranı" width="200"
-              height="433" loading="lazy" decoding="async"></div>
+
+        <figure class="phone-card">
+          <div class="phone-shell">
+            <img src="assets/ekranlar/ekran-guvenlik.png" alt="Güvenlik rehberi ekran görünümü" width="200" height="433" loading="lazy" decoding="async">
+          </div>
           <figcaption>Güvenlik Rehberi</figcaption>
         </figure>
       </div>
-      <div class="dots" id="dots" role="group" aria-label="Ekran seçici"></div>
+
+      <div class="dots-nav" id="dots" role="group" aria-label="Ekran seçici"></div>
     </section>
 
-    <section class="about-preview" aria-labelledby="h-about">
-      <div class="container">
-        <div class="sec-head">
-          <p class="eyebrow">Projenin Ekibi</p>
-          <h2 class="title" id="h-about">Kahraman Dostum'u kimler hazırlıyor?</h2>
-          <p class="lead">Akran zorbalığı farkındalığı için çalışan proje ekibimizi ve projeyle ilgili başarıları
-            tanıyın.</p>
-        </div>
-        <div class="about-grid">
-          <article class="about-person">
-            <span>Proje Yürütücüsü</span>
-            <h3>Aziz ÇAYIROĞLU</h3>
-            <p>Kahraman Dostum proje yürütücüsü.</p>
-          </article>
-          <article class="about-person">
-            <span>Proje Araştırmacısı</span>
-            <h3>Seyyid Bilal KAHRİMANOĞLU</h3>
-            <p>Proje araştırmacısı.</p>
-          </article>
-          <article class="about-person">
-            <span>Proje Danışmanı</span>
-            <h3>Öğr. Gör. Samet YILDIRIM</h3>
-            <p>Proje danışmanı.</p>
-          </article>
-        </div>
-        <div class="about-awards" aria-label="Proje destek ve başarıları">
-          <span>TÜBİTAK 2209-A</span>
-          <span>İESÜ BTÖK · 3.lük</span>
-        </div>
-        <div class="actions" style="justify-content:center">
-          <a href="biz-kimiz.html" class="btn btn-primary">Ekibi ve Projeyi Tanıyın</a>
-        </div>
-      </div>
-    </section>
-
+    <!-- FAQ Section -->
     <section id="sss" aria-labelledby="h-faq">
       <div class="container">
         <div class="sec-head">
           <p class="eyebrow">Merak Edilenler</p>
           <h2 class="title" id="h-faq">Sıkça Sorulan Sorular</h2>
-          <p class="lead">Kahraman Dostum projesi ve akran zorbalığı hakkında en çok yöneltilen soruların yanıtları.</p>
+          <p class="lead">Kahraman Dostum platformu ve akran zorbalığı hakkında en çok yöneltilen soruların yanıtları.</p>
         </div>
-        <div class="faq">
+
+        <div class="faq-wrapper">
           <details open>
             <summary>Kahraman Dostum hangi zorbalık türlerini kapsar?</summary>
-            <p>Kahraman Dostum; akran zorbalığını tek bir alana sınırlamaz. Okulda, sokakta ve sosyal ortamlarda yaşanan
-              <strong>fiziksel zorbalık</strong> (vurma, itme, eşyalara zarar verme), <strong>sözel zorbalık</strong>
-              (lakap takma, hakaret, tehdit), <strong>ilişkisel/sosyal zorbalık</strong> (dışlama, dedikodu yayma,
-              yalnızlaştırma) ve dijital dünyadaki <strong>siber zorbalık</strong> dahil olmak üzere tüm türleri
-              pedagojik olarak ele alır.
-            </p>
+            <p>Kahraman Dostum; akran zorbalığını tek bir alana sınırlamaz. Okulda, sokakta ve sosyal ortamlarda yaşanan <strong>fiziksel zorbalık</strong> (vurma, itme, eşyalara zarar verme), <strong>sözel zorbalık</strong> (lakap takma, hakaret, tehdit), <strong>ilişkisel/sosyal zorbalık</strong> (dışlama, dedikodu yayma, yalnızlaştırma) ve dijital dünyadaki <strong>siber zorbalık</strong> dahil olmak üzere tüm türleri pedagojik olarak ele alır.</p>
           </details>
+
           <details>
             <summary>Akran zorbalığı ile olağan şakalaşma arasındaki fark nedir?</summary>
-            <p>Şakalaşmada her iki taraf da eğlenir ve taraflar arasında güç dengesizliği yoktur. Akran zorbalığında ise
-              kasıtlı, süreklilik gösteren ve hedef alınan kişinin üzüntü, korku veya çaresizlik yaşamasına sebep olan
-              tek taraflı bir eylem söz konusudur.</p>
+            <p>Şakalaşmada her iki taraf da eğlenir ve taraflar arasında güç dengesizliği yoktur. Akran zorbalığında ise kasıtlı, süreklilik gösteren ve hedef alınan kişinin üzüntü, korku veya çaresizlik yaşamasına sebep olan tek taraflı bir eylem söz konusudur.</p>
           </details>
+
           <details>
             <summary>Zorbalığa uğradığımda veya tanık olduğumda ne yapmalıyım?</summary>
-            <p>Öncelikle durumu kabullenip sessiz kalmamak esastır. Kararlı bir ses tonuyla bu davranışın durmasını
-              istemek, olayı güvenilir bir yetişkine (rehber öğretmen, ebeveyn veya okul idaresi) bildirmek ve dijital
-              zorbalık söz konusuysa ekran görüntülerini kanıt olarak saklamak gerekir.</p>
+            <p>Öncelikle durumu kabullenip sessiz kalmamak esastır. Kararlı bir ses tonuyla bu davranışın durmasını istemek, olayı güvenilir bir yetişkine (rehber öğretmen, ebeveyn veya okul idaresi) bildirmek ve dijital zorbalık söz konusuysa ekran görüntülerini kanıt olarak saklamak gerekir.</p>
           </details>
+
           <details>
             <summary>Kahraman Dostum uygulaması ücretsiz midir?</summary>
-            <p>Kahraman Dostum uygulamasını indirmek ve eğitim modüllerinden yararlanmak tamamen ücretsizdir. Yapay zeka
-              destekli Siber Asistan ve analiz modüllerinde ek kullanım hakkı kazanmak için isteğe bağlı ödüllü reklam
-              seçenekleri bulunmaktadır.</p>
+            <p>Kahraman Dostum uygulamasını indirmek ve eğitim modüllerinden yararlanmak tamamen ücretsizdir. Yapay zeka destekli Siber Asistan ve analiz modüllerinde ek kullanım hakkı kazanmak için isteğe bağlı ödüllü reklam seçenekleri bulunmaktadır.</p>
           </details>
+
           <details>
             <summary>Kullanıcı verileri nasıl korunuyor?</summary>
-            <p>Uygulamada kullanıcı adı ve yaş grubu istenir; gerçek e-posta adresi istenmez. Hesap, ilerleme ve
-              asistan sohbeti gibi veriler uygulama özelliklerini sunmak için Firebase ve Google'ın ilgili hizmetleri
-              tarafından işlenebilir; isteğe bağlı ödüllü reklamlar Google AdMob üzerinden sunulur. Hesabınızı Profil
-              bölümünden onaylayarak silebilirsiniz. İşlenen veriler ve dış hizmetler hakkında ayrıntı için
-              <a href="gizlilik-politikasi.html">Gizlilik Politikası</a> ile
-              <a href="hesap-sil.html">Hesap Silme Kılavuzunu</a> inceleyin.
-            </p>
+            <p>Uygulamada kullanıcı adı ve yaş grubu istenir; gerçek e-posta adresi istenmez. Hesap, ilerleme ve asistan sohbeti gibi veriler uygulama özelliklerini sunmak için Firebase ve Google'ın ilgili hizmetleri tarafından işlenebilir; isteğe bağlı ödüllü reklamlar Google AdMob üzerinden sunulur. Hesabınızı Profil bölümünden onaylayarak silebilirsiniz. İşlenen veriler ve dış hizmetler hakkında ayrıntı için <a href="gizlilik-politikasi.html" style="color: var(--p-primary); text-decoration: underline;">Gizlilik Politikası</a> ile <a href="hesap-sil.html" style="color: var(--p-primary); text-decoration: underline;">Hesap Silme Kılavuzunu</a> inceleyin.</p>
           </details>
         </div>
       </div>
     </section>
 
-    <section style="padding-top:0" aria-labelledby="h-cta">
+    <!-- Call to Action Banner -->
+    <section style="padding-top: 0;" aria-labelledby="h-cta">
       <div class="container">
-        <div class="cta">
+        <div class="cta-box">
           <h2 id="h-cta">Zorbalığa Karşı Yalnız Değilsiniz</h2>
-          <p>Kahraman Dostum ile bilinçlenin, kendinizi ve sevdiklerinizi koruyun. Birlikte daha güvenli, duyarlı ve
-            sevgi dolu bir gelecek inşa ediyoruz.</p>
+          <p>Kahraman Dostum ile bilinçlenin, kendinizi ve sevdiklerinizi koruyun. Birlikte daha güvenli, duyarlı ve bilinçli bir gelecek inşa ediyoruz.</p>
           <div class="actions">
-            <div class="store">
-              <svg width="20" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <div class="store-badge">
+              <svg width="18" height="20" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3.6 1.8 13.7 12 3.6 22.2c-.4-.4-.6-1.1-.6-2V3.8c0-.9.2-1.6.6-2z" fill="#00C1A6" />
                 <path d="M17.1 8.6 13.7 12l3.4 3.4 3.9-2.2c1.1-.6 1.1-1.7 0-2.4z" fill="#FFD400" />
                 <path d="M3.6 22.2 13.7 12l3.4 3.4-11.7 6.8c-.6.3-1.3.3-1.8 0z" fill="#FF3333" />
                 <path d="m3.6 1.8 1.8-.4c.5-.3 1.2-.3 1.8 0l9.9 7.2L13.7 12z" fill="#00A0FF" />
               </svg>
-              <div><span>Çok yakında</span><strong>Google Play'de</strong></div>
+              <div>
+                <span>Çok yakında</span>
+                <strong>Google Play'de</strong>
+              </div>
             </div>
             <a href="geri-bildirim.html" class="btn btn-white">Geri Bildirim Paylaş</a>
             <a href="gizlilik-politikasi.html" class="btn btn-ghost">Gizlilik Politikası</a>
@@ -1552,16 +1743,20 @@
         </div>
       </div>
     </section>
+
   </main>
 
+  <!-- Site Footer -->
   <footer class="site-footer">
-    <div class="container f-grid">
+    <div class="container footer-grid">
       <div>
-        <div class="f-brand"><img src="assets/logo.png" alt="" width="32" height="32" loading="lazy"><span>Kahraman
-            Dostum</span></div>
-        <p>TÜBİTAK vizyonuyla akran zorbalığına karşı bilimsel ve pedagojik dijital farkındalık platformu. Çocuklar ve
-          gençler için güvenli bir dijital gelecek.</p>
+        <div class="footer-brand">
+          <img src="assets/logo.png" alt="Kahraman Dostum Logo" width="32" height="32" loading="lazy">
+          <span>Kahraman Dostum</span>
+        </div>
+        <p>Aziz Digital imzasıyla, çocukların ve gençlerin siber ve akran zorbalığına karşı bilinçlenmesi için geliştirilen pedagojik ve dijital farkındalık platformu.</p>
       </div>
+
       <nav aria-label="Hızlı bağlantılar">
         <h2>Hızlı Bağlantılar</h2>
         <ul>
@@ -1570,9 +1765,9 @@
           <li><a href="#yaklasim">Yaklaşımımız</a></li>
           <li><a href="#ekranlar">Uygulama Ekranları</a></li>
           <li><a href="#sss">Sıkça Sorulan Sorular</a></li>
-          <li><a href="biz-kimiz.html">Biz Kimiz?</a></li>
         </ul>
       </nav>
+
       <nav aria-label="Kurumsal ve destek">
         <h2>Kurumsal &amp; Destek</h2>
         <ul>
@@ -1583,44 +1778,113 @@
         </ul>
       </nav>
     </div>
-    <div class="container f-bottom">
+
+    <div class="container footer-bottom">
       <p>© 2026 <strong>Kahraman Dostum</strong>. Tüm hakları saklıdır.</p>
-      <p>TÜBİTAK Akran Zorbalığı Farkındalık Projesi</p>
-      <img class="developer-logo" src="assets/aziz-digital-logo.png" alt="AZIZ DIGITAL geliştirici logosu" width="88"
-        height="88" loading="lazy">
+      <div class="developer-attribution">
+        <span>Geliştirici: <strong>Aziz Digital</strong></span>
+        <img src="assets/aziz-digital-logo.png" alt="Aziz Digital geliştirici logosu" width="36" height="36" loading="lazy">
+      </div>
     </div>
   </footer>
 
+  <!-- Interactive Client-side Script -->
   <script defer>
     (() => {
       const $ = s => document.querySelector(s);
-      /* Mobil menü */
-      const btn = $('#menuBtn'), nav = $('#nav');
-      const setMenu = o => { nav.classList.toggle('open', o); btn.setAttribute('aria-expanded', o); btn.setAttribute('aria-label', o ? 'Menüyü kapat' : 'Menüyü aç') };
-      btn.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
-      nav.addEventListener('click', e => { if (e.target.closest('a')) setMenu(false) });
-      addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('open')) { setMenu(false); btn.focus() } });
 
-      /* Ekran kaydırıcı: noktalar kartlardan üretilir, aktif kart IntersectionObserver ile bulunur */
-      const track = $('#track'), dotsBox = $('#dots');
-      const frames = [...track.children];
-      const dots = frames.map((f, i) => {
-        const d = document.createElement('button');
-        d.type = 'button'; d.className = 'dot';
-        d.setAttribute('aria-label', `${i + 1}. ekran: ${f.querySelector('figcaption').textContent}`);
-        d.addEventListener('click', () => f.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', inline: 'center', block: 'nearest' }));
-        dotsBox.append(d); return d;
-      });
-      const mark = i => dots.forEach((d, j) => d.setAttribute('aria-current', i === j));
-      mark(0);
-      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) mark(frames.indexOf(e.target)) }), { root: track, threshold: .7 });
-      frames.forEach(f => io.observe(f));
+      /* Mobile Navigation Toggle */
+      const btn = $('#menuBtn');
+      const nav = $('#nav');
 
-      /* Fare ile sürükleyerek kaydırma (dokunmatik cihazlar zaten yerel kaydırır) */
-      let down = false, x0 = 0, s0 = 0;
-      track.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; down = true; x0 = e.clientX; s0 = track.scrollLeft; track.classList.add('drag') });
-      addEventListener('pointermove', e => { if (down) track.scrollLeft = s0 - (e.clientX - x0) * 1.3 });
-      addEventListener('pointerup', () => { down = false; track.classList.remove('drag') });
+      const setMenu = open => {
+        if (!nav || !btn) return;
+        nav.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open);
+        btn.setAttribute('aria-label', open ? 'Menüyü kapat' : 'Menüyü aç');
+      };
+
+      if (btn && nav) {
+        btn.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+        nav.addEventListener('click', e => {
+          if (e.target.closest('a')) setMenu(false);
+        });
+        window.addEventListener('keydown', e => {
+          if (e.key === 'Escape' && nav.classList.contains('open')) {
+            setMenu(false);
+            btn.focus();
+          }
+        });
+      }
+
+      /* App Screenshots Carousel Slider */
+      const track = $('#track');
+      const dotsBox = $('#dots');
+      if (track && dotsBox) {
+        const frames = Array.from(track.children);
+        const dots = frames.map((f, i) => {
+          const d = document.createElement('button');
+          d.type = 'button';
+          d.className = 'dot-btn';
+          const caption = f.querySelector('figcaption') ? f.querySelector('figcaption').textContent : `${i + 1}. ekran`;
+          d.setAttribute('aria-label', `${i + 1}. ekran: ${caption}`);
+          d.addEventListener('click', () => {
+            f.scrollIntoView({
+              behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+              inline: 'center',
+              block: 'nearest'
+            });
+          });
+          dotsBox.append(d);
+          return d;
+        });
+
+        const mark = activeIdx => {
+          dots.forEach((d, j) => d.setAttribute('aria-current', activeIdx === j));
+        };
+        mark(0);
+
+        const io = new IntersectionObserver(entries => {
+          entries.forEach(e => {
+            if (e.isIntersecting) {
+              const index = frames.indexOf(e.target);
+              if (index !== -1) mark(index);
+            }
+          });
+        }, { root: track, threshold: 0.7 });
+
+        frames.forEach(f => io.observe(f));
+
+        /* Pointer Drag Scroll Handling */
+        let isDown = false, startX = 0, scrollLeft = 0;
+        track.addEventListener('pointerdown', e => {
+          if (e.pointerType !== 'mouse') return;
+          isDown = true;
+          startX = e.clientX;
+          scrollLeft = track.scrollLeft;
+          track.classList.add('drag');
+        });
+
+        window.addEventListener('pointermove', e => {
+          if (!isDown) return;
+          const walk = (e.clientX - startX) * 1.3;
+          track.scrollLeft = scrollLeft - walk;
+        });
+
+        window.addEventListener('pointerup', () => {
+          isDown = false;
+          track.classList.remove('drag');
+        });
+
+        /* Keyboard Left / Right Navigation on Track */
+        track.addEventListener('keydown', e => {
+          if (e.key === 'ArrowRight') {
+            track.scrollBy({ left: 230, behavior: 'smooth' });
+          } else if (e.key === 'ArrowLeft') {
+            track.scrollBy({ left: -230, behavior: 'smooth' });
+          }
+        });
+      }
     })();
   </script>
 </body>

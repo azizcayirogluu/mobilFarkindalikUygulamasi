@@ -1,11 +1,9 @@
-import 'dart:math';
-
+import 'dart:math' show Random;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/giris_yapma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/gizlilik_politikasi_ekrani.dart';
@@ -114,38 +112,138 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
   Future<void> _register() async {
     if (_loading) return;
+
     setState(() => _loading = true);
+
     final username = _usernameController.text.trim().toLowerCase();
     final pin = _pinController.text.trim();
     final email = '$username@zorbalik.app';
 
     try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pin);
+      // Firebase Authentication'da kullanıcı oluştur
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: email,
+        password: pin,
+      );
+
       final user = credential.user;
-      if (user == null) throw Exception();
+
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'user-creation-failed',
+          message: 'Kullanıcı oluşturulamadı.',
+        );
+      }
 
       final firestore = FirebaseFirestore.instance;
+
+      final userRef = firestore.collection('users').doc(user.uid);
+      final progressRef =
+      firestore.collection('usersProgress').doc(user.uid);
+
       final batch = firestore.batch();
-      batch.set(firestore.collection('users').doc(user.uid), {
-        'kullaniciAdi': username,
-        'yasGrubu': seciliGrup,
-        'avatarUrl': 'assets/image/boy.png',
-        'isOnline': true,
-        'sonGorulme': FieldValue.serverTimestamp(),
-      });
-      batch.set(firestore.collection('usersProgress').doc(user.uid), {
-        'kullaniciAdi': username,
-        'sonGuncelleme': FieldValue.serverTimestamp(),
-      });
+
+      // Kullanıcı profil bilgileri
+      // merge: true sayesinde Cloud Function tarafından
+      // oluşturulmuş korumalı alanlar silinmez/değiştirilmez.
+      batch.set(
+        userRef,
+        {
+          'kullaniciAdi': username,
+          'yasGrubu': seciliGrup,
+          'avatarUrl': 'assets/image/boy.png',
+          'isOnline': true,
+          'sonGorulme': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      // Kullanıcı ilerleme bilgileri
+      batch.set(
+        progressRef,
+        {
+          'kullaniciAdi': username,
+          'sonGuncelleme': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      // İki Firestore işlemini birlikte gerçekleştir
       await batch.commit();
+
+      // Firebase Auth profil adını güncelle
       await user.updateDisplayName(username);
 
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AnaNavigation()), (route) => false);
-    } catch (e) {
-      _showMessage('Bir sorun oluştu, lütfen tekrar dene.', isError: true);
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AnaNavigation(),
+        ),
+            (route) => false,
+      );
+    } on FirebaseAuthException catch (e, stackTrace) {
+      debugPrint('KAYIT - FIREBASE AUTH HATASI');
+      debugPrint('Kod: ${e.code}');
+      debugPrint('Mesaj: ${e.message}');
+      debugPrint('StackTrace: $stackTrace');
+
+      if (!mounted) return;
+
+      String message;
+
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'Bu kahraman adı zaten kullanılıyor.';
+          break;
+
+        case 'weak-password':
+          message = 'PIN oluşturulamadı. Lütfen tekrar dene.';
+          break;
+
+        case 'network-request-failed':
+          message = 'İnternet bağlantını kontrol edip tekrar dene.';
+          break;
+
+        case 'too-many-requests':
+          message = 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar dene.';
+          break;
+
+        default:
+          message = 'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.';
+      }
+
+      _showMessage(message, isError: true);
+    } on FirebaseException catch (e, stackTrace) {
+      debugPrint('KAYIT - FIREBASE HATASI');
+      debugPrint('Servis: ${e.plugin}');
+      debugPrint('Kod: ${e.code}');
+      debugPrint('Mesaj: ${e.message}');
+      debugPrint('StackTrace: $stackTrace');
+
+      if (!mounted) return;
+
+      _showMessage(
+        'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.',
+        isError: true,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('KAYIT - BEKLENMEYEN HATA');
+      debugPrint('Hata: $e');
+      debugPrint('StackTrace: $stackTrace');
+
+      if (!mounted) return;
+
+      _showMessage(
+        'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.',
+        isError: true,
+      );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -319,14 +417,43 @@ class _KayitEkraniState extends State<KayitEkrani> {
   }
 
   Widget _buildPrivacyToggle() {
-    return InkWell(
-      onTap: () => setState(() => _privacyAccepted = !_privacyAccepted),
-      child: Row(
-        children: [
-          Checkbox(value: _privacyAccepted, onChanged: (v) => setState(() => _privacyAccepted = v!), activeColor: const Color(0xFF6366F1)),
-          const Expanded(child: Text("Gizlilik Politikasını okudum ve kabul ediyorum.", style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
-        ],
-      ),
+    return Row(
+      children: [
+        Checkbox(
+          value: _privacyAccepted,
+          onChanged: (v) => setState(() => _privacyAccepted = v ?? false),
+          activeColor: const Color(0xFF6366F1),
+        ),
+        Expanded(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const GizlilikPolitikasiEkrani()),
+                ),
+                child: const Text(
+                  "Gizlilik Politikasını",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6366F1),
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _privacyAccepted = !_privacyAccepted),
+                child: const Text(
+                  " okudum ve kabul ediyorum.",
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

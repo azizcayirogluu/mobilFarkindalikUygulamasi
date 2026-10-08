@@ -48,19 +48,19 @@ class _AnaNavigationState extends State<AnaNavigation> {
 
   Widget _buildKahramanFAB() {
     return Container(
-      height: 65,
-      width: 65,
+      height: 62,
+      width: 62,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(
           colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
         ),
-        border: Border.all(color: Colors.white, width: 4),
-        boxShadow: [
+        border: Border.all(color: Colors.white, width: 3.5),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Color(0x26000000),
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -72,7 +72,7 @@ class _AnaNavigationState extends State<AnaNavigation> {
             MaterialPageRoute(builder: (_) => const SiberAsistanEkrani()),
           ),
           customBorder: const CircleBorder(),
-          child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
+          child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
         ),
       ),
     );

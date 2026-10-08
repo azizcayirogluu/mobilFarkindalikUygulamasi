@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'senaryo_detay_ekrani.dart';
 
@@ -18,15 +17,16 @@ class SenaryoBolumListelemeEkrani extends StatefulWidget {
 
 class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkrani> {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
-  late Stream<DocumentSnapshot> _userProgressStream;
-  late Future<DocumentSnapshot> _userFuture;
-  late Stream<DocumentSnapshot> _scenarioStream;
+  Stream<DocumentSnapshot>? _userProgressStream;
+  Future<DocumentSnapshot>? _userFuture;
+  Stream<DocumentSnapshot>? _scenarioStream;
 
   @override
   void initState() {
     super.initState();
-    if (_currentUser != null) {
-      final uid = _currentUser!.uid;
+    final user = _currentUser;
+    if (user != null) {
+      final uid = user.uid;
       _userProgressStream = FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots();
       _userFuture = FirebaseFirestore.instance.collection('users').doc(uid).get();
       _scenarioStream = FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots();
@@ -39,94 +39,96 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         body: StreamBuilder<DocumentSnapshot>(
-        stream: _userProgressStream,
-        builder: (context, userProgressSnap) {
-          List<String> tamamlananlar = [];
-          if (userProgressSnap.hasData && userProgressSnap.data!.exists) {
-            final userData = userProgressSnap.data!.data() as Map<String, dynamic>?;
-            tamamlananlar = List<String>.from(userData?['tamamlanan_bolumler'] ?? []);
-          }
+          stream: _userProgressStream,
+          builder: (context, userProgressSnap) {
+            List<String> tamamlananlar = [];
+            if (userProgressSnap.hasData && userProgressSnap.data!.exists) {
+              final userData = userProgressSnap.data!.data() as Map<String, dynamic>?;
+              tamamlananlar = List<String>.from(userData?['tamamlanan_bolumler'] ?? []);
+            }
 
-          return FutureBuilder<DocumentSnapshot>(
-              future: _userFuture,
-              builder: (context, userSnap) {
-                if (userSnap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            return FutureBuilder<DocumentSnapshot>(
+                future: _userFuture,
+                builder: (context, userSnap) {
+                  if (userSnap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-                String kullaniciYasGrubu = "6-12";
-                if (userSnap.hasData && userSnap.data!.exists) {
-                  kullaniciYasGrubu = (userSnap.data!.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
-                }
+                  String kullaniciYasGrubu = "6-12";
+                  if (userSnap.hasData && userSnap.data!.exists) {
+                    kullaniciYasGrubu = (userSnap.data!.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
+                  }
 
-                return StreamBuilder<DocumentSnapshot>(
-                  stream: _scenarioStream,
-                  builder: (context, scenarioSnapshot) {
-                    if (scenarioSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                    if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) return const Center(child: Text("Görevler bulunamadı."));
+                  return StreamBuilder<DocumentSnapshot>(
+                    stream: _scenarioStream,
+                    builder: (context, scenarioSnapshot) {
+                      if (scenarioSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                      if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) return const Center(child: Text("Görevler bulunamadı."));
 
-                    var scenarioData = scenarioSnapshot.data!.data() as Map<String, dynamic>?;
-                    List tumBolumler = scenarioData?['bolumler'] ?? [];
+                      var scenarioData = scenarioSnapshot.data!.data() as Map<String, dynamic>?;
+                      List tumBolumler = scenarioData?['bolumler'] ?? [];
 
-                    List filtrelenmisBolumler = tumBolumler.where((bolum) {
-                      List sorular = bolum['sorular'] ?? [];
-                      return sorular.any((soru) => (soru['yasGrubu'] ?? "6-12") == kullaniciYasGrubu);
-                    }).toList();
+                      List filtrelenmisBolumler = tumBolumler.where((bolum) {
+                        List sorular = bolum['sorular'] ?? [];
+                        return sorular.any((soru) => (soru['yasGrubu'] ?? "6-12") == kullaniciYasGrubu);
+                      }).toList();
 
-                    int buKategoriBitenSayisi = tamamlananlar.where((id) => id.startsWith("${widget.docId}_")).length;
+                      int buKategoriBitenSayisi = tamamlananlar.where((id) => id.startsWith("${widget.docId}_")).length;
 
-                    return Column(
-                      children: [
-                        _buildHeader(context, buKategoriBitenSayisi),
-                        Expanded(
-                          child: filtrelenmisBolumler.isEmpty
-                              ? _buildEmptyState()
-                              : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(25, 20, 25, 120),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: filtrelenmisBolumler.length,
-                            itemBuilder: (context, index) {
-                              int gercekIndex = tumBolumler.indexOf(filtrelenmisBolumler[index]);
-                              String bId = "${widget.docId}_$gercekIndex";
-                              bool bittiMi = tamamlananlar.contains(bId);
+                      return Column(
+                        children: [
+                          _buildHeader(context, buKategoriBitenSayisi),
+                          Expanded(
+                            child: filtrelenmisBolumler.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                              padding: EdgeInsets.fromLTRB(20, 16, 20, bottomInset),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: filtrelenmisBolumler.length,
+                              itemBuilder: (context, index) {
+                                int gercekIndex = tumBolumler.indexOf(filtrelenmisBolumler[index]);
+                                String bId = "${widget.docId}_$gercekIndex";
+                                bool bittiMi = tamamlananlar.contains(bId);
 
-                              bool acikMi = index == 0 || tamamlananlar.contains("${widget.docId}_${tumBolumler.indexOf(filtrelenmisBolumler[index-1])}");
-                              bool sonMu = index == filtrelenmisBolumler.length - 1;
-                              bool suAnkiGorevMi = acikMi && !bittiMi;
+                                bool acikMi = index == 0 || tamamlananlar.contains("${widget.docId}_${tumBolumler.indexOf(filtrelenmisBolumler[index-1])}");
+                                bool sonMu = index == filtrelenmisBolumler.length - 1;
+                                bool suAnkiGorevMi = acikMi && !bittiMi;
 
-                              return _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi)
-                                  .animate(delay: (index * 30).ms)
-                                  .fadeIn(duration: 300.ms)
-                                  .slideY(begin: 0.05, curve: Curves.easeOutQuad);
-                            },
+                                return _buildMissionStep(filtrelenmisBolumler[index], gercekIndex, acikMi, bittiMi, sonMu, suAnkiGorevMi)
+                                    .animate(delay: (index * 30).ms)
+                                    .fadeIn(duration: 300.ms)
+                                    .slideY(begin: 0.05, curve: Curves.easeOutQuad);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-          );
-        },
+                        ],
+                      );
+                    },
+                  );
+                }
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildHeader(BuildContext context, int tamamlananSayisi) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 15, 20, 25),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
+      decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Color(0x05000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -139,30 +141,34 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF475569)),
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF475569)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 _buildScoreBadge(tamamlananSayisi),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Text(
               widget.kategoriBaslik,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 24,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF1E293B),
                 letterSpacing: -0.5,
               ),
             ),
+            const SizedBox(height: 2),
             const Text(
               "Görevlerini tamamla ve kahramanlığını kanıtla! 🛡️",
               style: TextStyle(
@@ -183,11 +189,11 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF4F46E5)]),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF6366F1).withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Color(0x336366F1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -221,32 +227,32 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                     width: 3,
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: bitti ? const Color(0xFF10B981).withOpacity(0.3) : const Color(0xFFE2E8F0),
+                      color: bitti ? const Color(0xFF10B981).withAlpha(80) : const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
           Expanded(
             child: GestureDetector(
               onTap: acik ? () => Navigator.push(context, MaterialPageRoute(builder: (c) => SenaryoDetayEkrani(docId: widget.docId, bolumIndex: index))) : null,
               child: Container(
-                margin: const EdgeInsets.only(bottom: 25),
-                padding: const EdgeInsets.all(20),
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: bitti ? const Color(0xFF10B981).withOpacity(0.2) : (suAnkiGorevMi ? const Color(0xFF6366F1).withOpacity(0.2) : Colors.transparent),
+                    color: bitti ? const Color(0xFF10B981).withAlpha(80) : (suAnkiGorevMi ? const Color(0xFF6366F1).withAlpha(80) : const Color(0xFFE2E8F0)),
                     width: 2,
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
+                      color: Color(0x05000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
                     ),
                   ],
                 ),
@@ -269,31 +275,31 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                         if (!acik) const Icon(Icons.lock_rounded, color: Color(0xFFCBD5E1), size: 16),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       bolum['bolumAdi'] ?? "...",
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 18,
+                        fontSize: 17,
                         color: acik ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
                         height: 1.2,
                       ),
                     ),
                     if (acik && amac != null && amac.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF6366F1)),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 amac,
@@ -301,7 +307,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF475569),
-                                  height: 1.4,
+                                  height: 1.35,
                                 ),
                               ),
                             ),
@@ -310,19 +316,15 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                       ),
                     ],
                     if (suAnkiGorevMi)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Row(
-                          children: [
-                            const Text(
-                              "Hadi Başlayalım! 🚀",
-                              style: TextStyle(
-                                color: Color(0xFF6366F1),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
+                      const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Text(
+                          "Hadi Başlayalım! 🚀",
+                          style: TextStyle(
+                            color: Color(0xFF6366F1),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                   ],
@@ -338,31 +340,31 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
   Widget _buildMissionIcon(bool bitti, bool acik, bool suAnkiGorevMi) {
     if (suAnkiGorevMi) {
       return Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
+        width: 42,
+        height: 42,
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF4F46E5)]),
-          boxShadow: [BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          gradient: LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF4F46E5)]),
+          boxShadow: [BoxShadow(color: Color(0x4D6366F1), blurRadius: 10, offset: Offset(0, 4))],
         ),
-        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
       );
     }
     return Container(
-      width: 44,
-      height: 44,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: bitti ? const Color(0xFF10B981) : Colors.white,
         border: Border.all(
           color: bitti ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
-          width: 3,
+          width: 2.5,
         ),
       ),
       child: Icon(
         bitti ? Icons.check_rounded : Icons.lock_outline_rounded,
         color: bitti ? Colors.white : const Color(0xFF94A3B8),
-        size: 20,
+        size: 18,
       ),
     );
   }
@@ -373,14 +375,14 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.all(28),
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.rocket_launch_rounded, size: 60, color: const Color(0xFFCBD5E1)),
+            child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text(
             "Yolculuk Hazırlanıyor!",
             style: TextStyle(

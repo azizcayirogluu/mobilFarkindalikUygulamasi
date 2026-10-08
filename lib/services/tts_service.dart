@@ -166,12 +166,18 @@ class TtsService {
   }
 
   void _recordError(Object error, StackTrace stackTrace, {required String reason}) {
-    FirebaseCrashlytics.instance.recordError(
-      error,
-      stackTrace,
-      reason: reason,
-      fatal: false,
-    );
+    if (!kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stackTrace,
+          reason: reason,
+          fatal: false,
+        );
+      } catch (e) {
+        debugPrint("TTS Crashlytics record failed: $e");
+      }
+    }
   }
 
   void dispose() {

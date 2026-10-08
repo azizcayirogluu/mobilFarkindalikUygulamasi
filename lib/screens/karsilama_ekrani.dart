@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -265,15 +264,15 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
 
   Widget _buildBottomActions(double width) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Color(0x08000000),
             blurRadius: 20,
-            offset: const Offset(0, -10),
+            offset: Offset(0, -10),
           ),
         ],
       ),

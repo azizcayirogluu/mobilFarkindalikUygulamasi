@@ -368,31 +368,33 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
   void _showFeedback(String mesaj) {
     if (_sesAcik) _ttsService.speak(mesaj);
+    final bottomPadding = MediaQuery.paddingOf(context).bottom + 20;
+
     showModalBottomSheet(
       context: context,
       isDismissible: false,
       enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (c) => Container(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.fromLTRB(28, 24, 28, bottomPadding),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lightbulb_circle_rounded, color: Colors.amber, size: 70).animate(onPlay: (c) => c.repeat()).shimmer(),
-            const SizedBox(height: 20),
-            const Text("KAHRAMAN İPUCU", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.blueGrey, letterSpacing: 1.5)),
-            const SizedBox(height: 12),
-            Text(mesaj, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Color(0xFF1E293B), fontWeight: FontWeight.w600, height: 1.5)),
-            const SizedBox(height: 30),
+            const Icon(Icons.lightbulb_circle_rounded, color: Colors.amber, size: 64).animate(onPlay: (c) => c.repeat()).shimmer(),
+            const SizedBox(height: 16),
+            const Text("KAHRAMAN İPUCU", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.5)),
+            const SizedBox(height: 10),
+            Text(mesaj, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w600, height: 1.45)),
+            const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.anaMavi,
-                minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                minimumSize: const Size(double.infinity, 54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 elevation: 0,
               ),
               onPressed: () { Navigator.pop(c); _sonraki(); },
@@ -408,15 +410,24 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
 
+    bool syncSuccess = false;
+
     if (basarili) {
-      _confettiController.play();
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          await _analyticsService.bolumTamamla(user.uid, 0, "${widget.docId}_${widget.bolumIndex}", proof: List.from(_userAnswersProof));
+          await _analyticsService.bolumTamamla(
+            user.uid,
+            0,
+            "${widget.docId}_${widget.bolumIndex}",
+            proof: List.from(_userAnswersProof),
+          );
+          syncSuccess = true;
+          _confettiController.play();
         }
       } catch (e) {
         debugPrint("Senkronizasyon hatası: $e");
+        syncSuccess = false;
       }
     }
 
@@ -434,24 +445,36 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: basarili ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                color: !basarili
+                    ? const Color(0xFFFEF2F2)
+                    : (syncSuccess ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB)),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                basarili ? Icons.emoji_events_rounded : Icons.refresh_rounded,
+                !basarili
+                    ? Icons.refresh_rounded
+                    : (syncSuccess ? Icons.emoji_events_rounded : Icons.cloud_off_rounded),
                 size: 60,
-                color: basarili ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                color: !basarili
+                    ? const Color(0xFFEF4444)
+                    : (syncSuccess ? const Color(0xFF10B981) : const Color(0xFFF59E0B)),
               ),
             ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
             const SizedBox(height: 24),
             Text(
-              basarili ? "TEBRİKLER KAHRAMAN!" : "TEKRAR DENEYELİM!",
+              !basarili
+                  ? "TEKRAR DENEYELİM!"
+                  : (syncSuccess ? "TEBRİKLER KAHRAMAN!" : "KAYIT BEKLENİYOR"),
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B)),
             ),
             const SizedBox(height: 12),
             Text(
-              basarili ? "Bu görevi başarıyla tamamladın. Harika gidiyorsun!" : "Hadi bir şans daha! Başarabileceğini biliyoruz.",
+              !basarili
+                  ? "Hadi bir şans daha! Başarabileceğini biliyoruz."
+                  : (syncSuccess
+                      ? "Bu görevi başarıyla tamamladın. Harika gidiyorsun!"
+                      : "Soruları başarıyla çözdün! Ancak puanların sunucuya henüz aktarılamadı. Lütfen bağlantını kontrol edip tekrar dene."),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
             ),
@@ -468,22 +491,49 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
               ),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: basarili ? const Color(0xFF10B981) : const Color(0xFF6366F1),
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+            if (basarili && !syncSuccess) ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 0,
+                ),
+                onPressed: () {
+                  Navigator.pop(c);
+                  _sonucGoster();
+                },
+                child: const Text(
+                  "TEKRAR KAYDET 🔄",
+                  style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+                ),
               ),
-              onPressed: () {
-                Navigator.pop(c);
-                Navigator.pop(context);
-              },
-              child: Text(
-                basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
-                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(c);
+                  Navigator.pop(context);
+                },
+                child: const Text("DAHA SONRA ÇIK", style: TextStyle(color: Colors.grey)),
               ),
-            ),
+            ] else ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: basarili ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 0,
+                ),
+                onPressed: () {
+                  Navigator.pop(c);
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
+                  style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+                ),
+              ),
+            ],
           ],
         ),
       ),

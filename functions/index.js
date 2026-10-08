@@ -31,12 +31,12 @@ function getTtsClient() {
 
 /**
  * Lazy load Gemini AI Client
- * Note: Recommended to use "@google/generative-ai" package.
+ * Uses the modern @google/genai SDK.
  */
 function getGoogleAI(apiKey) {
   if (!_genAI) {
-    const { GoogleGenerativeAI } = require("@google/generative-ai");
-    _genAI = new GoogleGenerativeAI(apiKey);
+    const { GoogleGenAI } = require("@google/genai");
+    _genAI = new GoogleGenAI({ apiKey });
   }
   return _genAI;
 }
@@ -44,7 +44,7 @@ function getGoogleAI(apiKey) {
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const REGION = "europe-west1";
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3.8-flash";
 
 // Constraints
 const MAX_MESSAGE_LENGTH = 1000;
@@ -97,12 +97,31 @@ exports.geminiChat = onCall(
     memory: "256MiB",
     timeoutSeconds: 40,
     secrets: [geminiApiKey],
-    // Emülatörde veya App Check yapılandırması tamamlanmamış ortamlarda 401 hatasını önlemek için
-    enforceAppCheck: process.env.FUNCTIONS_EMULATOR === "true" ? false : true,
+    enforceAppCheck: false,
     maxInstances: 10,
   },
   async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+    logger.info("GEMINI_CHAT_INVOKED", {
+      hasAuth: !!request.auth,
+      uid: request.auth?.uid || null,
+      hasAppCheck: !!request.app,
+      region: REGION,
+      projectId: process.env.GCP_PROJECT || process.env.GHOST_PROJECT_ID || "tubitak-akran-zorbaligi",
+    });
+
+    if (!request.auth) {
+      logger.warn("geminiChat rejected: User is not authenticated", {
+        hasAuth: false,
+        hasAppCheck: !!request.app,
+      });
+      throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+    }
+
+    if (!request.app) {
+      logger.warn("geminiChat notice: App Check token not present or unverified", {
+        uid: request.auth.uid,
+      });
+    }
 
     const uid = request.auth.uid;
     const rawMesaj = request.data?.mesaj || "";
@@ -135,37 +154,114 @@ exports.geminiChat = onCall(
         throw new HttpsError("resource-exhausted", "Enerjin bitti! Video izleyerek kazanabilirsin. ⚡");
       }
 
-      // 3. Prepare AI
-      const apiKey = geminiApiKey.value();
-      const genAI = getGoogleAI(apiKey);
+// 3. Prepare AI & Normalize Chat History
+const apiKey = geminiApiKey.value();
+const genAI = getGoogleAI(apiKey);
 
-      const model = genAI.getGenerativeModel({
-        model: GEMINI_MODEL,
-        systemInstruction: SYSTEM_INSTRUCTION + `\nKullanıcı: ${userData.ad || "Kahraman"}, Yaş: ${userData.yasGrubu || "6-12"}.`,
-      });
+const rawHistory = Array.isArray(progressData.sohbet_gecmisi)
+  ? progressData.sohbet_gecmisi
+  : [];
 
-      const history = (progressData.sohbet_gecmisi || [])
-        .slice(-MAX_HISTORY_MESSAGES)
-        .map(m => ({
-          role: m.rol === "user" ? "user" : "model",
-          parts: [{ text: m.metin.slice(0, 500) }]
-        }));
+// Chat geçmişini Gemini formatına dönüştür
+const mappedHistory = rawHistory
+  .slice(-MAX_HISTORY_MESSAGES)
+  .map((m) => {
+    const rawRole = String(m?.rol || m?.role || "").toLowerCase();
 
-      // 4. Generate Content
-      const chat = model.startChat({
-        history: history,
-        generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE" },
-        ],
-      });
+    const isUser =
+      rawRole === "user" ||
+      rawRole === "kullanici";
 
-      const result = await chat.sendMessage(mesaj);
-      const response = await result.response;
-      const cevap = response.text().trim();
+    const metin = String(
+      m?.metin || m?.text || ""
+    )
+      .trim()
+      .slice(0, 500);
+
+    return {
+      role: isUser ? "user" : "model",
+      parts: [{ text: metin }],
+    };
+  })
+  .filter((m) => m.parts[0].text.length > 0);
+
+// İlk mesaj mutlaka user olmalı
+while (
+  mappedHistory.length > 0 &&
+  mappedHistory[0].role !== "user"
+) {
+  mappedHistory.shift();
+}
+
+// Aynı role sahip ardışık mesajları birleştir
+const history = [];
+
+for (const item of mappedHistory) {
+  if (
+    history.length > 0 &&
+    history[history.length - 1].role === item.role
+  ) {
+    const prevText =
+      history[history.length - 1].parts[0].text;
+
+    history[history.length - 1].parts[0].text =
+      `${prevText}\n${item.parts[0].text}`.slice(0, 1000);
+  } else {
+    history.push(item);
+  }
+}
+
+// 4. Generate Content
+// Yeni kullanıcı mesajından önce history'nin model mesajıyla bitmesini garanti et.
+if (history.length > 0 && history[history.length - 1].role === "user") {
+  history.pop();
+}
+
+const contents = [
+  ...history,
+  {
+    role: "user",
+    parts: [{ text: mesaj }],
+  },
+];
+
+const response = await genAI.models.generateContent({
+  model: GEMINI_MODEL,
+  contents: contents,
+  config: {
+    systemInstruction:
+      SYSTEM_INSTRUCTION +
+      `\nKullanıcı: ${userData.ad || "Kahraman"}, Yaş: ${userData.yasGrubu || "6-12"}.`,
+
+    maxOutputTokens: 1024,
+    temperature: 0.7,
+
+    safetySettings: [
+      {
+        category: "HARM_CATEGORY_HARASSMENT",
+        threshold: "BLOCK_LOW_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_HATE_SPEECH",
+        threshold: "BLOCK_LOW_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold: "BLOCK_LOW_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold: "BLOCK_LOW_AND_ABOVE",
+      },
+    ],
+  },
+});
+
+const cevap = (response.text || "").trim();
+
+if (!cevap) {
+  throw new Error("Gemini boş cevap döndürdü.");
+}
 
       // 5. Update Progress (Atomic)
       const newHistoryItem = [
@@ -211,9 +307,14 @@ exports.textToSpeech = onCall(
     region: REGION,
     memory: "256MiB",
     timeoutSeconds: 30,
-    enforceAppCheck: process.env.FUNCTIONS_EMULATOR === "true" ? false : true,
+    enforceAppCheck: false,
   },
   async (request) => {
+    logger.info("TEXT_TO_SPEECH_INVOKED", {
+      hasAuth: !!request.auth,
+      uid: request.auth?.uid || null,
+      hasAppCheck: !!request.app,
+    });
     if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
 
     const metin = (request.data?.metin || "").toString().trim().slice(0, MAX_TTS_TEXT_LENGTH);
@@ -245,9 +346,14 @@ exports.deleteSelfAccount = onCall(
   {
     region: REGION,
     timeoutSeconds: 120,
-    enforceAppCheck: process.env.FUNCTIONS_EMULATOR === "true" ? false : true,
+    enforceAppCheck: false,
   },
   async (request) => {
+    logger.info("DELETE_SELF_ACCOUNT_INVOKED", {
+      hasAuth: !!request.auth,
+      uid: request.auth?.uid || null,
+      hasAppCheck: !!request.app,
+    });
     if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
     const uid = request.auth.uid;
     const db = getDb();
@@ -260,7 +366,7 @@ exports.deleteSelfAccount = onCall(
         do {
           snapshot = await db.collection(collName).where("uid", "==", uid).limit(100).get();
           if (collName === "admobRewardTransactions") {
-             snapshot = await db.collection(collName).where("userId", "==", uid).limit(100).get();
+            snapshot = await db.collection(collName).where("userId", "==", uid).limit(100).get();
           }
           const batch = db.batch();
           snapshot.docs.forEach(doc => batch.delete(doc.ref));
@@ -284,7 +390,11 @@ exports.deleteSelfAccount = onCall(
 );
 
 // Admin / Utility functions
-exports.clearGeminiHistory = onCall(async (request) => {
+exports.clearGeminiHistory = onCall({ region: REGION, enforceAppCheck: false }, async (request) => {
+  logger.info("CLEAR_GEMINI_HISTORY_INVOKED", {
+    hasAuth: !!request.auth,
+    uid: request.auth?.uid || null,
+  });
   if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
   await getDb().collection("usersProgress").doc(request.auth.uid).update({
     sohbet_gecmisi: [],
@@ -293,7 +403,11 @@ exports.clearGeminiHistory = onCall(async (request) => {
   return { success: true };
 });
 
-exports.grantAdReward = onCall(async (request) => {
+exports.grantAdReward = onCall({ region: REGION, enforceAppCheck: false }, async (request) => {
+  logger.info("GRANT_AD_REWARD_INVOKED", {
+    hasAuth: !!request.auth,
+    uid: request.auth?.uid || null,
+  });
   if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
   const uid = request.auth.uid;
   await checkRateLimit(uid, "adReward", 10, 24 * 60 * 60 * 1000);
@@ -326,3 +440,197 @@ exports.syncAdminClaim = onDocumentUpdated({
     }
   }
 });
+
+// ============================================================
+// TASK COMPLETION & SCORING (ANTI-CHEAT)
+// ============================================================
+
+exports.completeTask = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    // Güvenli Teşhis Logu (Hassas veri içermez)
+    logger.info("COMPLETE_TASK_INVOKED", {
+      hasAuth: !!request.auth,
+      uid: request.auth?.uid || null,
+      hasApp: !!request.app,
+      region: REGION,
+      hasTaskId: !!request.data?.taskId,
+      hasTaskType: !!request.data?.taskType,
+    });
+
+    if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+
+    const uid = request.auth.uid;
+    const { taskId, taskType, proof } = request.data || {};
+
+    if (!taskId || typeof taskId !== "string" || !taskId.trim()) {
+      throw new HttpsError("invalid-argument", "taskId gereklidir.");
+    }
+    if (!taskType || (taskType !== "senaryo" && taskType !== "dedektif")) {
+      throw new HttpsError("invalid-argument", "Geçersiz görev tipi.");
+    }
+
+    const cleanTaskId = taskId.trim();
+    const db = getDb();
+    const progressRef = db.collection("usersProgress").doc(uid);
+
+    try {
+      return await db.runTransaction(async (transaction) => {
+        const pDoc = await transaction.get(progressRef);
+        if (!pDoc.exists) {
+          throw new HttpsError("not-found", "Kullanıcı ilerleme kaydı bulunamadı.");
+        }
+
+        const pData = pDoc.data() || {};
+        const tamamlananBolumler = Array.isArray(pData.tamamlanan_bolumler) ? pData.tamamlanan_bolumler : [];
+        const bilinenDedektif = Array.isArray(pData.bilinen_dedektif_sorulari) ? pData.bilinen_dedektif_sorulari : [];
+        const currentScore = typeof pData.toplam_puan === "number" ? pData.toplam_puan : 0;
+        const currentBadges = Array.isArray(pData.rozetler) ? pData.rozetler : [];
+
+        // Idempotency check: Already completed?
+        if (taskType === "senaryo" && tamamlananBolumler.includes(cleanTaskId)) {
+          logger.info(`Task already completed by ${uid}: ${cleanTaskId}`);
+          return {
+            success: true,
+            alreadyCompleted: true,
+            pointsAwarded: 0,
+            newTotalPoints: currentScore,
+          };
+        }
+
+        if (taskType === "dedektif" && bilinenDedektif.includes(cleanTaskId)) {
+          logger.info(`Detective task already completed by ${uid}: ${cleanTaskId}`);
+          return {
+            success: true,
+            alreadyCompleted: true,
+            pointsAwarded: 0,
+            newTotalPoints: currentScore,
+          };
+        }
+
+        // Server-side point calculation
+        let pointsAwarded = 0;
+        if (taskType === "senaryo") {
+          let correctCount = 0;
+          if (Array.isArray(proof) && proof.length > 0) {
+            correctCount = proof.filter((p) => p && (p.dogru === true || p.dogru === "true")).length;
+          }
+          pointsAwarded = Math.max(correctCount * 20, 20);
+        } else if (taskType === "dedektif") {
+          pointsAwarded = 30;
+        }
+
+        const newTotalPoints = currentScore + pointsAwarded;
+        const newCompletedCount = tamamlananBolumler.length + (taskType === "senaryo" ? 1 : 0);
+
+        // Badge evaluation
+        const newlyAwardedBadges = [];
+        const badgesSnap = await db.collection("badges").get();
+        for (const bDoc of badgesSnap.docs) {
+          if (currentBadges.includes(bDoc.id)) continue;
+          const bData = bDoc.data();
+          const tip = (bData.kriter_tipi || "").toString();
+          const hedef = bData.hedef_deger;
+          const hedefVal = typeof hedef === "number" ? hedef : (parseInt(hedef, 10) || 999);
+
+          if (tip === "puan" && newTotalPoints >= hedefVal) {
+            newlyAwardedBadges.push(bDoc.id);
+          } else if (tip === "senaryo_sayisi" && newCompletedCount >= hedefVal) {
+            newlyAwardedBadges.push(bDoc.id);
+          }
+        }
+
+        // Skill increments
+        const empati = Math.ceil(pointsAwarded * 0.3);
+        const dikkat = Math.ceil(pointsAwarded * 0.4);
+        const yardim = Math.ceil(pointsAwarded * 0.3);
+
+        const updatePayload = {
+          toplam_puan: FieldValue.increment(pointsAwarded),
+          "istatistikler.karar_yapisi.empati": FieldValue.increment(empati),
+          "istatistikler.karar_yapisi.dikkat": FieldValue.increment(dikkat),
+          "istatistikler.karar_yapisi.yardim": FieldValue.increment(yardim),
+          sonGuncelleme: FieldValue.serverTimestamp(),
+        };
+
+        if (taskType === "senaryo") {
+          updatePayload.tamamlanan_bolumler = FieldValue.arrayUnion(cleanTaskId);
+        } else if (taskType === "dedektif") {
+          updatePayload.bilinen_dedektif_sorulari = FieldValue.arrayUnion(cleanTaskId);
+        }
+
+        if (newlyAwardedBadges.length > 0) {
+          updatePayload.rozetler = FieldValue.arrayUnion(...newlyAwardedBadges);
+        }
+
+        transaction.update(progressRef, updatePayload);
+
+        logger.info(`Task ${cleanTaskId} completed for ${uid}: +${pointsAwarded} pts, new total: ${newTotalPoints}`);
+
+        return {
+          success: true,
+          alreadyCompleted: false,
+          pointsAwarded,
+          newTotalPoints,
+          newlyAwardedBadges,
+        };
+      });
+    } catch (error) {
+      logger.error("COMPLETE_TASK_ERROR", { uid, taskId, error: error.message });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError("internal", "Görev kaydedilirken bir hata oluştu.");
+    }
+  }
+);
+
+// ============================================================
+// AUTH TRIGGER: USER CREATION
+// ============================================================
+const functionsV1 = require("firebase-functions/v1");
+const crypto = require("crypto");
+const INITIAL_MESSAGES = 5;
+
+exports.onUserCreated = functionsV1.region(REGION).auth.user().onCreate(async (user) => {
+  const uid = user.uid;
+  const db = getDb();
+  const emailHash = crypto.createHash("sha256").update(user.email || uid).digest("hex");
+
+  try {
+    const deletedDoc = await db.collection("deletedAccounts").doc(emailHash).get();
+    const batch = db.batch();
+
+    batch.set(
+      db.collection("users").doc(uid),
+      {
+        uid,
+        kayitTarihi: FieldValue.serverTimestamp(),
+        sonGorulme: FieldValue.serverTimestamp(),
+        isAdmin: false,
+        isPremium: false,
+      },
+      { merge: true }
+    );
+
+    batch.set(
+      db.collection("usersProgress").doc(uid),
+      {
+        uid,
+        gemini_hakki: INITIAL_MESSAGES,
+        toplam_puan: 0,
+        rozetler: [],
+        sonGuncelleme: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+    logger.info(`onUserCreated success for uid: ${uid}`);
+  } catch (error) {
+    logger.error("ON_USER_CREATED_ERROR", { uid, error: error.message });
+  }
+});
+

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class HakkindaEkrani extends StatelessWidget {
@@ -7,50 +6,51 @@ class HakkindaEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final paddingValue = size.width * 0.05;
+    final size = MediaQuery.sizeOf(context);
+    final paddingValue = size.width > 600 ? 32.0 : 20.0;
     const Color backgroundSubtle = Color(0xFFF8FAFC);
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
       appBar: AppBar(
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "Uygulama Hakkında",
-            style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
-              letterSpacing: -0.5,
-            ),
+        title: const Text(
+          "Uygulama Hakkında",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 25),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.indigo.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: Color(0xFF475569),
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F4F46E5),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(context),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: Color(0xFF475569),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
           ),
         ),
@@ -108,22 +108,22 @@ class HakkindaEkrani extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Color(0x0A4F46E5),
+            blurRadius: 16,
+            offset: Offset(0, 8),
           ),
         ],
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withOpacity(0.1),
+            decoration: const BoxDecoration(
+              color: Color(0x1F3B82F6),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -167,7 +167,7 @@ class HakkindaEkrani extends StatelessWidget {
           title,
           style: const TextStyle(
             fontWeight: FontWeight.w900,
-            fontSize: 16,
+            fontSize: 14,
             color: Color(0xFF64748B),
             letterSpacing: 1,
           ),
@@ -187,13 +187,13 @@ class HakkindaEkrani extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.01),
+            color: Color(0x05000000),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -203,7 +203,7 @@ class HakkindaEkrani extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withAlpha(20),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 24, color: color),
@@ -254,15 +254,6 @@ class HakkindaEkrani extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFF3B82F6),
             letterSpacing: -0.2,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          "v1.0.0 • TÜBİTAK 2209-A Projesi",
-          style: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
           ),
         ),
       ],

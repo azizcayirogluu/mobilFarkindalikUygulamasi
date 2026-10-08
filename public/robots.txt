@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tubitak-akran-zorbaligi.web.app/sitemap.xml
+Sitemap: https://kahraman-dostum.web.app/sitemap.xml

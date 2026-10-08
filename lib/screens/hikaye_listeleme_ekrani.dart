@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_detay_ekrani.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -11,50 +9,52 @@ class HikayeListelemeEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final paddingValue = size.width * 0.05;
+    final size = MediaQuery.sizeOf(context);
+    final paddingValue = size.width > 600 ? 32.0 : 20.0;
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle.dark,
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "Kahramanlık Öyküleri",
-            style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
-              letterSpacing: -0.5,
-            ),
+        title: const Text(
+          "Kahramanlık Öyküleri",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 25),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.indigo.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: Color(0xFF475569),
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F4F46E5),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(context),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: Color(0xFF475569),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
           ),
         ),
@@ -63,7 +63,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
         stream: FirebaseFirestore.instance.collection('stories').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.anaMavi));
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
           }
           
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -76,13 +76,13 @@ class HikayeListelemeEkrani extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, 100),
+                padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, bottomInset),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    childAspectRatio: 0.76,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -105,11 +105,11 @@ class HikayeListelemeEkrani extends StatelessWidget {
 
   Widget _buildModernStoryCard(BuildContext context, Map<String, dynamic> data, int index) {
     List<Color> palette = [
-      const Color(0xFF6366F1), // Indigo
-      const Color(0xFFEC4899), // Pink
-      const Color(0xFFF59E0B), // Amber
-      const Color(0xFF10B981), // Emerald
-      const Color(0xFF3B82F6), // Blue
+      const Color(0xFF6366F1),
+      const Color(0xFFEC4899),
+      const Color(0xFFF59E0B),
+      const Color(0xFF10B981),
+      const Color(0xFF3B82F6),
     ];
     Color cardColor = palette[index % palette.length];
     
@@ -132,32 +132,32 @@ class HikayeListelemeEkrani extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Color(0x08000000),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // VERİ DOSTU ALAN: İnternetten görsel indirmek yerine renkli lokal ikon alanı
               Expanded(
                 flex: 4,
                 child: Container(
                   width: double.infinity,
-                  color: cardColor.withOpacity(0.08),
+                  color: cardColor.withAlpha(20),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       Icon(
                         Icons.auto_stories_rounded,
-                        size: 42,
+                        size: 40,
                         color: cardColor,
                       ),
                       Positioned(
@@ -167,7 +167,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             "HİKAYE",
@@ -184,11 +184,10 @@ class HikayeListelemeEkrani extends StatelessWidget {
                   ),
                 ),
               ),
-              // METİN ALANI: Taşma hatası asla olamaz
               Expanded(
                 flex: 3,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -231,33 +230,26 @@ class HikayeListelemeEkrani extends StatelessWidget {
     );
   }
 
-  Widget _buildFallbackIcon(Color color) {
-    return Container(
-      color: color.withOpacity(0.1),
-      child: Icon(Icons.auto_stories_rounded, size: 40, color: color.withOpacity(0.5)),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.indigo.withOpacity(0.05),
+                  color: Color(0x0F4F46E5),
                   blurRadius: 20,
                 ),
               ],
             ),
-            child: const Icon(Icons.auto_stories_rounded, size: 60, color: Color(0xFFCBD5E1)),
+            child: const Icon(Icons.auto_stories_rounded, size: 56, color: Color(0xFFCBD5E1)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text(
             "Kütüphane Hazırlanıyor!",
             style: TextStyle(

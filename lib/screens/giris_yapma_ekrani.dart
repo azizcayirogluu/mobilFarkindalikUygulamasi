@@ -190,11 +190,17 @@ class _GirisEkraniState extends State<GirisEkrani> {
       children: [
         IconButton(
           onPressed: () => Navigator.pop(context),
-          style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black12, elevation: 4),
+          style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black12, elevation: 2),
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi, size: 18),
         ),
-        const Spacer(),
-        const Text("Giriş Yap", style: TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.w900, fontSize: 16)),
+        const Expanded(
+          child: Text(
+            "Giriş Yap",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+        ),
+        const SizedBox(width: 48),
       ],
     );
   }

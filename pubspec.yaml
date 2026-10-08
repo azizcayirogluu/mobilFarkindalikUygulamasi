@@ -2,7 +2,7 @@ name: zorbalik_uygulamasi
 description: "Yapay zeka destekli, çocuklarda her türlü zorbalığa karşı farkındalık yaratan ve güvenli rehberlik sunan mobil platform."
 publish_to: "none"
 
-version: 1.0.0+3
+version: 1.0.0+6
 
 environment:
   sdk: ">=3.9.2 <4.0.0"

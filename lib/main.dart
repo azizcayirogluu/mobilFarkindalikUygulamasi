@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -30,12 +31,16 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Crashlytics Yapılandırması
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    // Crashlytics Yapılandırması (Sadece Web dışındaki platformlarda aktiftir)
+    if (!kIsWeb) {
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        try {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        } catch (_) {}
+        return true;
+      };
+    }
 
     await _activateAppCheck();
     await di.init();
@@ -53,7 +58,9 @@ void main() async {
         }));
       } catch (e, stack) {
         debugPrint("AdMob Init Error: $e");
-        FirebaseCrashlytics.instance.recordError(e, stack, reason: 'AdMob Initialization Failed');
+        try {
+          FirebaseCrashlytics.instance.recordError(e, stack, reason: 'AdMob Initialization Failed');
+        } catch (_) {}
       }
     }
 
@@ -62,7 +69,11 @@ void main() async {
     final bool isFirstRun = StorageService().isFirstRun();
     runApp(MyApp(isFirstRun: isFirstRun));
   }, (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    if (!kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      } catch (_) {}
+    }
   });
 }
 
@@ -77,11 +88,25 @@ Future<void> _activateAppCheck() async {
     );
   } catch (e, stack) {
     debugPrint("App Check Activation Error: $e");
-    FirebaseCrashlytics.instance.recordError(e, stack, reason: 'App Check Activation Failed');
+    if (!kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(e, stack, reason: 'App Check Activation Failed');
+      } catch (_) {}
+    }
   }
 }
 
 void _applyPostInitSettings() {
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
   PaintingBinding.instance.imageCache.maximumSizeBytes = 30 * 1024 * 1024;
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,

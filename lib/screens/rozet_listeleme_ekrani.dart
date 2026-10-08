@@ -1,16 +1,12 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:math' as math;
 
 class RozetlerEkrani extends StatelessWidget {
   const RozetlerEkrani({super.key});
 
-  // Hex kodlarını güvenli bir şekilde Flutter Color'a dönüştürür
   Color _parseColor(String? hexColor) {
     if (hexColor == null || hexColor.isEmpty) return const Color(0xFF3B82F6);
     try {
@@ -22,7 +18,6 @@ class RozetlerEkrani extends StatelessWidget {
     }
   }
 
-  // Firestore'dan gelen ikon isimlerini Material Icons kütüphanesiyle eşleştirir
   IconData _getIconData(dynamic iconData) {
     if (iconData == null) return Icons.stars_rounded;
     String name = iconData.toString();
@@ -48,7 +43,8 @@ class RozetlerEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
-    const Color backgroundSubtle = Color(0xFFF8FAFC); // Ferah zemin
+    const Color backgroundSubtle = Color(0xFFF8FAFC);
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 80;
 
     if (user == null) {
       return const Scaffold(
@@ -61,21 +57,17 @@ class RozetlerEkrani extends StatelessWidget {
       backgroundColor: backgroundSubtle,
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle.dark,
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "BAŞARI KOLEKSİYONU 🏆",
-            style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-              letterSpacing: -0.3,
-            ),
+        title: const Text(
+          "BAŞARI KOLEKSİYONU 🏆",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.3,
           ),
         ),
       ),
@@ -96,7 +88,6 @@ class RozetlerEkrani extends StatelessWidget {
 
               final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
 
-              // Sıralama Mantığı: Kazanılan rozetleri her zaman en başa alır
               tumRozetler.sort((a, b) {
                 bool aKazanildi = kazanilanIds.contains(a.id);
                 bool bKazanildi = kazanilanIds.contains(b.id);
@@ -113,13 +104,13 @@ class RozetlerEkrani extends StatelessWidget {
                   ),
 
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 5, 20, 120),
+                    padding: EdgeInsets.fromLTRB(20, 5, 20, bottomInset),
                     sliver: SliverGrid(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.75, // Alt metinler için daha fazla dikey alan
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.72,
                       ),
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final rozet = tumRozetler[index];
@@ -138,33 +129,32 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
-  // Kullanıcının ilerlemesini gösteren Premium Cam Kart
   Widget _buildEnhancedHeader(int current, int total) {
     double progress = total > 0 ? (current / total) : 0;
     return Container(
-      margin: const EdgeInsets.fromLTRB(22, 10, 22, 20),
+      margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(28),
         color: Colors.white,
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
-        boxShadow: [
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Color(0x0A4F46E5),
+            blurRadius: 16,
+            offset: Offset(0, 8),
           )
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(28),
         child: Stack(
           children: [
-            _buildBlob(right: -20, top: -20, color: Colors.blue.shade50.withOpacity(0.5), size: 120),
-            _buildBlob(left: -30, bottom: -40, color: Colors.purple.shade50.withOpacity(0.5), size: 140),
+            _buildBlob(right: -20, top: -20, color: const Color(0x33DBEAFE), size: 120),
+            _buildBlob(left: -30, bottom: -40, color: const Color(0x33F3E8FF), size: 140),
 
             Padding(
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -172,16 +162,16 @@ class RozetlerEkrani extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.15), blurRadius: 8)],
+                          boxShadow: [BoxShadow(color: Color(0x26FFC107), blurRadius: 8)],
                         ),
                         child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 24)
                             .animate(onPlay: (c) => c.repeat())
                             .shimmer(duration: 1500.ms),
                       ),
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,10 +181,10 @@ class RozetlerEkrani extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.indigo.shade900.withOpacity(0.5),
+                                color: Colors.indigo.shade900.withAlpha(128),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
+                                letterSpacing: 1.2,
                               ),
                             ),
                             const Text(
@@ -224,9 +214,9 @@ class RozetlerEkrani extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
                   _buildLinearProgress(progress),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     "Kazanılan: $current / $total Rozet",
                     style: TextStyle(
@@ -260,7 +250,7 @@ class RozetlerEkrani extends StatelessWidget {
 
   Widget _buildLinearProgress(double value) {
     return Container(
-      height: 12,
+      height: 10,
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
@@ -272,7 +262,7 @@ class RozetlerEkrani extends StatelessWidget {
             AnimatedContainer(
               duration: const Duration(milliseconds: 800),
               curve: Curves.easeOutQuart,
-              height: 12,
+              height: 10,
               width: constraints.maxWidth * value.clamp(0.0, 1.0),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -287,7 +277,6 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
-  // 3D Hissiyatlı, İnteraktif Rozet Yuvaları
   Widget _buildModernBadgeCard(BuildContext context, Map<String, dynamic> data, bool isEarned, int index) {
     final Color badgeColor = _parseColor(data['renk']);
     final IconData badgeIcon = _getIconData(data['ikon']);
@@ -295,18 +284,19 @@ class RozetlerEkrani extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showBadgeInfo(context, data, isEarned, badgeColor, badgeIcon),
       child: Container(
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isEarned ? badgeColor.withOpacity(0.1) : const Color(0xFFF1F5F9),
+            color: isEarned ? badgeColor.withAlpha(50) : const Color(0xFFE2E8F0),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: isEarned ? badgeColor.withOpacity(0.04) : Colors.black.withOpacity(0.01),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: isEarned ? badgeColor.withAlpha(12) : const Color(0x05000000),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -317,34 +307,31 @@ class RozetlerEkrani extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: isEarned ? badgeColor.withOpacity(0.08) : const Color(0xFFF8FAFC),
+                    color: isEarned ? badgeColor.withAlpha(20) : const Color(0xFFF8FAFC),
                     shape: BoxShape.circle,
                   ),
                 ),
                 Icon(
                   isEarned ? badgeIcon : Icons.lock_rounded,
                   color: isEarned ? badgeColor : const Color(0xFFCBD5E1),
-                  size: 24,
+                  size: 22,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                data['ad'] ?? "Gizemli",
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: isEarned ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
-                    letterSpacing: -0.2
-                ),
+            const SizedBox(height: 6),
+            Text(
+              data['ad'] ?? "Gizemli",
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: isEarned ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+                  letterSpacing: -0.2
               ),
             ),
             const SizedBox(height: 4),
@@ -352,20 +339,18 @@ class RozetlerEkrani extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isEarned 
-                  ? badgeColor.withOpacity(0.1) 
+                  ? badgeColor.withAlpha(20) 
                   : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: FittedBox(
-                child: Text(
-                  data['kriter_tipi'] == 'puan' 
-                    ? "${data['hedef_deger'] ?? '100'} P" 
-                    : "GÖREV",
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w900,
-                    color: isEarned ? badgeColor : const Color(0xFF94A3B8),
-                  ),
+              child: Text(
+                data['kriter_tipi'] == 'puan' 
+                  ? "${data['hedef_deger'] ?? '100'} P" 
+                  : "GÖREV",
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  color: isEarned ? badgeColor : const Color(0xFF94A3B8),
                 ),
               ),
             ),
@@ -375,7 +360,6 @@ class RozetlerEkrani extends StatelessWidget {
     );
   }
 
-  // Rozet Detay Alt Penceresi (Modal Bottom Sheet)
   void _showBadgeInfo(BuildContext context, Map<String, dynamic> data, bool isEarned, Color color, IconData icon) {
     String kriterMetni = "";
     if (data['kriter_tipi'] == 'puan') {
@@ -384,16 +368,18 @@ class RozetlerEkrani extends StatelessWidget {
       kriterMetni = "Daha fazla siber senaryo tamamlayarak";
     }
 
+    final bottomPadding = MediaQuery.paddingOf(context).bottom + 20;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
-        padding: const EdgeInsets.fromLTRB(30, 20, 30, 35),
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+        padding: EdgeInsets.fromLTRB(24, 20, 24, bottomPadding),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -401,33 +387,33 @@ class RozetlerEkrani extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 45,
-                height: 5,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 20),
 
               Container(
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                    color: color.withOpacity(0.08),
+                    color: color.withAlpha(20),
                     shape: BoxShape.circle,
-                    border: Border.all(color: color.withOpacity(0.1), width: 2)
+                    border: Border.all(color: color.withAlpha(30), width: 2)
                 ),
                 child: Icon(
                   isEarned ? icon : Icons.lock_outline_rounded,
-                  size: 55,
+                  size: 48,
                   color: color,
                 ),
               ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
               Text(
                 data['ad'] ?? "Gizemli Rozet",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.3),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -436,10 +422,10 @@ class RozetlerEkrani extends StatelessWidget {
                       ? "Harika iş çıkardın! Zorbalığa karşı verdiğin mücadele ve kazandığın bu rozet projemizin en değerli parçası. Kahramanlığa devam et!"
                       : "Bu güç kalkanı henüz aktifleşmedi. $kriterMetni bu rozeti başarı koleksiyonuna katabilirsin! ⚡",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w500),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               SizedBox(
                 width: double.infinity,
@@ -447,7 +433,7 @@ class RozetlerEkrani extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isEarned ? color : const Color(0xFF64748B),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.pop(context),

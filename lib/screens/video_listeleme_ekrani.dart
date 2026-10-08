@@ -4,103 +4,76 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/screens/video_detay_ekrani.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui';
-import 'dart:math' as math;
 
 class VideoListelemeEkrani extends StatelessWidget {
   const VideoListelemeEkrani({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color backgroundSubtle = Color(0xFFF8FAFC); // Diğer ekranlarla uyumlu ferah zemin
+    const Color backgroundSubtle = Color(0xFFF8FAFC);
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle.dark,
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "EĞİTİCİ VİDEOLAR 🎥",
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-              color: Color(0xFF1E293B),
-              letterSpacing: 1.5
-            ),
+        title: const Text(
+          "EĞİTİCİ VİDEOLAR 🎥",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: Color(0xFF1E293B),
+            letterSpacing: 1.2,
           ),
         ),
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 25),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF475569)),
-              onPressed: () => Navigator.pop(context),
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4)),
+                ],
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF475569)),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          // Arka Plan Dekoratif Halkaları
-          Positioned(
-            top: 40,
-            left: -50,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF6366F1).withOpacity(0.03)),
-            ),
-          ),
-          Positioned(
-            bottom: -30,
-            right: -30,
-            child: Transform.rotate(
-              angle: math.pi / 4,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(35), color: Colors.orange.withOpacity(0.02)),
-              ),
-            ),
-          ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('videos').limit(20).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildShimmerLoading(bottomInset);
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return _buildEmptyState();
+          }
 
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('videos').limit(20).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildShimmerLoading();
-              }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return _buildEmptyState();
-              }
+          var videoDocs = snapshot.data!.docs;
+          List<dynamic> allVideosJson = videoDocs.map((e) => e.data() as Map<String, dynamic>).toList();
 
-              var videoDocs = snapshot.data!.docs;
-              List<dynamic> allVideosJson = videoDocs.map((e) => e.data() as Map<String, dynamic>).toList();
-
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(22, 12, 22, 100),
-                physics: const BouncingScrollPhysics(),
-                itemCount: videoDocs.length,
-                itemBuilder: (context, index) {
-                  var data = videoDocs[index].data() as Map<String, dynamic>;
-                  return _buildVideoCard(context, data, allVideosJson, index);
-                },
-              );
+          return ListView.builder(
+            padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset),
+            physics: const BouncingScrollPhysics(),
+            itemCount: videoDocs.length,
+            itemBuilder: (context, index) {
+              var data = videoDocs[index].data() as Map<String, dynamic>;
+              return _buildVideoCard(context, data, allVideosJson, index);
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -111,21 +84,21 @@ class VideoListelemeEkrani extends StatelessWidget {
     String sure = data['sure'] ?? "5 Dakika";
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 22),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF1E293B).withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Color(0x0A0F172A),
+            blurRadius: 16,
+            offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -146,49 +119,35 @@ class VideoListelemeEkrani extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     _buildThumbnail(yId, data['kapakYolu']),
-                    
-                    // Video Karartma Filtresi
-                    Positioned.fill(child: Container(color: Colors.black.withOpacity(0.1))),
-
-                    // Cam Efektli Modern Oynat Butonu
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(100),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5)
-                          ),
-                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
-                        ),
+                    Positioned.fill(child: Container(color: Colors.black.withAlpha(25))),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(50),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withAlpha(100), width: 1.5),
                       ),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 36),
                     ),
-
-                    // Süre Rozeti
                     Positioned(
-                      top: 14,
-                      right: 14,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            color: Colors.black.withOpacity(0.5),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.timer_outlined, size: 12, color: Colors.amber),
-                                const SizedBox(width: 4),
-                                Text(
-                                  sure,
-                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
-                                ),
-                              ],
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(150),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 12, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Text(
+                              sure,
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -196,7 +155,7 @@ class VideoListelemeEkrani extends StatelessWidget {
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -205,20 +164,20 @@ class VideoListelemeEkrani extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: Color(0xFF1E293B),
-                            height: 1.3
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          color: Color(0xFF1E293B),
+                          height: 1.3,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1).withOpacity(0.08),
+                              color: const Color(0xFF6366F1).withAlpha(20),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -229,11 +188,11 @@ class VideoListelemeEkrani extends StatelessWidget {
                           const Row(
                             children: [
                               Text(
-                                  "Hemen İzle",
-                                  style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w800)
+                                "Hemen İzle",
+                                style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w800),
                               ),
                               SizedBox(width: 4),
-                              Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF94A3B8)),
+                              Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
                             ],
                           ),
                         ],
@@ -252,15 +211,21 @@ class VideoListelemeEkrani extends StatelessWidget {
   Widget _buildThumbnail(String yId, String? kapakYolu) {
     return CachedNetworkImage(
       imageUrl: "https://img.youtube.com/vi/$yId/maxresdefault.jpg",
-      height: 185,
+      height: 180,
       width: double.infinity,
       fit: BoxFit.cover,
       errorWidget: (context, url, error) {
         if (kapakYolu != null && kapakYolu.isNotEmpty) {
           if (kapakYolu.startsWith('assets/')) {
-            return Image.asset(kapakYolu, height: 185, width: double.infinity, fit: BoxFit.cover);
+            return Image.asset(kapakYolu, height: 180, width: double.infinity, fit: BoxFit.cover);
           }
-          return CachedNetworkImage(imageUrl: kapakYolu, height: 185, width: double.infinity, fit: BoxFit.cover, errorWidget: (_,__,___) => _buildPlaceholder());
+          return CachedNetworkImage(
+            imageUrl: kapakYolu,
+            height: 180,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorWidget: (c, u, e) => _buildPlaceholder(),
+          );
         }
         return _buildPlaceholder();
       },
@@ -269,7 +234,7 @@ class VideoListelemeEkrani extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 185,
+      height: 180,
       width: double.infinity,
       color: const Color(0xFFF1F5F9),
       child: const Icon(Icons.video_library_rounded, size: 40, color: Color(0xFFCBD5E1)),
@@ -282,11 +247,11 @@ class VideoListelemeEkrani extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.05), blurRadius: 20)]),
-            child: const Icon(Icons.movie_filter_rounded, size: 60, color: Color(0xFFCBD5E1)),
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x0D4F46E5), blurRadius: 20)]),
+            child: const Icon(Icons.movie_filter_rounded, size: 56, color: Color(0xFFCBD5E1)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text("Henüz Video Yok!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF475569))),
           const SizedBox(height: 8),
           const Text("Eğitici videolar çok yakında burada olacak.", style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
@@ -295,27 +260,27 @@ class VideoListelemeEkrani extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmerLoading() {
+  Widget _buildShimmerLoading(double bottomInset) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 100),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset),
       itemCount: 3,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 22),
-          height: 280,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
+          margin: const EdgeInsets.only(bottom: 20),
+          height: 260,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(height: 185, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)))),
+              Container(height: 180, decoration: const BoxDecoration(color: Color(0xFFF1F5F9), borderRadius: BorderRadius.vertical(top: Radius.circular(24)))),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(height: 18, width: double.infinity, color: const Color(0xFFF1F5F9)),
-                    const SizedBox(height: 12),
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Container(height: 14, width: 80, color: const Color(0xFFF1F5F9)), Container(height: 14, width: 100, color: const Color(0xFFF1F5F9))]),
+                    Container(height: 16, width: double.infinity, color: const Color(0xFFF1F5F9)),
+                    const SizedBox(height: 10),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Container(height: 12, width: 80, color: const Color(0xFFF1F5F9)), Container(height: 12, width: 100, color: const Color(0xFFF1F5F9))]),
                   ],
                 ),
               ),

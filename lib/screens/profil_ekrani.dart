@@ -141,12 +141,8 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                const Text("Karakterini Seç", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const Text("kendine karakter Seç", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 4),
-                const Text(
-                  "Yeni avatarlar DiceBear üzerinden internetten yüklenir.",
-                  style: TextStyle(fontSize: 11, color: Colors.blueGrey),
-                ),
                 const SizedBox(height: 10),
                 Wrap(
                   alignment: WrapAlignment.center,
@@ -186,7 +182,11 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                       Navigator.pop(context);
                       _showSnack("Harika! Kahramanın güncellendi. ✨");
                     }
-                  } catch (e) { _showSnack("Bir hata oluştu.", isError: true); }
+                  } catch (e) {
+                    if (context.mounted) {
+                      _showSnack("Bir hata oluştu.", isError: true);
+                    }
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
@@ -423,23 +423,22 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         width: double.infinity,
-        height: 150, // Yükseklik azaltıldı
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(35),
-          color: Colors.white.withOpacity(0.45),
-          border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
-          boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.08), blurRadius: 25, offset: const Offset(0, 10))],
+          borderRadius: BorderRadius.circular(28),
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 16, offset: Offset(0, 6))],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(28),
           child: Stack(
             children: [
               _buildBlob(right: -20, top: -20, color: Colors.blue.shade100, size: 100),
               _buildBlob(left: -30, bottom: -40, color: Colors.purple.shade100, size: 120),
               Padding(
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.all(20),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -448,7 +447,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                         Text("%${(ilerleme * 100).toInt()}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.indigo, fontSize: 14)),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     _buildLinearProgress(ilerleme),
                     const SizedBox(height: 12),
                     Text("Harika ilerliyorsun, süper kahraman! 🚀", style: TextStyle(color: Colors.indigo.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -550,14 +549,14 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
         child: SwitchListTile.adaptive(
           value: _bildirimlerAcik,
           onChanged: (v) => setState(() => _bildirimlerAcik = v),
           title: const Text("Bildirimler", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
           secondary: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle), child: const Icon(Icons.notifications_active, color: Colors.blue, size: 20)),
-          activeColor: Colors.blue,
+          activeTrackColor: Colors.blue,
         ),
       ),
     );
@@ -630,7 +629,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       children: [
         Text("Kahraman Dostum v1.2.0", style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        const Text("TÜBİTAK Akran Zorbalığı Farkındalık Projesi", style: TextStyle(color: Colors.grey, fontSize: 9)),
+        const Text("Zorbalık Farkındalık Projesi", style: TextStyle(color: Colors.grey, fontSize: 9)),
       ],
     );
   }

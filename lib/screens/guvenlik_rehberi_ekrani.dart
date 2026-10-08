@@ -24,9 +24,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
 
   int _selectedSection = 0;
   String? _loadedAsset;
-  String? _audioError;
-  Duration _position = Duration.zero;
-  Duration _duration = Duration.zero;
 
   static const _quickPlanAudio = 'assets/audio/hizli_guvenlik_plani.mp3';
 
@@ -144,12 +141,8 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         return;
       }
 
-      setState(() => _audioError = null);
       await _audioPlayer.stop();
       
-      // Asset dosyasını rootBundle ile byte olarak okuyup geçici bir dosyaya yazıyoruz.
-      // Bu yöntem ExoPlayer'ın yerel localhost sunucusu üzerinden varlık yüklerken
-      // yaşadığı "UnrecognizedInputFormatException" hatasını %100 kesin olarak çözer.
       final ByteData data = await rootBundle.load(asset);
       final Directory tempDir = await getTemporaryDirectory();
       final String fileName = asset.split('/').last;
@@ -160,22 +153,17 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         flush: true,
       );
       
-      final duration = await _audioPlayer.setFilePath(tempFile.path);
+      await _audioPlayer.setFilePath(tempFile.path);
       
       if (!mounted) return;
       setState(() {
         _loadedAsset = asset;
-        _duration = duration ?? Duration.zero;
-        _position = Duration.zero;
       });
       await _audioPlayer.play();
     } catch (e) {
       debugPrint('Ses Oynatma Hatası: $e');
       if (!mounted) return;
       _isPlayingNotifier.value = false;
-      setState(() {
-        _audioError = 'Ses dosyası açılamadı. Lütfen tekrar deneyin.';
-      });
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -197,9 +185,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     setState(() {
       _selectedSection = index;
       _loadedAsset = null;
-      _position = Duration.zero;
-      _duration = Duration.zero;
-      _audioError = null;
     });
   }
 

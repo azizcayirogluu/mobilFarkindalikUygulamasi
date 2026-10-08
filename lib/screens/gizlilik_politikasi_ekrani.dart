@@ -8,49 +8,50 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final paddingValue = size.width * 0.05;
+    final size = MediaQuery.sizeOf(context);
+    final paddingValue = size.width > 600 ? 32.0 : 20.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Ultra temiz ve ferah zemin
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "Güvenlik & Gizlilik",
-            style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
-              letterSpacing: -0.5,
-            ),
+        title: const Text(
+          "Güvenlik & Gizlilik",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 25),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.indigo.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: Color(0xFF475569),
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F4F46E5),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(context),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: Color(0xFF475569),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
           ),
         ),
@@ -59,7 +60,6 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // Üst Bilgi Kartı
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -72,7 +72,6 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
               ),
             ),
 
-            // Bilgi Maddeleri (Artık akordeon değil, direkt okunabilir ferah kartlar)
             SliverPadding(
               padding: EdgeInsets.symmetric(horizontal: paddingValue),
               sliver: SliverList(
@@ -119,12 +118,10 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
 
                   const SizedBox(height: 10),
 
-                  // Sadeleştirilmiş, Şık İletişim Alanı
                   _buildMinimalContactCard(),
 
                   const SizedBox(height: 20),
 
-                  // Alt Kurumsal Bilgi
                   _buildFooterInfo(),
 
                   const SizedBox(height: 40),
@@ -142,28 +139,28 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Color(0x0A4F46E5),
+            blurRadius: 16,
+            offset: Offset(0, 8),
           ),
         ],
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: AppColors.anaMavi.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.anaMavi.withAlpha(25),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
               Icons.verified_user_rounded,
-              size: 32,
+              size: 30,
               color: AppColors.anaMavi,
             ),
           ),
@@ -175,7 +172,7 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
                 Text(
                   "Güvenliğin Bize Emanet! 🛡️",
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF1E293B),
                   ),
@@ -209,13 +206,13 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.01),
+            color: Color(0x05000000),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -225,7 +222,7 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withAlpha(20),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 22, color: color),
@@ -267,8 +264,8 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Column(
         children: [
@@ -308,7 +305,7 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
                     color: Color(0xFF475569),
                     size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     "siberkahramanapp@gmail.com",
                     style: TextStyle(
@@ -329,24 +326,9 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
   Widget _buildFooterInfo() {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.verified, size: 16, color: Colors.blueGrey.shade300),
-            const SizedBox(width: 6),
-            const Text(
-              "TÜBİTAK Siber Zorbalık Farkındalık Projesi",
-              style: TextStyle(
-                fontSize: 11,
-                color: Color(0xFF94A3B8),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
         const SizedBox(height: 8),
         Text(
-          "Son Güncelleme: Ekim 2026",
+          "Son Güncelleme: 2026",
           style: TextStyle(
             fontSize: 10,
             color: Colors.blueGrey.shade200,

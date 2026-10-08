@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:zorbalik_uygulamasi/services/analytics_service.dart';
 
 List<Map<String, dynamic>> normalizeVideoList(List<dynamic> source) {
   final List<Map<String, dynamic>> normalized = [];
@@ -83,6 +84,19 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
         strictRelatedVideos: true,
       ),
     )..loadVideoById(videoId: _currentId);
+
+    _controller.listen((event) {
+      if (event.playerState == PlayerState.ended) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          AnalyticsService().gorevTamamla(
+            uid: user.uid,
+            gorevId: _currentTitle,
+            gorevTipi: 'video',
+          );
+        }
+      }
+    });
 
     _checkInitialConnection();
 

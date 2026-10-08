@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'senaryo_bolum_listeleme_ekrani.dart';
 
@@ -27,47 +26,50 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle.dark,
-        toolbarHeight: 90,
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Padding(
-          padding: EdgeInsets.only(top: 25),
-          child: Text(
-            "Kahramanlık Görevleri",
-            style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
-              letterSpacing: -0.5,
-            ),
+        title: const Text(
+          "Kahramanlık Görevleri",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16, top: 25),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.indigo.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-                color: Color(0xFF475569),
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F4F46E5),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(context),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: Color(0xFF475569),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
           ),
         ),
@@ -102,7 +104,7 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                    padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset),
                     physics: const BouncingScrollPhysics(),
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
@@ -131,18 +133,18 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
     final Color anaRenk = renkler[index % renkler.length];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -153,21 +155,21 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
               builder: (c) => SenaryoBolumListelemeEkrani(docId: docId, kategoriBaslik: baslik)
             )
           ),
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: [
                 Container(
-                  width: 65,
-                  height: 65,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    color: anaRenk.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: anaRenk.withAlpha(25),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Icon(Icons.psychology_alt_rounded, color: anaRenk, size: 32),
+                  child: Icon(Icons.psychology_alt_rounded, color: anaRenk, size: 30),
                 ),
-                const SizedBox(width: 18),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +181,7 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.w900, 
-                          fontSize: 18, 
+                          fontSize: 17, 
                           color: Color(0xFF1E293B),
                           height: 1.2,
                         ),
@@ -199,7 +201,7 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.arrow_forward_ios_rounded, color: anaRenk.withOpacity(0.3), size: 14),
+                Icon(Icons.chevron_right_rounded, color: anaRenk.withAlpha(100), size: 20),
               ],
             ),
           ),
@@ -214,20 +216,20 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.indigo.withOpacity(0.05),
+                  color: Color(0x0D4F46E5),
                   blurRadius: 20,
                 ),
               ],
             ),
-            child: const Icon(Icons.rocket_launch_rounded, size: 60, color: Color(0xFFCBD5E1)),
+            child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             "$yasGrubu Yaş İçin Hazırlık!",
             style: const TextStyle(

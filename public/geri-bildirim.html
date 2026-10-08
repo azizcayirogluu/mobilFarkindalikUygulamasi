@@ -5,53 +5,119 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#4F46E5">
+
   <title>Geri Bildirim Formu | Kahraman Dostum</title>
-  <meta name="description"
-    content="Kahraman Dostum geri bildirim formu. Önerilerinizi ve hata bildirimlerinizi doğrudan geliştirici ekibe iletin.">
-  <link rel="canonical" href="https://tubitak-akran-zorbaligi.web.app/geri-bildirim.html">
-  <link rel="icon" type="image/png" href="assets/logo.png">
-  <link rel="apple-touch-icon" href="assets/logo.png">
 
-  <meta property="og:site_name" content="Kahraman Dostum">
-  <meta property="og:locale" content="tr_TR">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://tubitak-akran-zorbaligi.web.app/geri-bildirim.html">
-  <meta property="og:title" content="Geri Bildirim Formu | Kahraman Dostum">
-  <meta property="og:description" content="Önerilerinizi ve hata bildirimlerinizi doğrudan geliştirici ekibe iletin.">
-  <meta property="og:image" content="https://tubitak-akran-zorbaligi.web.app/assets/logo.png">
-  <meta name="twitter:card" content="summary">
+  <meta
+          name="description"
+          content="Kahraman Dostum geri bildirim formu. Önerilerinizi ve hata bildirimlerinizi doğrudan geliştirici ekibe iletin."
+  >
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap"
-    media="print" onload="this.media='all'">
+  <link
+          rel="canonical"
+          href="https://kahraman-dostum.web.app/geri-bildirim.html"
+  >
+
+  <link
+          rel="icon"
+          type="image/png"
+          href="assets/logo.png"
+  >
+
+  <link
+          rel="apple-touch-icon"
+          href="assets/logo.png"
+  >
+
+  <!-- Open Graph / Social -->
+  <meta
+          property="og:site_name"
+          content="Kahraman Dostum"
+  >
+
+  <meta
+          property="og:locale"
+          content="tr_TR"
+  >
+
+  <meta
+          property="og:type"
+          content="website"
+  >
+
+  <meta
+          property="og:url"
+          content="https://kahraman-dostum.web.app/geri-bildirim.html"
+  >
+
+  <meta
+          property="og:title"
+          content="Geri Bildirim Formu | Kahraman Dostum"
+  >
+
+  <meta
+          property="og:description"
+          content="Önerilerinizi ve hata bildirimlerinizi doğrudan geliştirici ekibe iletin."
+  >
+
+  <meta
+          property="og:image"
+          content="https://kahraman-dostum.web.app/assets/logo.png"
+  >
+
+  <meta
+          name="twitter:card"
+          content="summary"
+  >
+
+  <!-- Google Fonts -->
+  <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+  >
+
+  <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin
+  >
+
+  <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+          media="print"
+          onload="this.media='all'"
+  >
+
   <noscript>
-    <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap">
+    <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+    >
   </noscript>
 
   <style>
     :root {
       --p: #4F46E5;
-      --p-d: #4338CA;
+      --p-d: #3730A3;
       --p-l: #EEF2FF;
       --p-line: #C7D2FE;
-      --p-glow: rgb(79 70 229/.18);
+      --p-glow: rgba(79, 70, 229, 0.18);
       --ink: #0F172A;
-      --mute: #475569;
+      --mute: #334155;
       --sub: #64748B;
       --bg: #F8FAFC;
-      --surf: #fff;
+      --surf: #FFFFFF;
       --line: #E2E8F0;
       --ok: #047857;
       --ok-bg: #ECFDF5;
       --err: #BE123C;
       --r-s: 8px;
       --r-m: 14px;
-      --r-l: 28px;
-      --sh-s: 0 1px 2px rgb(15 23 42/.06);
-      --sh-l: 0 20px 40px -12px rgb(15 23 42/.14);
-      --gut: clamp(16px, 4vw, 48px);
+      --r-l: 24px;
+      --sh-s: 0 1px 3px rgba(15, 23, 42, 0.05);
+      --sh-l: 0 20px 40px -12px rgba(15, 23, 42, 0.12);
+      --gut: clamp(16px, 4vw, 40px);
       --max: 1200px;
       --hdr: 72px;
       --ease: cubic-bezier(.16, 1, .3, 1);
@@ -63,7 +129,7 @@
     *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0
+      padding: 0;
     }
 
     body {
@@ -76,27 +142,27 @@
       color: var(--ink);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      overflow-x: clip
+      overflow-x: clip;
     }
 
     a {
       color: inherit;
-      text-decoration: none
+      text-decoration: none;
     }
 
     ul {
-      list-style: none
+      list-style: none;
     }
 
     :focus-visible {
       outline: 3px solid var(--p);
       outline-offset: 3px;
-      border-radius: var(--r-s)
+      border-radius: var(--r-s);
     }
 
     .container {
-      width: min(var(--max), 100% - 2*var(--gut));
-      margin-inline: auto
+      width: min(var(--max), 100% - (2 * var(--gut)));
+      margin-inline: auto;
     }
 
     .skip {
@@ -105,30 +171,36 @@
       top: -100px;
       z-index: 200;
       background: var(--p);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: var(--r-s)
+      color: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: var(--r-s);
+      font-weight: 700;
+      transition: top 0.2s;
     }
 
     .skip:focus {
-      top: 8px
+      top: 12px;
     }
 
-    .bg {
+    .bg-ambience {
       position: fixed;
       inset: 0;
       z-index: -1;
       pointer-events: none;
-      background: radial-gradient(ellipse 50% 50% at 10% 0, #E0E7FF, transparent 70%), radial-gradient(ellipse 45% 50% at 95% 100%, #CFFAFE, transparent 70%)
+      background:
+        radial-gradient(ellipse 50% 50% at 10% 0%, rgba(224, 231, 255, 0.7), transparent 70%),
+        radial-gradient(ellipse 45% 50% at 95% 100%, rgba(207, 250, 254, 0.6), transparent 70%);
     }
 
+    /* Header & Navigation */
     header {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgb(255 255 255/.9);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--line)
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
     }
 
     .navbar {
@@ -136,7 +208,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px
+      gap: 16px;
     }
 
     .brand {
@@ -145,131 +217,147 @@
       gap: 12px;
       font-weight: 800;
       font-size: 1.1rem;
-      letter-spacing: -.02em;
-      line-height: 1.2
+      letter-spacing: -0.02em;
+      color: var(--ink);
     }
 
     .brand img {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgb(79 70 229/.22)
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.18);
+      object-fit: cover;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
     }
 
     .brand small {
-      display: block;
-      font-size: .72rem;
+      font-size: 0.72rem;
       font-weight: 600;
-      color: var(--p)
+      color: var(--p);
+      letter-spacing: 0.01em;
     }
 
     nav ul {
       display: flex;
       align-items: center;
       gap: 22px;
-      font-size: .9rem;
+      font-size: 0.9rem;
       font-weight: 600;
-      color: var(--mute)
+      color: var(--mute);
     }
 
     nav a {
-      transition: color .2s
+      transition: color 0.2s;
     }
 
     nav a:hover {
-      color: var(--p)
+      color: var(--p);
     }
 
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      min-height: 44px;
-      padding: 12px 24px;
+      min-height: 46px;
+      padding: 12px 22px;
       border-radius: var(--r-m);
-      font: 700 .92rem var(--font);
+      font-family: var(--font);
+      font-size: 0.92rem;
+      font-weight: 700;
       border: 1px solid transparent;
       cursor: pointer;
-      transition: transform .2s var(--ease), background .2s, color .2s, box-shadow .2s
+      transition: transform 0.2s var(--ease), background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
     }
 
     .btn:hover {
-      transform: translateY(-2px)
+      transform: translateY(-2px);
     }
 
     .btn:active {
-      transform: none
+      transform: translateY(0);
     }
 
     .btn-primary {
       background: var(--p);
-      color: #fff;
-      box-shadow: 0 8px 22px rgb(79 70 229/.28)
+      color: #FFFFFF;
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.25);
     }
 
     .btn-primary:hover {
-      background: var(--p-d)
+      background: var(--p-d);
     }
 
     .btn-outline {
       background: var(--surf);
       border-color: var(--line);
-      color: var(--ink)
+      color: var(--ink);
+      box-shadow: var(--sh-s);
     }
 
     .btn-outline:hover {
-      border-color: var(--p);
+      border-color: var(--p-line);
       color: var(--p);
-      background: var(--p-l)
+      background: var(--p-l);
     }
 
     .btn-soft {
       background: var(--p-l);
       color: var(--p);
-      padding: 9px 18px;
+      border: 1px solid var(--p-line);
+      padding: 8px 18px;
       border-radius: 999px;
-      font-size: .85rem;
-      min-height: 40px
+      font-size: 0.85rem;
+      min-height: 40px;
     }
 
     .btn-soft:hover {
       background: var(--p);
-      color: #fff
+      color: #FFFFFF;
     }
 
     .btn-block {
-      width: 100%
+      width: 100%;
     }
 
+    /* Main Section & Layout */
     main {
       flex: 1;
-      padding: clamp(32px, 6vw, 64px) 0 clamp(48px, 8vw, 88px)
+      padding: clamp(32px, 6vw, 64px) 0 clamp(48px, 8vw, 88px);
     }
 
     .narrow {
-      width: min(760px, 100% - 2*var(--gut));
-      margin-inline: auto
+      width: min(760px, 100% - (2 * var(--gut)));
+      margin-inline: auto;
     }
 
     .head {
       text-align: center;
-      margin-bottom: 32px
+      margin-bottom: 32px;
     }
 
     h1 {
       font-size: clamp(1.8rem, 4.2vw, 2.5rem);
       font-weight: 800;
-      letter-spacing: -.03em;
+      letter-spacing: -0.03em;
       line-height: 1.2;
       margin-bottom: 12px;
-      text-wrap: balance
+      color: var(--ink);
+      text-wrap: balance;
     }
 
     .head p {
       color: var(--mute);
+      font-size: 1rem;
       max-width: 56ch;
-      margin-inline: auto
+      margin-inline: auto;
     }
 
     .note {
@@ -279,54 +367,57 @@
       background: var(--p-l);
       border: 1px solid var(--p-line);
       border-radius: var(--r-m);
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      font-size: .9rem
+      padding: 18px 22px;
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--ink);
     }
 
     .note svg {
       flex-shrink: 0;
       color: var(--p);
-      margin-top: 2px
+      margin-top: 2px;
     }
 
     .card {
       background: var(--surf);
       border: 1px solid var(--line);
       border-radius: var(--r-l);
-      padding: clamp(22px, 5vw, 40px);
+      padding: clamp(24px, 5vw, 44px);
       box-shadow: var(--sh-l);
-      animation: rise .7s var(--ease) both
+      animation: rise 0.6s var(--ease) both;
     }
 
     .field {
-      margin-bottom: 22px
+      margin-bottom: 22px;
     }
 
     label {
       display: block;
-      font-size: .88rem;
+      font-size: 0.88rem;
       font-weight: 700;
-      margin-bottom: 8px
+      margin-bottom: 8px;
+      color: var(--ink);
     }
 
     .opt {
       font-weight: 600;
       color: var(--sub);
       margin-left: 6px;
-      font-size: .8rem
+      font-size: 0.8rem;
     }
 
     .req {
       color: var(--err);
-      margin-left: 2px
+      margin-left: 2px;
     }
 
     .help {
       display: block;
       margin-top: 6px;
-      font-size: .8rem;
-      color: var(--sub)
+      font-size: 0.8rem;
+      color: var(--sub);
     }
 
     input,
@@ -336,23 +427,23 @@
       min-height: 48px;
       padding: 12px 16px;
       font: inherit;
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--ink);
       background: var(--bg);
       border: 1px solid #CBD5E1;
       border-radius: var(--r-s);
-      transition: border-color .2s, box-shadow .2s, background .2s
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
 
     textarea {
       min-height: 140px;
-      resize: vertical
+      resize: vertical;
     }
 
     input::placeholder,
     textarea::placeholder {
       color: #64748B;
-      opacity: .85
+      opacity: 0.85;
     }
 
     input:focus-visible,
@@ -361,50 +452,48 @@
       outline: 0;
       background: var(--surf);
       border-color: var(--p);
-      box-shadow: 0 0 0 4px var(--p-glow)
-    }
-
-    input:user-invalid,
-    textarea:user-invalid {
-      border-color: var(--err)
+      box-shadow: 0 0 0 4px var(--p-glow);
     }
 
     .count {
-      text-align: right
+      text-align: right;
     }
 
     .alt {
-      margin-top: 22px;
+      margin-top: 24px;
       text-align: center;
-      font-size: .88rem;
-      color: var(--sub)
+      font-size: 0.88rem;
+      color: var(--sub);
     }
 
     .alt a {
       color: var(--p);
       font-weight: 700;
       text-decoration: underline;
-      text-underline-offset: 3px
+      text-underline-offset: 3px;
     }
 
+    /* Modal Dialog */
     dialog {
       margin: auto;
       border: 0;
       border-radius: var(--r-l);
-      padding: clamp(24px, 5vw, 40px);
+      padding: clamp(28px, 5vw, 40px);
       width: min(480px, 100% - 32px);
       text-align: center;
       box-shadow: var(--sh-l);
-      color: var(--ink)
+      color: var(--ink);
+      background: var(--surf);
     }
 
     dialog[open] {
-      animation: pop .35s var(--ease)
+      animation: pop 0.35s var(--ease);
     }
 
     dialog::backdrop {
-      background: rgb(15 23 42/.6);
-      backdrop-filter: blur(6px)
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
 
     .ok-ico {
@@ -415,40 +504,42 @@
       margin: 0 auto 18px;
       border-radius: 50%;
       background: var(--ok-bg);
-      color: var(--ok)
+      color: var(--ok);
     }
 
     dialog h2 {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 800;
-      margin-bottom: 8px
+      margin-bottom: 8px;
     }
 
     dialog p {
       color: var(--mute);
-      font-size: .95rem;
-      margin-bottom: 22px
+      font-size: 0.92rem;
+      margin-bottom: 22px;
+      line-height: 1.55;
     }
 
     .dlg-actions {
       display: grid;
-      gap: 10px
+      gap: 10px;
     }
 
     #copyState {
       min-height: 1.4em;
-      font-size: .85rem;
+      font-size: 0.85rem;
       color: var(--ok);
       font-weight: 600;
-      margin: -10px 0 14px
+      margin: -10px 0 14px;
     }
 
+    /* Footer */
     footer {
       background: var(--surf);
       border-top: 1px solid var(--line);
-      padding: 32px 0;
-      font-size: .85rem;
-      color: var(--sub)
+      padding: 36px 0;
+      font-size: 0.85rem;
+      color: var(--sub);
     }
 
     .f-row {
@@ -456,62 +547,93 @@
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 16px
+      gap: 20px;
+    }
+
+    .footer-brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
     .developer-logo {
       display: block;
-      width: 88px;
-      height: 88px;
+      width: 48px;
+      height: 48px;
       flex: 0 0 auto;
       object-fit: contain;
-      border-radius: 12px;
-      background: #fff
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--line);
     }
 
     .f-row ul {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px 20px
+      gap: 8px 20px;
     }
 
     .f-row a {
       display: inline-block;
       padding: 4px 0;
-      transition: color .2s
+      transition: color 0.2s;
     }
 
     .f-row a:hover {
-      color: var(--p)
+      color: var(--p);
     }
 
     @keyframes rise {
       from {
         opacity: 0;
-        transform: translateY(20px)
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
     @keyframes pop {
       from {
         opacity: 0;
-        transform: scale(.94)
+        transform: scale(0.94);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
       }
     }
 
-    @media(max-width:640px) {
+    @media (max-width: 640px) {
       nav li:not(:last-child) {
-        display: none
+        display: none;
+      }
+
+      .f-row {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-brand-wrap {
+        flex-direction: column;
+      }
+
+      .f-row ul {
+        justify-content: center;
       }
     }
 
-    @media(prefers-reduced-motion:reduce) {
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
 
       *,
       *::before,
       *::after {
         animation: none !important;
-        transition: none !important
+        transition: none !important;
       }
     }
   </style>
@@ -519,18 +641,20 @@
 
 <body>
   <a class="skip" href="#icerik">Ana içeriğe geç</a>
-  <div class="bg" aria-hidden="true"></div>
+  <div class="bg-ambience" aria-hidden="true"></div>
 
   <header>
     <div class="container navbar">
       <a href="index.html" class="brand" aria-label="Kahraman Dostum ana sayfa">
-        <img src="assets/logo.png" alt="" width="42" height="42">
-        <span>Kahraman Dostum<small>Farkındalık Platformu</small></span>
+        <img src="assets/logo.png" alt="Kahraman Dostum Logo" width="40" height="40">
+        <div class="brand-text">
+          <span>Kahraman Dostum</span>
+          <small>Farkındalık Platformu</small>
+        </div>
       </a>
       <nav aria-label="Ana menü">
         <ul>
           <li><a href="gizlilik-politikasi.html">Gizlilik Politikası</a></li>
-          <li><a href="biz-kimiz.html">Biz Kimiz?</a></li>
           <li><a href="hesap-sil.html">Hesap Silme</a></li>
           <li><a href="index.html" class="btn btn-soft">Ana Sayfa</a></li>
         </ul>
@@ -608,10 +732,12 @@
   </main>
 
   <dialog id="dlg" aria-labelledby="dlgTitle" aria-describedby="dlgText">
-    <div class="ok-ico" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+    <div class="ok-ico" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 6 9 17l-5-5" />
-      </svg></div>
+      </svg>
+    </div>
     <h2 id="dlgTitle">E-posta hazır</h2>
     <p id="dlgText">E-posta uygulamanız mesajınızla birlikte açıldı. Bize ulaşması için uygulamada
       <strong>Gönder</strong>'e basın. Uygulama açılmadıysa mesajı kopyalayıp siberkahramanapp@gmail.com adresine
@@ -626,13 +752,14 @@
 
   <footer>
     <div class="container f-row">
-      <img class="developer-logo" src="assets/aziz-digital-logo.png" alt="AZIZ DIGITAL geliştirici logosu" width="88"
-        height="88" loading="lazy">
-      <p><strong>Kahraman Dostum</strong> © 2026. TÜBİTAK Akran Zorbalığı Farkındalık Projesi.</p>
+      <div class="footer-brand-wrap">
+        <img class="developer-logo" src="assets/aziz-digital-logo.png" alt="AZIZ DIGITAL geliştirici logosu" width="48"
+          height="48" loading="lazy">
+        <p><strong>Kahraman Dostum</strong> © 2026. Akran Zorbalığı Farkındalık &amp; Eğitim Platformu.</p>
+      </div>
       <nav aria-label="Alt bağlantılar">
         <ul>
           <li><a href="index.html">Ana Sayfa</a></li>
-          <li><a href="biz-kimiz.html">Biz Kimiz?</a></li>
           <li><a href="gizlilik-politikasi.html">Gizlilik Politikası</a></li>
           <li><a href="hesap-sil.html">Hesap Silme</a></li>
           <li><a href="mailto:siberkahramanapp@gmail.com">siberkahramanapp@gmail.com</a></li>
@@ -668,13 +795,17 @@
       });
 
       $('copyBtn').addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(text); copyState.textContent = 'Mesaj kopyalandı.' }
-        catch { copyState.textContent = 'Kopyalanamadı, lütfen mesajı elle kopyalayın.' }
+        try {
+          await navigator.clipboard.writeText(text);
+          copyState.textContent = 'Mesaj kopyalandı.';
+        } catch {
+          copyState.textContent = 'Kopyalanamadı, lütfen mesajı elle kopyalayın.';
+        }
       });
 
       $('closeBtn').addEventListener('click', () => dlg.close());
-      dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close() });
-      dlg.addEventListener('close', () => { form.reset(); help.textContent = 'En az 30 karakter'; text = '' });
+      dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+      dlg.addEventListener('close', () => { form.reset(); help.textContent = 'En az 30 karakter'; text = ''; });
     })();
   </script>
 </body>

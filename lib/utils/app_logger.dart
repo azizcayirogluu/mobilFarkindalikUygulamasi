@@ -18,12 +18,18 @@ class AppLogger {
       if (s != null) debugPrint(s.toString());
     }
     
-    // Üretim ortamında hatayı takip etmek için Crashlytics'e gönderiyoruz
-    FirebaseCrashlytics.instance.recordError(
-      e, 
-      s, 
-      reason: message,
-      fatal: false, // Uygulama çökmedi ama bir işlem başarısız oldu
-    );
+    // Üretim ortamında hatayı takip etmek için Crashlytics'e gönderiyoruz (Web platformunda Crashlytics desteklenmez)
+    if (!kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(
+          e, 
+          s, 
+          reason: message,
+          fatal: false, // Uygulama çökmedi ama bir işlem başarısız oldu
+        );
+      } catch (err) {
+        debugPrint("Crashlytics loglama hatası (ihmal edildi): $err");
+      }
+    }
   }
 }
