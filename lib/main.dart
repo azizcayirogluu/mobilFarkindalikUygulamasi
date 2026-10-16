@@ -14,8 +14,10 @@ import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/onboarding_ekrani.dart';
+import 'package:zorbalik_uygulamasi/screens/parent_consent_pending_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/services/notification_service.dart';
+import 'package:zorbalik_uygulamasi/services/user_presence_service.dart';
 import 'injection_container.dart' as di;
 
 @pragma('vm:entry-point')
@@ -52,6 +54,7 @@ void main() async {
           MobileAds.instance.updateRequestConfiguration(
             RequestConfiguration(
               tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
+              tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.yes,
               maxAdContentRating: MaxAdContentRating.g,
             ),
           );
@@ -151,30 +154,59 @@ class AuthGate extends StatelessWidget {
 }
 
 /// UserDataGate: Kullanıcı profili oluşana kadar bekleyen ve veri senkronizasyonu sağlayan katman.
-class UserDataGate extends StatelessWidget {
+class UserDataGate extends StatefulWidget {
   final String uid;
   const UserDataGate({super.key, required this.uid});
 
   @override
+  State<UserDataGate> createState() => _UserDataGateState();
+}
+
+class _UserDataGateState extends State<UserDataGate> {
+  Widget? _cachedChild;
+  bool? _wasConsentApproved;
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      stream: FirebaseFirestore.instance.collection('users').doc(widget.uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _ErrorView(onRetry: () => FirebaseAuth.instance.signOut());
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && _cachedChild == null) {
           return const _LoadingView(message: "Kahraman profili yükleniyor...");
         }
 
         final doc = snapshot.data;
         if (doc != null && doc.exists) {
-          return const AppInitializer();
+          final data = doc.data() as Map<String, dynamic>?;
+          final yasGrubu = data?['yasGrubu'] ?? '6-12';
+          final pConsent = data?['parentConsent'] as Map<String, dynamic>?;
+
+          final isRequired = (pConsent?['required'] == true) || (yasGrubu == '6-12');
+          final isApproved = pConsent?['status'] == 'approved';
+          final consentApproved = !isRequired || isApproved;
+
+          if (!consentApproved) {
+            _cachedChild = null;
+            _wasConsentApproved = false;
+            return ParentConsentPendingEkrani(
+              uid: widget.uid,
+              parentEmail: pConsent?['parentEmail'] ?? '',
+            );
+          }
+
+          if (_cachedChild == null || _wasConsentApproved != true) {
+            _wasConsentApproved = true;
+            _cachedChild = const AppInitializer();
+          }
+
+          return _cachedChild!;
         }
 
-        // Profil henüz oluşmamış (örneğin Cloud Function çalışıyor)
-        return const _LoadingView(message: "Kahramanlık hazırlıkları yapılıyor...");
+        return _cachedChild ?? const _LoadingView(message: "Kahramanlık hazırlıkları yapılıyor...");
       },
     );
   }
@@ -197,18 +229,7 @@ class _AppInitializerState extends State<AppInitializer> {
   void _onAppStarted() {
     final notificationService = NotificationService();
     notificationService.initialize();
-    _updateUserActivity();
-  }
-
-  Future<void> _updateUserActivity() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'sonGorulme': FieldValue.serverTimestamp(),
-        'isOnline': true,
-      }, SetOptions(merge: true));
-    } catch (_) {}
+    UserPresenceService.instance.initialize();
   }
 
   @override

@@ -11,6 +11,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final paddingValue = size.width > 600 ? 32.0 : 20.0;
+    // Alt sistem navigasyon barı (gesture veya 3-buton) boşluğunu hesaplıyoruz
     final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
 
     return Scaffold(
@@ -22,6 +23,8 @@ class HikayeListelemeEkrani extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           "Kahramanlık Öyküleri",
+          maxLines: 1, // Büyük font kullanımlarında başlığın taşmasını engeller
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: Color(0xFF1E293B),
             fontWeight: FontWeight.w900,
@@ -59,13 +62,15 @@ class HikayeListelemeEkrani extends StatelessWidget {
           ),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('stories').snapshots(),
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('stories')
+            .get(const GetOptions(source: Source.serverAndCache)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
           }
-          
+
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _buildEmptyState();
           }
@@ -78,14 +83,16 @@ class HikayeListelemeEkrani extends StatelessWidget {
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, bottomInset),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                  // ÇÖZÜM: Sabit "2 kolon" yerine, ekran genişliğine göre dinamik kolon (MaxCrossAxisExtent) kullanıldı.
+                  // Böylece telefonlarda 2 kolon olurken, geniş tabletlerde kartlar sünmek yerine 3 veya 4 kolona şıkça dağılır.
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 240,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                     childAspectRatio: 0.76,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+                        (context, index) {
                       var data = docs[index].data() as Map<String, dynamic>;
                       return _buildModernStoryCard(context, data, index)
                           .animate(delay: (index * 50).ms)
@@ -112,7 +119,7 @@ class HikayeListelemeEkrani extends StatelessWidget {
       const Color(0xFF3B82F6),
     ];
     Color cardColor = palette[index % palette.length];
-    
+
     String gorsel = data['gorselYolu'] ?? "";
     String baslik = data['baslik'] ?? "Macera Başlıyor";
 
@@ -163,19 +170,25 @@ class HikayeListelemeEkrani extends StatelessWidget {
                       Positioned(
                         top: 10,
                         left: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            "HİKAYE",
-                            style: TextStyle(
-                              color: cardColor,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                        right: 10, // Sağ sınırı vererek büyük fontta kartın dışına taşmasını engelliyoruz
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              "HİKAYE",
+                              maxLines: 1, // Kategori adı taşmasın
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: cardColor,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ),
@@ -209,12 +222,16 @@ class HikayeListelemeEkrani extends StatelessWidget {
                         children: [
                           Icon(Icons.arrow_right_alt_rounded, size: 14, color: cardColor),
                           const SizedBox(width: 2),
-                          Text(
-                            "Hemen Oku",
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: cardColor,
-                              fontWeight: FontWeight.w800,
+                          Flexible( // Yazı çok büyürse oku ezmesin / dışarı taşmasın diye Flexible sarmalı yapıldı
+                            child: Text(
+                              "Hemen Oku",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: cardColor,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ],
@@ -250,22 +267,31 @@ class HikayeListelemeEkrani extends StatelessWidget {
             child: const Icon(Icons.auto_stories_rounded, size: 56, color: Color(0xFFCBD5E1)),
           ),
           const SizedBox(height: 20),
-          const Text(
-            "Kütüphane Hazırlanıyor!",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF475569),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              "Kütüphane Hazırlanıyor!",
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF475569),
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            "Yeni hikayeler çok yakında burada olacak.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF94A3B8),
-              fontWeight: FontWeight.w500,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30),
+            child: Text(
+              "Yeni hikayeler çok yakında burada olacak.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

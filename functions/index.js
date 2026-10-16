@@ -5,6 +5,56 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 const { logger } = require("firebase-functions");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+
+// SMTP credentials live only in Firebase Secret Manager. The secret is a
+// standard SMTP connection URL and is bound only to e-mail sending functions.
+const parentConsentSmtpUrl = defineSecret("PARENT_CONSENT_SMTP_URL");
+const PARENT_CONSENT_FROM = "Kahraman Dostum <siberkahramanapp@gmail.com>";
+const PARENT_CONSENT_SECRET_OPTIONS = { secrets: [parentConsentSmtpUrl] };
+
+function createParentConsentTransporter() {
+  const smtpUrl = parentConsentSmtpUrl.value();
+  if (!smtpUrl) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Ebeveyn e-posta servisi henüz yapılandırılmadı. Lütfen daha sonra tekrar deneyin."
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(smtpUrl);
+    if (!/^smtps?:$/.test(parsed.protocol) || !parsed.hostname) {
+      throw new Error("Invalid SMTP URL");
+    }
+  } catch (_) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Ebeveyn e-posta servisi güvenli biçimde yapılandırılmadı."
+    );
+  }
+
+  // Explicitly decode URL-encoded credentials to avoid misinterpretation
+  // of special characters (e.g. +, /, = in Brevo API keys).
+  const user = parsed.username ? decodeURIComponent(parsed.username) : undefined;
+  const pass = parsed.password ? decodeURIComponent(parsed.password) : undefined;
+  const port = parsed.port ? Number(parsed.port) : (parsed.protocol === "smtps:" ? 465 : 587);
+  const isSecure = parsed.protocol === "smtps:" || port === 465;
+
+  return nodemailer.createTransport({
+    host: parsed.hostname,
+    port,
+    secure: isSecure,
+    auth: user ? { user, pass } : undefined,
+    requireTLS: !isSecure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: { minVersion: "TLSv1.2" },
+  });
+}
 
 // Global initialization
 initializeApp();
@@ -154,13 +204,14 @@ exports.geminiChat = onCall(
         throw new HttpsError("resource-exhausted", "Enerjin bitti! Video izleyerek kazanabilirsin. ⚡");
       }
 
-// 3. Prepare AI & Normalize Chat History
+// 3. Prepare AI & Normalize Active Session Chat History (In-Memory Context)
 const apiKey = geminiApiKey.value();
 const genAI = getGoogleAI(apiKey);
 
-const rawHistory = Array.isArray(progressData.sohbet_gecmisi)
-  ? progressData.sohbet_gecmisi
-  : [];
+// Geçici sohbet geçmişi istemciden (request.data.gecmis) gelir, Firestore'a yazılmaz
+const rawHistory = Array.isArray(request.data?.gecmis)
+  ? request.data.gecmis
+  : (Array.isArray(request.data?.history) ? request.data.history : []);
 
 // Chat geçmişini Gemini formatına dönüştür
 const mappedHistory = rawHistory
@@ -263,30 +314,16 @@ if (!cevap) {
   throw new Error("Gemini boş cevap döndürdü.");
 }
 
-      // 5. Update Progress (Atomic)
-      const newHistoryItem = [
-        { rol: "user", metin: mesaj },
-        { rol: "assistant", metin: cevap }
-      ];
+      // 5. Update Progress - Only decrement quota and update timestamp (Sohbet geçmişi Firestore'a YAZILMAZ)
+      const updateObj = {
+        sonGuncelleme: FieldValue.serverTimestamp(),
+      };
 
-      await db.runTransaction(async (t) => {
-        const pRef = db.collection("usersProgress").doc(uid);
-        const pSnap = await t.get(pRef);
-        const pData = pSnap.data();
+      if (!isExempt) {
+        updateObj.gemini_hakki = FieldValue.increment(-1);
+      }
 
-        const updatedHistory = [...(pData.sohbet_gecmisi || []), ...newHistoryItem].slice(-MAX_HISTORY_MESSAGES);
-
-        const updateObj = {
-          sohbet_gecmisi: updatedHistory,
-          sonGuncelleme: FieldValue.serverTimestamp(),
-        };
-
-        if (!isExempt) {
-          updateObj.gemini_hakki = FieldValue.increment(-1);
-        }
-
-        t.update(pRef, updateObj);
-      });
+      await db.collection("usersProgress").doc(uid).update(updateObj);
 
       return { cevap, newLimit: isExempt ? 999 : currentHak - 1 };
 
@@ -389,17 +426,13 @@ exports.deleteSelfAccount = onCall(
   }
 );
 
-// Admin / Utility functions
+// Admin / Utility functions (Geçici bellek mimarisinde sohbet geçmişi veritabanında tutulmadığı için başarı döndürür)
 exports.clearGeminiHistory = onCall({ region: REGION, enforceAppCheck: false }, async (request) => {
   logger.info("CLEAR_GEMINI_HISTORY_INVOKED", {
     hasAuth: !!request.auth,
     uid: request.auth?.uid || null,
   });
   if (!request.auth) throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
-  await getDb().collection("usersProgress").doc(request.auth.uid).update({
-    sohbet_gecmisi: [],
-    sonGuncelleme: FieldValue.serverTimestamp()
-  });
   return { success: true };
 });
 
@@ -591,7 +624,6 @@ exports.completeTask = onCall(
 // AUTH TRIGGER: USER CREATION
 // ============================================================
 const functionsV1 = require("firebase-functions/v1");
-const crypto = require("crypto");
 const INITIAL_MESSAGES = 5;
 
 exports.onUserCreated = functionsV1.region(REGION).auth.user().onCreate(async (user) => {
@@ -634,3 +666,418 @@ exports.onUserCreated = functionsV1.region(REGION).auth.user().onCreate(async (u
   }
 });
 
+// ============================================================
+// EBEVEYN ONAYI SİSTEMİ (PARENT CONSENT SYSTEM)
+// ============================================================
+
+const PARENT_CONSENT_WINDOW_MS = 10 * 60 * 1000;
+const PARENT_CONSENT_MIN_INTERVAL_MS = 60 * 1000;
+const PARENT_CONSENT_MAX_REQUESTS = 3;
+
+function tokenHashMatches(storedHash, rawToken) {
+  if (typeof storedHash !== "string" || !rawToken) return false;
+  const expected = Buffer.from(storedHash, "hex");
+  const actual = crypto.createHash("sha256").update(rawToken).digest();
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}
+
+async function checkParentConsentRateLimit(uid) {
+  const limitRef = getDb().collection("rateLimits").doc(`parentConsentReq_${uid}`);
+  const now = Date.now();
+
+  await getDb().runTransaction(async (transaction) => {
+    const current = transaction.get(limitRef);
+    const snapshot = await current;
+    const data = snapshot.data() || {};
+    const windowStart = Number(data.windowStart || now);
+    const count = Number(data.count || 0);
+    const lastSentAt = Number(data.lastSentAt || 0);
+
+    if (lastSentAt && now - lastSentAt < PARENT_CONSENT_MIN_INTERVAL_MS) {
+      throw new HttpsError("resource-exhausted", "Yeni bir e-posta istemeden önce 60 saniye bekleyin.");
+    }
+
+    const inWindow = now - windowStart < PARENT_CONSENT_WINDOW_MS;
+    if (inWindow && count >= PARENT_CONSENT_MAX_REQUESTS) {
+      throw new HttpsError("resource-exhausted", "Kısa süre içinde çok fazla e-posta istendi. Lütfen daha sonra tekrar deneyin.");
+    }
+
+    transaction.set(limitRef, {
+      windowStart: inWindow ? windowStart : now,
+      count: inWindow ? count + 1 : 1,
+      lastSentAt: now,
+    });
+  });
+}
+
+/**
+ * 1. requestParentConsent: Ebeveyn Onay İsteği Başlatma
+ * Enforces authenticated UID, verifies 6-12 age group in Firestore, generates cryptographic token hash, saves pending request, and sends email.
+ */
+exports.requestParentConsent = onCall(
+  {
+    region: REGION,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    enforceAppCheck: false,
+    ...PARENT_CONSENT_SECRET_OPTIONS,
+  },
+  async (request) => {
+    // Rule 1: Strictly enforce request.auth.uid
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+    }
+    const uid = request.auth.uid;
+
+    const rawEmail = request.data?.parentEmail || "";
+    const parentEmail = String(rawEmail).trim().toLowerCase();
+
+    if (!parentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+      throw new HttpsError("invalid-argument", "Geçerli bir e-posta adresi giriniz.");
+    }
+
+    const db = getDb();
+
+    // Rule 2: Backend age verification against Firestore user document
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "Kullanıcı profili bulunamadı.");
+    }
+
+    const userData = userDoc.data() || {};
+    const yasGrubu = userData.yasGrubu;
+
+    if (yasGrubu !== "6-12") {
+      throw new HttpsError("failed-precondition", "Ebeveyn onayı sadece 6-12 yaş grubu içindir.");
+    }
+
+    const transporter = createParentConsentTransporter();
+    try {
+      await transporter.verify();
+    } catch (error) {
+      logger.error("PARENT_CONSENT_SMTP_UNAVAILABLE", { uid, error: error.message });
+      throw new HttpsError("unavailable", "Ebeveyn e-postası şu anda gönderilemiyor. Lütfen daha sonra tekrar deneyin.");
+    }
+
+    // Minimum 60 seconds; maximum 3 requests in 10 minutes.
+    await checkParentConsentRateLimit(uid);
+
+    // Revoke any existing pending requests for UID
+    const existingReqs = await db.collection("parentConsentRequests")
+      .where("uid", "==", uid)
+      .where("status", "==", "pending")
+      .get();
+
+    const batch = db.batch();
+    existingReqs.docs.forEach((doc) => {
+      batch.update(doc.ref, { status: "revoked", revokedAt: FieldValue.serverTimestamp() });
+    });
+
+    // Rule 5: Cryptographically secure random token (32 bytes)
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    const reqRef = db.collection("parentConsentRequests").doc();
+    const requestId = reqRef.id;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    batch.set(reqRef, {
+      requestId,
+      uid,
+      parentEmail,
+      tokenHash, // Stored as SHA-256 hash ONLY
+      createdAt: FieldValue.serverTimestamp(),
+      expiresAt,
+      status: "pending",
+      approvedAt: null,
+      usedAt: null,
+    });
+
+    // Rule 3: Backend-only critical consent fields update
+    batch.set(
+      db.collection("users").doc(uid),
+      {
+        parentConsent: {
+          required: true,
+          status: "pending",
+          parentEmail: parentEmail,
+          requestedAt: FieldValue.serverTimestamp(),
+          approvedAt: null,
+          verificationMethod: "email_link",
+        },
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+
+    const approvalUrl = `https://kahraman-dostum.web.app/parent-consent.html#requestId=${encodeURIComponent(requestId)}&token=${encodeURIComponent(rawToken)}`;
+
+    try {
+      await transporter.sendMail({
+        from: PARENT_CONSENT_FROM,
+        to: parentEmail,
+        subject: "Kahraman Dostum — Ebeveyn Onayı",
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 20px; background-color: #ffffff;">
+              <h2 style="color: #4f46e5; text-align: center; margin-top: 0;">Kahraman Dostum</h2>
+              <p style="color: #1e293b; font-size: 15px;">Merhaba,</p>
+              <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+                Çocuğunuz <strong>Kahraman Dostum</strong> siber güvenlik eğitimi ve arkadaşlık uygulamasına kayıt olmak için onayınızı istemektedir.
+              </p>
+              <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+                Çocuğunuzun güvenliği bizim için en önemli önceliktir. Yapay zekâ sohbetlerimiz kalıcı olarak veritabanında saklanmaz; sadece aktif oturum sırasında işlenip ekrandan ayrılınca silinir.
+              </p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${approvalUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 15px; display: inline-block;">Çocuğuma Onay Ver</a>
+              </div>
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.4;">
+                Bu onay bağlantısı 24 saat geçerlidir ve yalnızca bir kez kullanılabilir. Eğer kayıt işlemini siz başlatmadıysanız bu e-postayı dikkate almayabilirsiniz.
+              </p>
+            </div>
+        `,
+      });
+      logger.info("PARENT_CONSENT_EMAIL_SENT", { uid, requestId });
+    } catch (error) {
+      await reqRef.update({ status: "revoked", revokedAt: FieldValue.serverTimestamp() });
+      logger.error("PARENT_CONSENT_EMAIL_ERROR", { uid, requestId, error: error.message });
+      throw new HttpsError("unavailable", "Ebeveyn e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.");
+    }
+
+    return { success: true, message: "Onay e-postası başarıyla gönderildi." };
+  }
+);
+
+/**
+ * 2. getConsentRequestDetails: Web Sayfası İçin İstek Detayı Sorgulama
+ * Validates request ID and SHA-256 token hash. Returns status without exposing child username or PII (Rule 7).
+ */
+exports.getConsentRequestDetails = onCall(
+  {
+    region: REGION,
+    memory: "256MiB",
+    timeoutSeconds: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const requestId = String(request.data?.requestId || "").trim();
+    const rawToken = String(request.data?.token || "").trim();
+
+    if (!requestId || !rawToken) {
+      throw new HttpsError("invalid-argument", "Geçersiz parametreler.");
+    }
+
+    const db = getDb();
+    const reqDoc = await db.collection("parentConsentRequests").doc(requestId).get();
+
+    if (!reqDoc.exists) {
+      throw new HttpsError("not-found", "Onay isteği bulunamadı.");
+    }
+
+    const reqData = reqDoc.data();
+    if (!tokenHashMatches(reqData.tokenHash, rawToken)) {
+      throw new HttpsError("permission-denied", "Geçersiz onay anahtarı.");
+    }
+
+    const isExpired = reqData.expiresAt ? reqData.expiresAt.toDate() < new Date() : false;
+
+    // Rule 7 Data Minimization: Return status only, no username or PII
+    return {
+      status: isExpired ? "expired" : reqData.status,
+      isExpired,
+    };
+  }
+);
+
+/**
+ * 3. approveParentConsent: Ebeveyn Onayını Doğrulayıp Onaylama
+ * Validates requestId, SHA-256 token hash, 24h expiration, pending status, usedAt null, and atomically updates Firestore.
+ */
+exports.approveParentConsent = onCall(
+  {
+    region: REGION,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const requestId = String(request.data?.requestId || "").trim();
+    const rawToken = String(request.data?.token || "").trim();
+
+    if (!requestId || !rawToken) {
+      throw new HttpsError("invalid-argument", "Geçersiz parametreler.");
+    }
+
+    const db = getDb();
+    const reqRef = db.collection("parentConsentRequests").doc(requestId);
+    const outcome = await db.runTransaction(async (transaction) => {
+      const reqDoc = await transaction.get(reqRef);
+      if (!reqDoc.exists) return { state: "not-found" };
+
+      const reqData = reqDoc.data();
+      if (!tokenHashMatches(reqData.tokenHash, rawToken)) return { state: "invalid-token" };
+      if (reqData.status === "approved" || reqData.usedAt != null) return { state: "used" };
+      if (reqData.status !== "pending") return { state: "invalid-status" };
+
+      const isExpired = !reqData.expiresAt || reqData.expiresAt.toDate() <= new Date();
+      if (isExpired) {
+        transaction.update(reqRef, { status: "expired", expiredAt: FieldValue.serverTimestamp() });
+        return { state: "expired" };
+      }
+
+      const now = FieldValue.serverTimestamp();
+      transaction.update(reqRef, { status: "approved", approvedAt: now, usedAt: now });
+      transaction.set(
+        db.collection("users").doc(reqData.uid),
+        {
+          parentConsent: {
+            required: true,
+            status: "approved",
+            approvedAt: now,
+            verificationMethod: "email_link",
+          },
+        },
+        { merge: true }
+      );
+      return { state: "approved", uid: reqData.uid };
+    });
+
+    if (outcome.state === "not-found") throw new HttpsError("not-found", "Onay isteği bulunamadı.");
+    if (outcome.state === "invalid-token") throw new HttpsError("permission-denied", "Geçersiz onay anahtarı.");
+    if (outcome.state === "used") throw new HttpsError("already-exists", "Bu onay bağlantısı daha önce kullanılmış.");
+    if (outcome.state === "expired") throw new HttpsError("deadline-exceeded", "Onay bağlantısının süresi dolmuş.");
+    if (outcome.state !== "approved") throw new HttpsError("failed-precondition", "Bu onay bağlantısı artık geçerli değil.");
+
+    logger.info("PARENT_CONSENT_APPROVED", { uid: outcome.uid, requestId });
+
+    return { success: true, message: "Ebeveyn onayı başarıyla doğrulandı ve tamamlandı." };
+  }
+);
+
+/**
+ * 4. updateParentEmail: Ebeveyn E-Posta Değiştirme ve Yeniden Gönderme
+ * Enforces authenticated UID, invalidates previous requests, updates parent email, and triggers a new request.
+ */
+exports.updateParentEmail = onCall(
+  {
+    region: REGION,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    enforceAppCheck: false,
+    ...PARENT_CONSENT_SECRET_OPTIONS,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+    }
+    const uid = request.auth.uid;
+
+    const rawEmail = request.data?.newParentEmail || "";
+    const newParentEmail = String(rawEmail).trim().toLowerCase();
+
+    if (!newParentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newParentEmail)) {
+      throw new HttpsError("invalid-argument", "Geçerli bir e-posta adresi giriniz.");
+    }
+
+    const db = getDb();
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "Profil bulunamadı.");
+    }
+
+    const userData = userDoc.data() || {};
+    if (userData.yasGrubu !== "6-12") {
+      throw new HttpsError("failed-precondition", "Sadece 6-12 yaş grubu içindir.");
+    }
+
+    const transporter = createParentConsentTransporter();
+    try {
+      await transporter.verify();
+    } catch (error) {
+      logger.error("PARENT_CONSENT_SMTP_UNAVAILABLE", { uid, error: error.message });
+      throw new HttpsError("unavailable", "Ebeveyn e-postası şu anda gönderilemiyor. Lütfen daha sonra tekrar deneyin.");
+    }
+
+    await checkParentConsentRateLimit(uid);
+
+    // Revoke old pending requests for this account before issuing a new token.
+    const existingReqs = await db.collection("parentConsentRequests")
+      .where("uid", "==", uid)
+      .where("status", "==", "pending")
+      .get();
+
+    const batch = db.batch();
+    existingReqs.docs.forEach((doc) => {
+      batch.update(doc.ref, { status: "revoked", revokedAt: FieldValue.serverTimestamp() });
+    });
+
+    // Generate new token & hash
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    const reqRef = db.collection("parentConsentRequests").doc();
+    const requestId = reqRef.id;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    batch.set(reqRef, {
+      requestId,
+      uid,
+      parentEmail: newParentEmail,
+      tokenHash,
+      createdAt: FieldValue.serverTimestamp(),
+      expiresAt,
+      status: "pending",
+      approvedAt: null,
+      usedAt: null,
+    });
+
+    batch.set(
+      db.collection("users").doc(uid),
+      {
+        parentConsent: {
+          required: true,
+          status: "pending",
+          parentEmail: newParentEmail,
+          requestedAt: FieldValue.serverTimestamp(),
+          approvedAt: null,
+          verificationMethod: "email_link",
+        },
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+
+    const approvalUrl = `https://kahraman-dostum.web.app/parent-consent.html#requestId=${encodeURIComponent(requestId)}&token=${encodeURIComponent(rawToken)}`;
+
+    try {
+      await transporter.sendMail({
+          from: PARENT_CONSENT_FROM,
+          to: newParentEmail,
+          subject: "Kahraman Dostum — Ebeveyn Onayı",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 20px; background-color: #ffffff;">
+              <h2 style="color: #4f46e5; text-align: center; margin-top: 0;">Kahraman Dostum</h2>
+              <p style="color: #1e293b; font-size: 15px;">Merhaba,</p>
+              <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+                Çocuğunuz <strong>Kahraman Dostum</strong> ebeveyn onay e-posta adresini güncelledi ve onayınızı istemektedir.
+              </p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${approvalUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 15px; display: inline-block;">Çocuğuma Onay Ver</a>
+              </div>
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.4;">
+                Bu onay bağlantısı 24 saat geçerlidir ve yalnızca bir kez kullanılabilir.
+              </p>
+            </div>
+          `,
+      });
+      logger.info("PARENT_CONSENT_EMAIL_UPDATED_SENT", { uid, requestId });
+    } catch (error) {
+      await reqRef.update({ status: "revoked", revokedAt: FieldValue.serverTimestamp() });
+      logger.error("PARENT_CONSENT_EMAIL_UPDATED_ERROR", { uid, requestId, error: error.message });
+      throw new HttpsError("unavailable", "Ebeveyn e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.");
+    }
+
+    return { success: true, message: "Ebeveyn e-postası güncellendi ve yeni onay linki gönderildi." };
+  }
+);

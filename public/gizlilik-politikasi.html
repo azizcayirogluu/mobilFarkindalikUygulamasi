@@ -634,6 +634,50 @@
       }
     }
 
+    .data-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 20px 0;
+      border: 1px solid var(--line);
+      border-radius: var(--r-m);
+      background: var(--surf);
+      box-shadow: var(--sh-s);
+    }
+
+    .data-table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 14px 16px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      color: var(--mute);
+    }
+
+    .data-table thead th {
+      background: var(--p-l);
+      color: var(--ink);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .data-table tbody th {
+      width: 18%;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .data-table tbody tr:last-child th,
+    .data-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
     /* Responsive Sidebar Grid */
     @media (min-width: 901px) {
       .layout {
@@ -697,237 +741,235 @@
 </head>
 
 <body>
-  <a class="skip" href="#icerik">Ana içeriğe geç</a>
-  <div class="bg-ambience" aria-hidden="true"></div>
+<a class="skip" href="#icerik">Ana içeriğe geç</a>
+<div class="bg-ambience" aria-hidden="true"></div>
 
-  <header>
-    <div class="container navbar">
-      <a href="index.html" class="brand" aria-label="Kahraman Dostum ana sayfa">
-        <img src="assets/logo.png" alt="Kahraman Dostum Logo" width="40" height="40">
-        <div class="brand-text">
-          <span>Kahraman Dostum</span>
-          <small>Farkındalık Platformu</small>
-        </div>
-      </a>
-      <nav aria-label="Ana menü">
-        <ul>
-          <li><a href="geri-bildirim.html">Geri Bildirim</a></li>
-          <li><a href="hesap-sil.html">Hesap Silme</a></li>
-          <li><a href="index.html" class="btn-soft">Ana Sayfa</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-
-  <main id="icerik">
-    <div class="container">
-      <div class="hero">
-        <h1>Gizlilik ve Güvenlik Politikası</h1>
-        <p>Kahraman Dostum mobil uygulaması, çocukların ve gençlerin dijital güvenliğini en üst seviyede tutmayı taahhüt eder.</p>
-        <ul class="meta" aria-label="Belge bilgileri">
-          <li>Son güncelleme: <time datetime="2026-10">Ekim 2026</time></li>
-          <li>Dijital Farkındalık Platformu</li>
-          <li><a href="mailto:siberkahramanapp@gmail.com" class="wrap">siberkahramanapp@gmail.com</a></li>
-        </ul>
+<header>
+  <div class="container navbar">
+    <a href="index.html" class="brand" aria-label="Kahraman Dostum ana sayfa">
+      <img src="assets/logo.png" alt="Kahraman Dostum Logo" width="40" height="40">
+      <div class="brand-text">
+        <span>Kahraman Dostum</span>
+        <small>Farkındalık Platformu</small>
       </div>
+    </a>
+    <nav aria-label="Ana menü">
+      <ul>
+        <li><a href="geri-bildirim.html">Geri Bildirim</a></li>
+        <li><a href="hesap-sil.html">Hesap Silme</a></li>
+        <li><a href="index.html" class="btn-soft">Ana Sayfa</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
 
-      <div class="layout">
-        <details class="toc" id="toc">
-          <summary>Bölümler</summary>
-          <nav aria-label="Bölümler">
-            <ul>
-              <li><a href="#genel">1. Genel Bilgilendirme</a></li>
-              <li><a href="#veri">2. İşlenen Veriler</a></li>
-              <li><a href="#reklam">3. Yapay Zeka &amp; Reklam</a></li>
-              <li><a href="#guvenlik">4. Veri Koruma &amp; Altyapı</a></li>
-              <li><a href="#haklar">5. Hesap ve Veri Silme</a></li>
-              <li><a href="#iletisim">6. İletişim Kanalları</a></li>
-            </ul>
-          </nav>
-        </details>
+<main id="icerik">
+  <div class="container">
+    <div class="hero">
+      <h1>Gizlilik ve Güvenlik Politikası</h1>
+      <p>Kahraman Dostum mobil uygulaması, çocukların ve gençlerin dijital güvenliğini en üst seviyede tutmayı taahhüt eder.</p>
+      <ul class="meta" aria-label="Belge bilgileri">
+        <li>Son güncelleme: <time datetime="2026-10">Ekim 2026</time></li>
+        <li>Dijital Farkındalık Platformu</li>
+        <li><a href="mailto:siberkahramanapp@gmail.com" class="wrap">siberkahramanapp@gmail.com</a></li>
+      </ul>
+    </div>
 
-        <article class="doc">
-          <section id="genel" aria-labelledby="h-genel">
-            <span class="no">Bölüm 1</span>
-            <h2 id="h-genel">Genel Bilgilendirme ve Proje Amacı</h2>
-            <p>Kahraman Dostum; çocukların ve gençlerin fiziksel, sözel, siber ve ilişkisel akran zorbalığını tüm
-              boyutlarıyla tanımasını, empati geliştirmesini ve zorlayıcı durumlarla başa çıkma stratejilerini
-              öğrenmesini sağlayan bilimsel ve pedagojik bir dijital farkındalık platformudur.</p>
-            <p>Bu sayfa, Kahraman Dostum mobil uygulamasında hangi bilgilerin kullanıcıdan istendiğini, uygulamanın
-              çalışması sırasında hangi kayıtların işlendiğini ve kullanılan dış hizmetleri açıklar. Uygulama
-              kullanıcıdan gerçek e-posta adresi, telefon numarası, gerçek ad veya ev adresi istemez. Bununla birlikte,
-              hesap güvenliği ve uygulama özellikleri için aşağıda açıklanan kimlik doğrulama bilgileri, ilerleme
-              kayıtları ve teknik veriler işlenebilir.</p>
-            <p class="note"><strong>Önemli:</strong> Bu sayfa genel bilgilendirme sağlar; belirli bir hukuki uygunluk
-              garantisi değildir. Kişisel verilerle ilgili sorularınızı iletişim bölümündeki adrese iletebilirsiniz.</p>
-          </section>
+    <div class="layout">
+      <details class="toc" id="toc">
+        <summary>Bölümler</summary>
+        <nav aria-label="Bölümler">
+          <ul>
+            <li><a href="#genel">1. Genel Bilgilendirme</a></li>
+            <li><a href="#veri">2. İşlenen Veriler</a></li>
+            <li><a href="#reklam">3. Yapay Zeka &amp; Reklam</a></li>
+            <li><a href="#guvenlik">4. Veri Koruma &amp; Altyapı</a></li>
+            <li><a href="#haklar">5. Hesap ve Veri Silme</a></li>
+            <li><a href="#iletisim">6. İletişim Kanalları</a></li>
+          </ul>
+        </nav>
+      </details>
 
-          <section id="veri" aria-labelledby="h-veri">
-            <span class="no">Bölüm 2</span>
-            <h2 id="h-veri">Hangi Veriler İşlenir?</h2>
-            <p>Uygulamada kullanıcıdan istenen profil bilgileri kullanıcı adı ve yaş grubudur. Uygulamanın hesap
-              oluşturma ve özelliklerini sunma biçimi nedeniyle aşağıdaki ek kayıtlar da işlenir:</p>
-            <div class="cards">
-              <article>
-                <h3><span aria-hidden="true">👤</span> Hesap ve Profil</h3>
-                <p>Kullanıcı adı, seçilen yaş grubu (6-12 veya 13-18), seçilen kahraman/avatar ve giriş için
-                  belirlediğiniz 6 rakamlı PIN. PIN, Firebase Authentication hesabı oluşturulurken kimlik doğrulama
-                  bilgisi olarak kullanılır. Firebase hesabı için kullanıcı adından türetilen dahili bir e-posta
-                  biçimli tanımlayıcı oluşturulur; sizden gerçek bir e-posta adresi istenmez ve bu tanımlayıcı bir
-                  e-posta kutusu değildir.</p>
-              </article>
-              <article>
-                <h3><span aria-hidden="true">🏆</span> İlerleme ve Uygulama Kayıtları</h3>
-                <p>Tamamlanan modüller ve görevler, çözülen senaryolar, puanlar/rozetler, asistan kullanım hakları,
-                  bazı etkinlik ve güncelleme zamanları hesabınızla ilişkilendirilerek saklanır. Bildirim özelliği
-                  kullanıldığında bildirim tokenı da hesabınıza kaydedilebilir.</p>
-              </article>
-              <article>
-                <h3><span aria-hidden="true">🤖</span> Siber Asistan Sohbetleri</h3>
-                <p>Asistana yazdığınız mesajlar ve yanıtlar, sohbetin devam edebilmesi için uygulama hesabınızdaki
-                  ilerleme kaydında tutulur. Asistan yanıt üretirken mesajınız, önceki sohbet mesajları, yaş grubunuz
-                  ve profilde varsa ad bilgisi Google Gemini hizmetine iletilir. Asistan ekranındaki temizleme
-                  düğmesiyle sohbet geçmişini silebilirsiniz. Mesajlara gerçek ad, okul, adres, telefon gibi sizi
-                  tanımlayabilecek bilgileri yazmayın.</p>
-              </article>
-              <article>
-                <h3><span aria-hidden="true">🛠️</span> Teknik ve Tanılama Bilgileri</h3>
-                <p>Uygulama hatalarını incelemek için Firebase Crashlytics hata kayıtları ve hata bağlamındaki teknik
-                  tanılama bilgileri işleyebilir. Firebase ve bildirim hizmetleri uygulama/cihaz tanımlayıcıları ve
-                  bağlantı bilgileri gibi teknik verileri kendi hizmetlerini sunmak için işleyebilir.</p>
-              </article>
-              <article>
-                <h3><span aria-hidden="true">🎨</span> Avatar Görselleri</h3>
-                <p>Profildeki DiceBear Adventurer avatarları seçildiğinde görsel, DiceBear API'sinden internet
-                  üzerinden yüklenir ve cihazda önbelleğe alınabilir. İstek sırasında IP adresi gibi bağlantı
-                  bilgileri DiceBear hizmetine görünebilir. Avatar seçeneklerinde kullanıcı adı veya Firebase
-                  kullanıcı kimliği kullanılmaz; yalnızca genel, sabit seed değerleri kullanılır. Adventurer görsel
-                  stili Lisa Wischofsky'nin çalışmasından uyarlanmıştır ve
-                  <a class="link" href="https://creativecommons.org/licenses/by/4.0/" target="_blank"
-                    rel="noopener noreferrer">CC BY 4.0</a> lisansına tabidir.</p>
-              </article>
+      <article class="doc">
+        <section id="genel" aria-labelledby="h-genel">
+          <span class="no">Bölüm 1</span>
+          <h2 id="h-genel">Genel Bilgilendirme ve Proje Amacı</h2>
+          <p>Kahraman Dostum; çocukların ve gençlerin fiziksel, sözel, siber ve ilişkisel akran zorbalığını tüm
+            boyutlarıyla tanımasını, empati geliştirmesini ve zorlayıcı durumlarla başa çıkma stratejilerini
+            öğrenmesine yardımcı olmayı amaçlayan bir dijital farkındalık platformudur.</p>
+          <p>Bu sayfa, Kahraman Dostum mobil uygulamasında hangi bilgilerin kullanıcıdan istendiğini, uygulamanın
+            çalışması sırasında hangi kayıtların işlendiğini ve kullanılan dış hizmetleri açıklar. Uygulama
+            kullanıcıdan gerçek e-posta adresi, telefon numarası, gerçek ad veya ev adresi istemez. Bununla birlikte,
+            hesap güvenliği ve uygulama özellikleri için aşağıda açıklanan kimlik doğrulama bilgileri, ilerleme
+            kayıtları ve teknik veriler işlenebilir.</p>
+          <p class="note"><strong>Önemli:</strong> Bu sayfa genel bilgilendirme sağlar; belirli bir hukuki uygunluk
+            garantisi değildir. Kişisel verilerle ilgili sorularınızı iletişim bölümündeki adrese iletebilirsiniz.</p>
+        </section>
+
+        <section id="veri" aria-labelledby="h-veri">
+          <span class="no">Bölüm 2</span>
+          <h2 id="h-veri">Hangi Veriler İşlenir?</h2>
+          <p>Uygulamada kullanıcıdan kullanıcı adı ve yaş grubu bilgileri alınır. 6-12 yaş grubundaki kullanıcılar için ayrıca veli e-posta adresi istenir. Uygulamanın hesap
+            oluşturma ve özelliklerini sunma biçimi nedeniyle aşağıdaki kayıtlar da işlenebilir:</p>
+          <div class="data-table-wrap" role="region" aria-label="İşlenen veri kategorileri" tabindex="0">
+            <table class="data-table">
+              <thead>
+              <tr>
+                <th scope="col">Veri kategorisi</th>
+                <th scope="col">İşlenen veriler</th>
+                <th scope="col">Kullanım amacı</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <th scope="row">Hesap ve profil</th>
+                <td>Kullanıcı adı, yaş grubu, seçilen kahraman/avatar, 6 rakamlı PIN; 6-12 yaş grubunda veli e-posta adresi.</td>
+                <td>Hesap oluşturma, giriş, profil özellikleri ve 6-12 yaş grubundaki kullanıcılar için veli onayı/süreçlerinin yürütülmesi.</td>
+              </tr>
+              <tr>
+                <th scope="row">İlerleme ve uygulama kayıtları</th>
+                <td>Tamamlanan modüller ve görevler, çözülen senaryolar, puanlar/rozetler, asistan kullanım hakları, bazı etkinlik ve güncelleme zamanları; bildirim kullanılırsa bildirim tokenı.</td>
+                <td>Uygulama ilerlemesini ve ilgili özellikleri çalıştırmak.</td>
+              </tr>
+              <tr>
+                <th scope="row">Siber Dostum sohbetleri</th>
+                <td>Kullanıcının yazdığı mesajlar ve oluşturulan yanıtlar, yanıt üretimi sırasında işlenebilir.</td>
+                <td>Yanıt oluşturmak ve konuşma sırasında gerekli bağlamı sağlamak. Kullanıcı mesajları konuşma sonunda uygulamadaki sohbet kaydından silinir.</td>
+              </tr>
+              <tr>
+                <th scope="row">Teknik ve tanılama</th>
+                <td>Hata kayıtları, hata bağlamındaki teknik tanılama bilgileri, uygulama/cihaz tanımlayıcıları ve bağlantı bilgileri gibi teknik veriler.</td>
+                <td>Hata analizi, uygulamanın çalıştırılması, güvenlik ve bildirim hizmetlerinin sunulması.</td>
+              </tr>
+              <tr>
+                <th scope="row">Avatar görselleri</th>
+                <td>Seçilen avatarın yüklenmesi için kullanılan genel seed değerleri ve bağlantı/teknik bilgiler.</td>
+                <td>Avatar görselini internet üzerinden yüklemek ve cihazda önbelleğe almak.</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="reklam" aria-labelledby="h-reklam">
+          <span class="no">Bölüm 3</span>
+          <h2 id="h-reklam">Yapay Zeka Kullanımı ve Reklam Hizmetleri</h2>
+          <p>Kahraman Dostum uygulamasını indirmek ve tüm temel eğitim modüllerine erişmek <strong>tamamen ücretsizdir</strong>.</p>
+          <p>Siber Dostum yanıt üretmek için gerekli mesaj içeriğini, yaş grubunuzu ve profilde varsa ad bilginizi Google Gemini
+            hizmetine gönderebilir. Kullanıcı mesajları konuşma sonunda uygulamadaki sohbet kaydından silinir; bu
+            nedenle sohbet geçmişi uygulama hesabında kalıcı olarak tutulmaz.</p>
+          <p>Uygulamada isteğe bağlı ödüllü reklamlar Google AdMob tarafından sunulur. Uygulama reklam isteğinde
+            çocuklara yönelik işleme ayarını ve en fazla “G” içerik derecelendirmesini bildirir. Reklam sağlayıcısı,
+            reklamı sunmak ve ölçmek için kendi politikaları kapsamında teknik/reklam verilerini işleyebilir. Ödülün
+            doğrulanması için reklam sunucusu doğrulama akışında hesabın Firebase kullanıcı kimliği kullanılabilir.
+            Bu ayarlar reklam içeriğinin her koşulda uygun olacağı garantisi değildir; reklamı izlemek isteğe bağlıdır.</p>
+        </section>
+
+        <section id="guvenlik" aria-labelledby="h-guv">
+          <span class="no">Bölüm 4</span>
+          <h2 id="h-guv">Veri Güvenliği ve Altyapı</h2>
+          <p>Hesap ve ilerleme verileri Firebase Authentication, Cloud Firestore ve Cloud Functions altyapısında
+            işlenir. Hata tanılama için Firebase Crashlytics; isteğe bağlı reklamlar ve ödül doğrulaması için Google
+            AdMob; asistan yanıtları için Google Gemini; sesli okuma özelliği kullanıldığında metin-ses hizmeti
+            kullanılabilir. Sesli okuma özelliği seçildiğinde okutulmak üzere seçilen metin Google Cloud
+            Text-to-Speech hizmetine gönderilebilir. Bu hizmetler, ilgili özellikleri sunmak ve güvenliğini sağlamak
+            için gerekli verileri kendi altyapılarında işleyebilir. Veriler bu sağlayıcılara hiç aktarılmıyor gibi
+            bir taahhütte bulunulmamaktadır. Sağlayıcıların veri işleme koşulları kendi gizlilik belgelerine tabidir.</p>
+          <p>Bu web sayfaları Google Fonts yazı tipini dış bir Google kaynağından yükleyebilir; ayrıca profil avatarlarını DiceBear
+            API'sinden yükleyebilir. Bu sırada tarayıcı/cihaz, sayfayı sunmak için gerekli bağlantı/teknik bilgileri ilgili sağlayıcıya iletir.
+            Hesap silme formundaki talep türü, kullanıcı adı ve koşula bağlı açıklama ile geri bildirim formundaki kullanıcı adı, konu,
+            mesaj ve isteğe bağlı e-posta adresi web uygulamasının sunucusuna gönderilmez; bunlar cihazınızda
+            e-posta taslağı oluşturmak için kullanılır. E-posta ancak kendi e-posta uygulamanızda
+            <strong>Gönder</strong>'e bastığınızda iletilir. Geri bildirim formundaki e-posta alanı isteğe bağlıdır
+            ve yalnızca web formu üzerinden gönderilen geri bildirim için sunulur; mobil uygulama kayıt e-postası değildir.</p>
+          <h3>Veri saklama</h3>
+          <p>Hesap ve ilerleme kayıtları, hesap kullanılmaya devam ettiği sürece tutulur; uygulama içi hesap silme
+            işlemi başarıyla tamamlandığında silme işlevi Firebase Authentication hesabını, kullanıcı ve ilerleme
+            belgelerini ve hesaba bağlanmış rapor, reklam ödül işlemi ve hız sınırı kayıtlarını silmek üzere çalışır.
+            Siber Dostum kullanıcı mesajları konuşma sonunda uygulamadaki sohbet kaydından silinir. Google/Firebase gibi
+            hizmet sağlayıcıların güvenlik ve hizmet kayıtları ile e-posta sağlayıcısındaki gönderilmiş destek
+            mesajları, bu sağlayıcıların saklama koşullarına tabi olabilir; bu kayıtların tamamının anında silindiği
+            garanti edilmez. Bu proje sayfasında sağlayıcıların kontrolündeki kayıtlar için doğrulanmış sabit bir
+            saklama süresi belirtilmemektedir.</p>
+        </section>
+
+        <section id="haklar" aria-labelledby="h-hak">
+          <span class="no">Bölüm 5</span>
+          <h2 id="h-hak">Kullanıcı Hakları ve Hesap Silme</h2>
+          <p>Uygulama içinden profil bölümünde hesabı silme işlemini başlatabilir; ayrıca aşağıdaki hak talepleri için
+            bizimle iletişime geçebilirsiniz:</p>
+          <ul class="list">
+            <li>Hakkınızda hangi verilerin saklandığını öğrenme,</li>
+            <li>Eksik veya hatalı verilerin düzeltilmesini talep etme,</li>
+            <li>Hesabınızın ve uygulama kayıtlarınızın silinmesini talep etme.</li>
+          </ul>
+          <p>Uygulama içi silme işlemi onayınızdan sonra sunucu üzerinden hesabı ve ilişkili uygulama kayıtlarını
+            siler. Uygulamaya erişemiyorsanız <a href="hesap-sil.html" class="link">Hesap Silme Kılavuzundaki</a>
+            form bir e-posta taslağı hazırlar; taslağı kendiniz göndermeniz gerekir. Bu e-posta formunu göndermek
+            uygulama içi silme işlemiyle aynı değildir ve tek başına hesabı anında silmez. Uygulamadaki veriler
+            dışındaki sağlayıcı kayıtları, yukarıda açıklanan saklama koşullarına tabidir.</p>
+        </section>
+
+        <section id="iletisim" aria-labelledby="h-ilet">
+          <span class="no">Bölüm 6</span>
+          <h2 id="h-ilet">Veri Sorumlusu, İletişim ve Başvuru</h2>
+          <p>Kahraman Dostum mobil uygulamasına ilişkin veri sorumlusu Aziz ÇAYIROĞLU'dur. Gizlilik politikası ve
+            kişisel verilerle ilgili soru, görüş ve taleplerinizi tek iletişim adresimiz olan aşağıdaki e-posta
+            adresine iletebilirsiniz:</p>
+          <div class="contact">
+            <div>
+              <h3>İletişim</h3>
+              <p>Gizlilik soruları ve veri talepleri için proje iletişim adresi:</p>
             </div>
-          </section>
-
-          <section id="reklam" aria-labelledby="h-reklam">
-            <span class="no">Bölüm 3</span>
-            <h2 id="h-reklam">Yapay Zeka Kullanımı ve Reklam Hizmetleri</h2>
-            <p>Kahraman Dostum uygulamasını indirmek ve tüm temel eğitim modüllerine erişmek <strong>tamamen ücretsizdir</strong>.</p>
-            <p>Siber Asistan yanıt üretmek için mesajınızı, önceki sohbet bağlamını, yaş grubunuzu ve profilde varsa
-              ad bilginizi Google Gemini hizmetine gönderir. Bu mesajlar, yanıt üretme ve sohbet geçmişini sürdürme
-              amaçlarıyla işlenir; bu işlem anonimleştirilmiş olarak tanımlanmamaktadır.</p>
-            <p>Uygulamada isteğe bağlı ödüllü reklamlar Google AdMob tarafından sunulur. Uygulama reklam isteğinde
-              çocuklara yönelik işleme ayarını ve en fazla “G” içerik derecelendirmesini bildirir. Reklam sağlayıcısı,
-              reklamı sunmak ve ölçmek için kendi politikaları kapsamında teknik/reklam verilerini işleyebilir. Ödülün
-              doğrulanması için reklam sunucusu doğrulama akışında hesabın Firebase kullanıcı kimliği kullanılabilir.
-              Bu ayarlar reklam içeriğinin her koşulda uygun olacağı garantisi değildir; reklamı izlemek isteğe bağlıdır.</p>
-          </section>
-
-          <section id="guvenlik" aria-labelledby="h-guv">
-            <span class="no">Bölüm 4</span>
-            <h2 id="h-guv">Veri Güvenliği ve Altyapı</h2>
-            <p>Hesap ve ilerleme verileri Firebase Authentication, Cloud Firestore ve Cloud Functions altyapısında
-              işlenir. Hata tanılama için Firebase Crashlytics; isteğe bağlı reklamlar ve ödül doğrulaması için Google
-              AdMob; asistan yanıtları için Google Gemini; sesli okuma özelliği kullanıldığında metin-ses hizmeti
-              kullanılabilir. Sesli okuma özelliği seçildiğinde okutulmak üzere seçilen metin Google Cloud
-              Text-to-Speech hizmetine gönderilebilir. Bu hizmetler, ilgili özellikleri sunmak ve güvenliğini sağlamak
-              için gerekli verileri kendi altyapılarında işleyebilir. Veriler bu sağlayıcılara hiç aktarılmıyor gibi
-              bir taahhütte bulunulmamaktadır. Sağlayıcıların veri işleme koşulları kendi gizlilik belgelerine tabidir.</p>
-            <p>Bu web sayfaları Google Fonts yazı tipini dış bir Google kaynağından yükleyebilir; ayrıca profil avatarlarını DiceBear
-              API'sinden yükleyebilir. Bu sırada tarayıcı/cihaz, sayfayı sunmak için gerekli bağlantı/teknik bilgileri ilgili sağlayıcıya iletir.
-              Hesap silme formundaki talep türü, kullanıcı adı ve koşula bağlı açıklama ile geri bildirim formundaki kullanıcı adı, konu,
-              mesaj ve isteğe bağlı e-posta adresi web uygulamasının sunucusuna gönderilmez; bunlar cihazınızda
-              e-posta taslağı oluşturmak için kullanılır. E-posta ancak kendi e-posta uygulamanızda
-              <strong>Gönder</strong>'e bastığınızda iletilir. Geri bildirim formundaki e-posta alanı isteğe bağlıdır
-              ve yalnızca web formu üzerinden gönderilen geri bildirim için sunulur; mobil uygulama kayıt e-postası değildir.</p>
-            <h3>Veri saklama</h3>
-            <p>Hesap ve ilerleme kayıtları, hesap kullanılmaya devam ettiği sürece tutulur; uygulama içi hesap silme
-              işlemi başarıyla tamamlandığında silme işlevi Firebase Authentication hesabını, kullanıcı ve ilerleme
-              belgelerini ve hesaba bağlanmış rapor, reklam ödül işlemi ve hız sınırı kayıtlarını silmek üzere çalışır.
-              Asistan sohbetini hesabınızı silmeden de uygulama içinden temizleyebilirsiniz. Google/Firebase gibi
-              hizmet sağlayıcıların güvenlik ve hizmet kayıtları ile e-posta sağlayıcısındaki gönderilmiş destek
-              mesajları, bu sağlayıcıların saklama koşullarına tabi olabilir; bu kayıtların tamamının anında silindiği
-              garanti edilmez. Bu proje sayfasında sağlayıcıların kontrolündeki kayıtlar için doğrulanmış sabit bir
-              saklama süresi belirtilmemektedir.</p>
-          </section>
-
-          <section id="haklar" aria-labelledby="h-hak">
-            <span class="no">Bölüm 5</span>
-            <h2 id="h-hak">Kullanıcı Hakları ve Hesap Silme</h2>
-            <p>Uygulama içinden profil bölümünde hesabı silme işlemini başlatabilir; ayrıca aşağıdaki hak talepleri için
-              bizimle iletişime geçebilirsiniz:</p>
-            <ul class="list">
-              <li>Hakkınızda hangi verilerin saklandığını öğrenme,</li>
-              <li>Eksik veya hatalı verilerin düzeltilmesini talep etme,</li>
-              <li>Hesabınızın ve uygulama kayıtlarınızın silinmesini talep etme.</li>
-            </ul>
-            <p>Uygulama içi silme işlemi onayınızdan sonra sunucu üzerinden hesabı ve ilişkili uygulama kayıtlarını
-              siler. Uygulamaya erişemiyorsanız <a href="hesap-sil.html" class="link">Hesap Silme Kılavuzundaki</a>
-              form bir e-posta taslağı hazırlar; taslağı kendiniz göndermeniz gerekir. Bu e-posta formunu göndermek
-              uygulama içi silme işlemiyle aynı değildir ve tek başına hesabı anında silmez. Uygulamadaki veriler
-              dışındaki sağlayıcı kayıtları, yukarıda açıklanan saklama koşullarına tabidir.</p>
-          </section>
-
-          <section id="iletisim" aria-labelledby="h-ilet">
-            <span class="no">Bölüm 6</span>
-            <h2 id="h-ilet">Veri Sorumlusu, İletişim ve Başvuru</h2>
-            <p>Kahraman Dostum mobil uygulamasına ilişkin veri sorumlusu Aziz ÇAYIROĞLU'dur. Gizlilik politikası ve
-              kişisel verilerle ilgili soru, görüş ve taleplerinizi tek iletişim adresimiz olan aşağıdaki e-posta
-              adresine iletebilirsiniz:</p>
-            <div class="contact">
-              <div>
-                <h3>İletişim</h3>
-                <p>Gizlilik soruları ve veri talepleri için proje iletişim adresi:</p>
-              </div>
-              <a href="mailto:siberkahramanapp@gmail.com" class="wrap">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <path d="m22 7-10 6L2 7" />
-                </svg>
-                siberkahramanapp@gmail.com
-              </a>
-            </div>
-          </section>
-        </article>
-      </div>
+            <a href="mailto:siberkahramanapp@gmail.com" class="wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 6L2 7" />
+              </svg>
+              siberkahramanapp@gmail.com
+            </a>
+          </div>
+        </section>
+      </article>
     </div>
-  </main>
+  </div>
+</main>
 
-  <footer>
-    <div class="container f-row">
-      <div class="footer-brand-wrap">
-        <img class="developer-logo" src="assets/aziz-digital-logo.png" alt="AZIZ DIGITAL geliştirici logosu" width="48"
-          height="48" loading="lazy">
-        <p><strong>Kahraman Dostum</strong> © 2026. Akran Zorbalığı Farkındalık &amp; Eğitim Platformu.</p>
-      </div>
-      <nav aria-label="Alt bağlantılar">
-        <ul>
-          <li><a href="index.html">Ana Sayfa</a></li>
-          <li><a href="geri-bildirim.html">Geri Bildirim</a></li>
-          <li><a href="hesap-sil.html">Hesap Silme</a></li>
-          <li><a href="mailto:siberkahramanapp@gmail.com" class="wrap">siberkahramanapp@gmail.com</a></li>
-        </ul>
-      </nav>
+<footer>
+  <div class="container f-row">
+    <div class="footer-brand-wrap">
+      <img class="developer-logo" src="assets/aziz-digital-logo.png" alt="AZIZ DIGITAL geliştirici logosu" width="48"
+           height="48" loading="lazy">
+      <p><strong>Kahraman Dostum</strong> © 2026. Akran Zorbalığı Farkındalık &amp; Eğitim Platformu.</p>
     </div>
-  </footer>
+    <nav aria-label="Alt bağlantılar">
+      <ul>
+        <li><a href="index.html">Ana Sayfa</a></li>
+        <li><a href="geri-bildirim.html">Geri Bildirim</a></li>
+        <li><a href="hesap-sil.html">Hesap Silme</a></li>
+        <li><a href="mailto:siberkahramanapp@gmail.com" class="wrap">siberkahramanapp@gmail.com</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
 
-  <script defer>
-    (() => {
-      const toc = document.getElementById('toc'), links = [...toc.querySelectorAll('a')];
-      /* Masaüstünde içindekiler her zaman açık; mobilde kapalı başlar, bağlantıya basınca kapanır */
-      const desktop = matchMedia('(min-width:901px)');
-      const sync = () => { toc.open = desktop.matches };
-      sync(); desktop.addEventListener('change', sync);
-      toc.addEventListener('click', e => { if (e.target.closest('a') && !desktop.matches) toc.open = false });
-      /* Okunan bölümü işaretle */
-      const map = new Map(links.map(a => [a.hash.slice(1), a]));
-      const io = new IntersectionObserver(es => es.forEach(e => {
-        if (e.isIntersecting) links.forEach(a => a.setAttribute('aria-current', a === map.get(e.target.id)))
-      }), { rootMargin: '-20% 0px -70% 0px' });
-      map.forEach((_, id) => io.observe(document.getElementById(id)));
-    })();
-  </script>
+<script defer>
+  (() => {
+    const toc = document.getElementById('toc'), links = [...toc.querySelectorAll('a')];
+    /* Masaüstünde içindekiler her zaman açık; mobilde kapalı başlar, bağlantıya basınca kapanır */
+    const desktop = matchMedia('(min-width:901px)');
+    const sync = () => { toc.open = desktop.matches };
+    sync(); desktop.addEventListener('change', sync);
+    toc.addEventListener('click', e => { if (e.target.closest('a') && !desktop.matches) toc.open = false });
+    /* Okunan bölümü işaretle */
+    const map = new Map(links.map(a => [a.hash.slice(1), a]));
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) links.forEach(a => a.setAttribute('aria-current', a === map.get(e.target.id)))
+    }), { rootMargin: '-20% 0px -70% 0px' });
+    map.forEach((_, id) => io.observe(document.getElementById(id)));
+  })();
+</script>
 </body>
 
 </html>

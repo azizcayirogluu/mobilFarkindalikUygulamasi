@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../domain/repositories/content_repository.dart';
 
 List<Map<String, dynamic>> sanitizeDiscoveryPool(
@@ -34,17 +33,14 @@ class ContentRepositoryImpl implements ContentRepository {
 
   @override
   Future<Map<String, dynamic>> fetchDiscoveryData() async {
-    // 1. Önbellek Kontrolü: Eğer son 10 dakika içinde veri çekilmişse, hafızadaki veriyi dön.
+    // 1. Önbellek Kontrolü: Eğer son 10 dakika içinde geçerli veri çekilmişse, hafızadaki veriyi dön.
     if (_cacheDiscoveryData != null &&
+        (_cacheDiscoveryData!['toplamGorevSayisi'] as int? ?? 0) > 0 &&
         DateTime.now().difference(_lastFetchTime ?? DateTime(0)).inMinutes < 10) {
       return _cacheDiscoveryData!;
     }
 
-    final connectivityResult = await Connectivity().checkConnectivity();
-    bool hasInternet = connectivityResult.any(
-      (r) => r != ConnectivityResult.none,
-    );
-    final source = hasInternet ? Source.serverAndCache : Source.cache;
+    const source = Source.serverAndCache;
 
     try {
       final results = await Future.wait([
@@ -126,13 +122,16 @@ class ContentRepositoryImpl implements ContentRepository {
       pool.shuffle();
       final cleanedPool = sanitizeDiscoveryPool(pool);
 
+      final totalTasks = scenarioCount + storyCount + detectiveCount;
       final result = {
-        'toplamGorevSayisi': scenarioCount + storyCount + detectiveCount,
+        'toplamGorevSayisi': totalTasks,
         'kesifHavuzu': cleanedPool.take(4).toList(),
       };
 
-      _cacheDiscoveryData = result;
-      _lastFetchTime = DateTime.now();
+      if (totalTasks > 0) {
+        _cacheDiscoveryData = result;
+        _lastFetchTime = DateTime.now();
+      }
 
       return result;
     } catch (e) {
@@ -154,6 +153,6 @@ class ContentRepositoryImpl implements ContentRepository {
     return _firestore
         .collection('usersProgress')
         .doc(uid)
-        .snapshots(includeMetadataChanges: true);
+        .snapshots();
   }
 }

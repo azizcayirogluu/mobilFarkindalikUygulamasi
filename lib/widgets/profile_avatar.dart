@@ -42,6 +42,8 @@ class ProfileAvatar extends StatelessWidget {
 
     return CachedNetworkImage(
       imageUrl: image,
+      memCacheWidth: 200,
+      memCacheHeight: 200,
       imageBuilder: (context, imageProvider) => CircleAvatar(
         radius: radius,
         backgroundColor: backgroundColor,

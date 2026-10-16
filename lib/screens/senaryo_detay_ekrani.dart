@@ -1,3 +1,4 @@
+import 'dart:math' as math; // Responsive hesaplamalar için eklendi
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -34,7 +35,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   bool _isLoading = true;
   bool _sesAcik = false;
   int _dogruCevapSayisi = 0;
-  int _currentReadingSession = 0; 
+  int _currentReadingSession = 0;
 
   final List<Map<String, dynamic>> _userAnswersProof = [];
 
@@ -80,11 +81,41 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           final filtrelenmisSorular = tumSorularRaw.where((s) => (s['yasGrubu'] ?? "6-12") == kullaniciYasGrubu).toList();
 
           final hazirSorular = [];
+
+          // Üst üste aynı şıkkın gelme durumunu takip edeceğimiz değişkenler
+          int? oncekiDogruIndeks;
+          int ayniCevapSayaci = 0;
+
           for (var s in filtrelenmisSorular) {
             Map<String, dynamic> soruMap = Map<String, dynamic>.from(s);
             if (soruMap['secenekler'] != null) {
               List secList = List.from(soruMap['secenekler']);
-              secList.shuffle();
+
+              secList.shuffle(math.Random());
+
+              int dogruIndex = secList.indexWhere((secenek) => secenek['dogru'] == true);
+
+              // Eğer doğru cevap bir öncekiyle aynı pozisyona düştüyse
+              if (oncekiDogruIndeks != null && dogruIndex == oncekiDogruIndeks) {
+                ayniCevapSayaci++; // Sayacı artır
+
+                // Eğer 2 defa üst üste aynı şık geldiyse ve 3. de aynı olacaksa müdahale et
+                if (ayniCevapSayaci >= 2 && secList.length > 1) {
+                  int yeniIndex = (dogruIndex + 1) % secList.length;
+
+                  var temp = secList[dogruIndex];
+                  secList[dogruIndex] = secList[yeniIndex];
+                  secList[yeniIndex] = temp;
+
+                  dogruIndex = yeniIndex;
+                  ayniCevapSayaci = 0; // Farklı bir şıkka geçirdiğimiz için sayacı sıfırla
+                }
+              } else {
+                // Farklı bir şık geldiyse sayacı sıfırla
+                ayniCevapSayaci = 0;
+              }
+
+              oncekiDogruIndeks = dogruIndex;
               soruMap['secenekler'] = secList;
             }
             hazirSorular.add(soruMap);
@@ -99,7 +130,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
           }
         } else {
-           setState(() => _isLoading = false);
+          setState(() => _isLoading = false);
         }
       } else {
         setState(() => _isLoading = false);
@@ -140,7 +171,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   void _sonraki() {
-    _currentReadingSession++; 
+    _currentReadingSession++;
     _ttsService.stop();
 
     if (_currentIndex < _sorular.length - 1) {
@@ -166,6 +197,9 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     final soru = _sorular[_currentIndex];
     double progress = (_currentIndex + 1) / _sorular.length;
 
+    // Alt navigasyon bar alanına taşmayı önlemek için güvenli boşluk hesaplaması
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: _buildAppBar(),
@@ -181,13 +215,15 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
-                      if (soru['imageUrl'] != null && soru['imageUrl'].isNotEmpty) 
+                      if (soru['imageUrl'] != null && soru['imageUrl'].isNotEmpty)
                         _buildHeroImage(soru['imageUrl'], size),
                       const SizedBox(height: 20),
                       _buildQuestionCard(soru['soru']),
                       const SizedBox(height: 25),
                       ...List.generate(soru['secenekler'].length, (i) => _buildAnimatedOption(i, soru['secenekler'][i])),
-                      const SizedBox(height: 40),
+
+                      // Eski kodda sabit 40 vardı. SafeArea ile dinamikleşti, seçeneklerin altta kalması engellendi.
+                      SizedBox(height: math.max(40.0, bottomInset + 20.0)),
                     ],
                   ),
                 ),
@@ -210,9 +246,12 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         onPressed: () => Navigator.pop(context),
       ),
       centerTitle: true,
-      title: Text(
-        "GÖREV ${widget.bolumIndex + 1}",
-        style: const TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 16),
+      title: FittedBox( // Büyük cihaz fontlarında başlığın taşmasını engeller
+        fit: BoxFit.scaleDown,
+        child: Text(
+          "GÖREV ${widget.bolumIndex + 1}",
+          style: const TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 16),
+        ),
       ),
       actions: [
         IconButton(
@@ -238,8 +277,14 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("MACERA YOLU 🚀", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.2)),
-              Text("${_currentIndex + 1} / ${_sorular.length}", style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 12)),
+              // Metinlerin dar ekranda çarpışmasını engellemek için Flexible eklendi
+              const Flexible(
+                child: Text("MACERA YOLU 🚀", overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.2)),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text("${_currentIndex + 1} / ${_sorular.length}", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 12)),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -258,8 +303,12 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Widget _buildHeroImage(String url, Size size) {
+    // Sabit 220 yüksekliği, ekranın %25'i veya minimum 150, maksimum 250 olacak şekilde değiştirildi.
+    // Yatay modda veya çok küçük telefonlarda görselin ekranın çoğunu kaplamasını engeller.
+    final double dynamicHeight = math.max(150.0, math.min(size.height * 0.25, 250.0));
+
     return Container(
-      height: 220,
+      height: dynamicHeight,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
@@ -270,6 +319,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         borderRadius: BorderRadius.circular(26),
         child: CachedNetworkImage(
           imageUrl: url,
+          memCacheWidth: 600,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(color: Colors.grey[100]).animate(onPlay: (c) => c.repeat()).shimmer(),
           errorWidget: (context, url, error) => const Icon(Icons.image_not_supported_rounded, color: Colors.grey, size: 50),
@@ -298,7 +348,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   Widget _buildAnimatedOption(int index, Map secenek) {
     bool isSelected = _secilenIndeks == index;
     bool isCorrect = secenek['dogru'] == true;
-    
+
     Color bgColor = Colors.white;
     Color borderColor = const Color(0xFFF1F5F9);
     if (isSelected) {
@@ -325,18 +375,22 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: isSelected 
-                    ? (isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444)) 
-                    : const Color(0xFFF1F5F9),
+                  color: isSelected
+                      ? (isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444))
+                      : const Color(0xFFF1F5F9),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(
-                    String.fromCharCode(65 + index),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
+                  // Çok büyük sistem fontlarında A/B/C harflerinin daireden taşmasını önler
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      String.fromCharCode(65 + index),
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : const Color(0xFF64748B),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -348,17 +402,19 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: isSelected 
-                      ? (isCorrect ? const Color(0xFF065F46) : const Color(0xFF991B1B)) 
-                      : const Color(0xFF334155),
+                    color: isSelected
+                        ? (isCorrect ? const Color(0xFF065F46) : const Color(0xFF991B1B))
+                        : const Color(0xFF334155),
                   ),
                 ),
               ),
-              if (isSelected) 
+              if (isSelected) ...[
+                const SizedBox(width: 8),
                 Icon(
                   isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
                   color: isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                 ),
+              ],
             ],
           ),
         ),
@@ -366,72 +422,76 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
     ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.05);
   }
 
-  void _showFeedback(String mesaj) {
+  void _showFeedback(String mesaj) async {
     if (_sesAcik) _ttsService.speak(mesaj);
     final bottomPadding = MediaQuery.paddingOf(context).bottom + 20;
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true, // BottomSheet'in gerekirse daha çok yer kaplamasına izin verir
       backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        padding: EdgeInsets.fromLTRB(28, 24, 28, bottomPadding),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lightbulb_circle_rounded, color: Colors.amber, size: 64).animate(onPlay: (c) => c.repeat()).shimmer(),
-            const SizedBox(height: 16),
-            const Text("KAHRAMAN İPUCU", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.5)),
-            const SizedBox(height: 10),
-            Text(mesaj, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w600, height: 1.45)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.anaMavi,
-                minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+      builder: (c) => PopScope(
+        canPop: true,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9), // Tüm ekranı kaplamasını engeller
+          child: Container(
+            padding: EdgeInsets.fromLTRB(28, 24, 28, bottomPadding),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            // Yazının çok uzun olması veya cihazın kısa olması durumunda BottomSheet taşmasın diye eklendi
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lightbulb_circle_rounded, color: Colors.amber, size: 64).animate(onPlay: (c) => c.repeat()).shimmer(),
+                  const SizedBox(height: 16),
+                  const Text("KAHRAMAN İPUCU", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.5)),
+                  const SizedBox(height: 10),
+                  Text(mesaj, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w600, height: 1.45)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.anaMavi,
+                      minimumSize: const Size(double.infinity, 54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(c),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text("ANLADIM, DEVAM ET! 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                    ),
+                  )
+                ],
               ),
-              onPressed: () { Navigator.pop(c); _sonraki(); },
-              child: const Text("ANLADIM, DEVAM ET! 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );
+
+    if (mounted) {
+      _sonraki();
+    }
   }
 
-  void _sonucGoster() async {
+  bool _hasSavedPoints = false;
+
+  void _sonucGoster() {
+    if (!mounted) return;
+
     double oran = (_dogruCevapSayisi / _sorular.length) * 100;
     bool basarili = oran >= 60;
 
-    bool syncSuccess = false;
-
     if (basarili) {
-      try {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await _analyticsService.bolumTamamla(
-            user.uid,
-            0,
-            "${widget.docId}_${widget.bolumIndex}",
-            proof: List.from(_userAnswersProof),
-          );
-          syncSuccess = true;
-          _confettiController.play();
-        }
-      } catch (e) {
-        debugPrint("Senkronizasyon hatası: $e");
-        syncSuccess = false;
-      }
+      _confettiController.play();
+      _savePointsSilently();
     }
-
-    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -439,84 +499,50 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       builder: (c) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: !basarili
-                    ? const Color(0xFFFEF2F2)
-                    : (syncSuccess ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB)),
-                shape: BoxShape.circle,
+        content: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: !basarili ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  !basarili ? Icons.refresh_rounded : Icons.emoji_events_rounded,
+                  size: 60,
+                  color: !basarili ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                ),
+              ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+              const SizedBox(height: 24),
+              Text(
+                !basarili ? "TEKRAR DENEYELİM!" : "TEBRİKLER KAHRAMAN!",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B)),
               ),
-              child: Icon(
+              const SizedBox(height: 12),
+              Text(
                 !basarili
-                    ? Icons.refresh_rounded
-                    : (syncSuccess ? Icons.emoji_events_rounded : Icons.cloud_off_rounded),
-                size: 60,
-                color: !basarili
-                    ? const Color(0xFFEF4444)
-                    : (syncSuccess ? const Color(0xFF10B981) : const Color(0xFFF59E0B)),
+                    ? "Hadi bir şans daha! Başarabileceğini biliyoruz."
+                    : "Bu görevi başarıyla tamamladın. Harika gidiyorsun!",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               ),
-            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 24),
-            Text(
-              !basarili
-                  ? "TEKRAR DENEYELİM!"
-                  : (syncSuccess ? "TEBRİKLER KAHRAMAN!" : "KAYIT BEKLENİYOR"),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1E293B)),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              !basarili
-                  ? "Hadi bir şans daha! Başarabileceğini biliyoruz."
-                  : (syncSuccess
-                      ? "Bu görevi başarıyla tamamladın. Harika gidiyorsun!"
-                      : "Soruları başarıyla çözdün! Ancak puanların sunucuya henüz aktarılamadı. Lütfen bağlantını kontrol edip tekrar dene."),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(20)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _statItem("Doğru", _dogruCevapSayisi, const Color(0xFF10B981)),
-                  _statItem("Puan", oran.toInt(), const Color(0xFF6366F1)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            if (basarili && !syncSuccess) ...[
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  Navigator.pop(c);
-                  _sonucGoster();
-                },
-                child: const Text(
-                  "TEKRAR KAYDET 🔄",
-                  style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _statItem("Doğru", _dogruCevapSayisi, const Color(0xFF10B981)),
+                    _statItem("Puan", oran.toInt(), const Color(0xFF6366F1)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(c);
-                  Navigator.pop(context);
-                },
-                child: const Text("DAHA SONRA ÇIK", style: TextStyle(color: Colors.grey)),
-              ),
-            ] else ...[
+              const SizedBox(height: 30),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: basarili ? const Color(0xFF10B981) : const Color(0xFF6366F1),
@@ -528,16 +554,43 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
                   Navigator.pop(c);
                   Navigator.pop(context);
                 },
-                child: Text(
-                  basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
-                  style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    basarili ? "DEVAM ET 🚀" : "TEKRAR DENE 🔁",
+                    style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _savePointsSilently() async {
+    if (_hasSavedPoints) return;
+    _hasSavedPoints = true;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _analyticsService.bolumTamamla(
+          user.uid,
+          0,
+          "${widget.docId}_${widget.bolumIndex}",
+          proof: List.from(_userAnswersProof),
+        );
+      }
+    } catch (e) {
+      debugPrint("Arka plan puan senkronizasyon hatası: $e");
+      _hasSavedPoints = false;
+      await Future.delayed(const Duration(seconds: 3));
+      if (!_hasSavedPoints) {
+        _savePointsSilently();
+      }
+    }
   }
 
   Widget _statItem(String label, dynamic value, Color color) {

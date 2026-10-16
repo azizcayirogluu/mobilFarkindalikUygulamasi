@@ -152,68 +152,83 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true, // İçeriğin ekrana tam sığabilmesi ve kaydırılabilmesi için eklendi
       backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        padding: EdgeInsets.fromLTRB(28, 24, 28, bottomPadding),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: isCorrect ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isCorrect ? Icons.check_circle_rounded : Icons.warning_rounded,
-                size: 52,
-                color: isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-              ),
-            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 18),
-            Text(
-              isCorrect ? "HARİKA KARAR! 🏆" : "DİKKATLİ OL! 🛡️",
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                color: isCorrect ? const Color(0xFF065F46) : const Color(0xFF991B1B),
-              ),
+      builder: (c) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9), // Tüm ekranı örtmemesi için sınırlandırıldı
+        child: Container(
+          padding: EdgeInsets.fromLTRB(28, 24, 28, bottomPadding),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isCorrect ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCorrect ? Icons.check_circle_rounded : Icons.warning_rounded,
+                    size: 52,
+                    color: isCorrect ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  ),
+                ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+                const SizedBox(height: 18),
+                Text(
+                  isCorrect ? "HARİKA KARAR! 🏆" : "DİKKATLİ OL! 🛡️",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: isCorrect ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  msg,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, color: Color(0xFF475569), fontWeight: FontWeight.w600, height: 1.45),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isCorrect ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                    minimumSize: const Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(c);
+                    _nextStep();
+                  },
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text("DEVAM ET 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  ),
+                )
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              msg,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF475569), fontWeight: FontWeight.w600, height: 1.45),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isCorrect ? const Color(0xFF10B981) : const Color(0xFF6366F1),
-                minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
-              ),
-              onPressed: () {
-                Navigator.pop(c);
-                _nextStep();
-              },
-              child: const Text("DEVAM ET 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-            )
-          ],
+          ),
         ),
       ),
     );
   }
 
+  bool _hasSynced = false;
+
   Future<void> _verileriSenkronizeEt() async {
+    if (_hasSynced) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
       await AnalyticsService().aktiviteGuncelle(user.uid, 0, proof: List.from(_gameProof));
+      _hasSynced = true;
     } catch (e) {
       debugPrint("Senkronizasyon hatası: $e");
       if (mounted) {
@@ -224,7 +239,10 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
             action: SnackBarAction(
               label: "TEKRAR DENE",
               textColor: Colors.white,
-              onPressed: _verileriSenkronizeEt,
+              onPressed: () {
+                _hasSynced = false;
+                _verileriSenkronizeEt();
+              },
             ),
           ),
         );
@@ -241,9 +259,12 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "KAHRAMAN DEDEKTİF",
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.5),
+        title: const FittedBox( // Büyük cihaz fontlarında başlığın taşmasını engeller
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "KAHRAMAN DEDEKTİF",
+            style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.5),
+          ),
         ),
         leading: Padding(
           padding: const EdgeInsets.only(left: 12),
@@ -288,8 +309,14 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("DAVA İLERLEMESİ 🔍", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.2)),
-                      Text("${_currentIndex + 1} / ${_soruHavuzu.length}", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6366F1), fontSize: 12)),
+                      // Metinlerin dar ekranda veya büyük font ayarlarında çarpışmasını engellemek için Flexible eklendi
+                      const Flexible(
+                        child: Text("DAVA İLERLEMESİ 🔍", overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.2)),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text("${_currentIndex + 1} / ${_soruHavuzu.length}", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6366F1), fontSize: 12)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -305,11 +332,21 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
                 ],
               ),
             ),
-            const Spacer(),
-            _buildCard(soru).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutBack),
-            const Spacer(),
+
+            // Spacer yerine Expanded ve SingleChildScrollView kullanılarak kartın dikeyde sıkışıp patlaması engellendi.
+            // Bu yaklaşım kartı ekran ortasında tutar ancak içerik çok büyükse kaydırılabilir yapar.
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: _buildCard(soru).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutBack),
+                ),
+              ),
+            ),
+
             Padding(
-              padding: const EdgeInsets.only(bottom: 30),
+              padding: const EdgeInsets.only(bottom: 20, top: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -336,7 +373,6 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
     final size = MediaQuery.sizeOf(context);
     return Container(
       width: size.width * 0.85,
-      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -348,7 +384,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: const BoxDecoration(
               color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -358,7 +394,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
               children: [
                 const Icon(Icons.fingerprint_rounded, size: 18, color: Colors.blueGrey),
                 const SizedBox(width: 8),
-                Text("GİZEMLİ MESAJ #0${_currentIndex + 1}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.5)),
+                Flexible(
+                  child: Text("GİZEMLİ MESAJ #0${_currentIndex + 1}", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 1.5)),
+                ),
               ],
             ),
           ),
@@ -382,6 +420,7 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
   Widget _actionButton(String label, Color color, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: () => _kararVer(label),
@@ -403,32 +442,38 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
   Widget _buildResultArea() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(color: Color(0xFFFEF3C7), shape: BoxShape.circle),
-              child: const Icon(Icons.stars_rounded, size: 72, color: Color(0xFFF59E0B)),
-            ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
-            const SizedBox(height: 24),
-            const Text("GÖREV TAMAMLANDI!", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
-            const SizedBox(height: 10),
-            Text("Harika bir dedektifsin!\n$_kazanilanPuan Puan başarı koleksiyonuna eklendi.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w600, height: 1.4)),
-            const SizedBox(height: 36),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+      child: SingleChildScrollView( // Sonuç ekranı küçük telefonlarda taşmasın diye ScrollView eklendi
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(28.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(color: Color(0xFFFEF3C7), shape: BoxShape.circle),
+                child: const Icon(Icons.stars_rounded, size: 72, color: Color(0xFFF59E0B)),
+              ).animate().scale(duration: 400.ms, curve: Curves.bounceOut),
+              const SizedBox(height: 24),
+              const Text("GÖREV TAMAMLANDI!", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+              const SizedBox(height: 10),
+              Text("Harika bir dedektifsin!\n$_kazanilanPuan Puan başarı koleksiyonuna eklendi.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w600, height: 1.4)),
+              const SizedBox(height: 36),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 0,
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text("AKADEMİYE DÖN 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
+                ),
               ),
-              onPressed: () => Navigator.pop(context),
-              child: const Text("AKADEMİYE DÖN 🚀", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -436,21 +481,27 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.verified_rounded, size: 56, color: Color(0xFF10B981)),
-          ).animate().shake(),
-          const SizedBox(height: 20),
-          const Text("HİÇ GİZEM KALMADI!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
-          const SizedBox(height: 8),
-          const Text("Bütün davaları çözdün Kahraman!", style: TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
-          const SizedBox(height: 30),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri Dön", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF6366F1)))),
-        ],
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(28),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: const Icon(Icons.verified_rounded, size: 56, color: Color(0xFF10B981)),
+              ).animate().shake(),
+              const SizedBox(height: 20),
+              const Text("HİÇ GİZEM KALMADI!", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+              const SizedBox(height: 8),
+              const Text("Bütün davaları çözdün Kahraman!", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+              const SizedBox(height: 30),
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri Dön", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF6366F1)))),
+            ],
+          ),
+        ),
       ),
     );
   }

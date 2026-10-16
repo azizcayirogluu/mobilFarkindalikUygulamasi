@@ -3,6 +3,7 @@ import 'package:zorbalik_uygulamasi/screens/hikaye_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/senaryo_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/video_listeleme_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_dedektif_oyunu.dart';
+import 'package:zorbalik_uygulamasi/screens/sifre_ustasi_ekrani.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'guvenlik_rehberi_ekrani.dart';
 
@@ -11,82 +12,99 @@ class EgitimEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final double paddingValue = size.width > 600 ? 32 : 20;
     const Color backgroundSubtle = Color(0xFFF8FAFC);
-    final bottomInset = MediaQuery.paddingOf(context).bottom + 80;
+    // MediaQuery.paddingOf performansı ve güvenilirliği daha yüksektir.
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildSliverAppBar(backgroundSubtle),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(paddingValue, 10, paddingValue, bottomInset),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildWelcomeHeader(),
-                const SizedBox(height: 24),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600), // Tablet/iPad uyumluluğu için genişlik limiti
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildSliverAppBar(backgroundSubtle),
+              SliverPadding(
+                // Tablet ve büyük ekranlarda sabit 20 px padding ile tasarımı korur,
+                // Alt kısma sistem bar boşluğu + navigasyon görünürlüğü için ek pay (80) koyar.
+                padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 80),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildWelcomeHeader(),
+                    const SizedBox(height: 24),
 
-                _buildKidEgitimCard(
-                  context,
-                  title: "Zorbalık Rehberi 🛡️",
-                  desc: "Zorbalık nedir, nasıl başa çıkılır? Kahramanlık rehberini oku!",
-                  icon: Icons.auto_awesome_rounded,
-                  accentColor: const Color(0xFF8B5CF6),
-                  label: "TEMEL BİLGİLER",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GuvenlikRehberiEkrani())),
-                  delay: 0.ms,
-                ),
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Zorbalık Rehberi 🛡️",
+                      desc: "Zorbalık nedir, nasıl başa çıkılır? Kahramanlık rehberini oku!",
+                      icon: Icons.auto_awesome_rounded,
+                      accentColor: const Color(0xFF8B5CF6),
+                      label: "TEMEL BİLGİLER",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GuvenlikRehberiEkrani())),
+                      delay: 0.ms,
+                    ),
 
-                _buildKidEgitimCard(
-                  context,
-                  title: "Senaryo Çöz 🧠",
-                  desc: "Zor durumlar karşısında en doğru kararı sen ver, kahraman ol!",
-                  icon: Icons.psychology_alt_rounded,
-                  accentColor: const Color(0xFF6366F1),
-                  label: "KAHRAMANLIK GÖREVİ",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
-                  delay: 20.ms,
-                ),
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Senaryo Çöz 🧠",
+                      desc: "Zor durumlar karşısında en doğru kararı sen ver, kahraman ol!",
+                      icon: Icons.psychology_alt_rounded,
+                      accentColor: const Color(0xFF6366F1),
+                      label: "KAHRAMANLIK GÖREVİ",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SenaryoListelemeEkrani())),
+                      delay: 20.ms,
+                    ),
 
-                _buildKidEgitimCard(
-                  context,
-                  title: "Kahraman Dedektif 🔍",
-                  desc: "Olayları gizemli bir dedektif gibi incele, tehlikeleri ortaya çıkar!",
-                  icon: Icons.search_rounded,
-                  accentColor: const Color(0xFF10B981),
-                  label: "SÜPER OYUN",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SiberDedektifOyunu())),
-                  delay: 30.ms,
-                ),
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Kahraman Dedektif 🔍",
+                      desc: "Olayları gizemli bir dedektif gibi incele, tehlikeleri ortaya çıkar!",
+                      icon: Icons.search_rounded,
+                      accentColor: const Color(0xFF10B981),
+                      label: "SÜPER OYUN",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SiberDedektifOyunu())),
+                      delay: 30.ms,
+                    ),
 
-                _buildKidEgitimCard(
-                  context,
-                  title: "Hikaye Oku 📚",
-                  desc: "Eğlenceli ve heyecanlı öyküleri oku, yeni taktikler öğren!",
-                  icon: Icons.auto_stories_rounded,
-                  accentColor: const Color(0xFFF59E0B),
-                  label: "GÜÇLÜ BİLGİLER",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HikayeListelemeEkrani())),
-                  delay: 60.ms,
-                ),
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Şifre Ustası 🔐",
+                      desc: "Güçlü şifre oluşturmayı öğren, şifre kalkanını güçlendir!",
+                      icon: Icons.key_rounded,
+                      accentColor: const Color(0xFF0284C7),
+                      label: "SİMÜLASYON OYUNU",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SifreUstasiEkrani())),
+                      delay: 40.ms,
+                    ),
 
-                _buildKidEgitimCard(
-                  context,
-                  title: "Video İzle 🎬",
-                  desc: "Harika ve renkli animasyonlarla en pratik ipuçlarını yakala.",
-                  icon: Icons.play_circle_filled_rounded,
-                  accentColor: const Color(0xFF3B82F6),
-                  label: "EĞLENCELİ VİDEO",
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
-                  delay: 90.ms,
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Hikaye Oku 📚",
+                      desc: "Eğlenceli ve heyecanlı öyküleri oku, yeni taktikler öğren!",
+                      icon: Icons.auto_stories_rounded,
+                      accentColor: const Color(0xFFF59E0B),
+                      label: "GÜÇLÜ BİLGİLER",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HikayeListelemeEkrani())),
+                      delay: 60.ms,
+                    ),
+
+                    _buildKidEgitimCard(
+                      context,
+                      title: "Video İzle 🎬",
+                      desc: "Harika ve renkli animasyonlarla en pratik ipuçlarını yakala.",
+                      icon: Icons.play_circle_filled_rounded,
+                      accentColor: const Color(0xFF3B82F6),
+                      label: "EĞLENCELİ VİDEO",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoListelemeEkrani())),
+                      delay: 90.ms,
+                    ),
+                  ]),
                 ),
-              ]),
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -101,6 +119,8 @@ class EgitimEkrani extends StatelessWidget {
       title: const Text(
         "KAHRAMANLIK AKADEMİSİ",
         textAlign: TextAlign.center,
+        maxLines: 1, // Büyük fontta AppBar taşmasını önler
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: Color(0xFF1E293B),
           fontWeight: FontWeight.w900,
@@ -187,7 +207,7 @@ class EgitimEkrani extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.min, // Sadece gerektiği kadar yer kapla
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -197,6 +217,8 @@ class EgitimEkrani extends StatelessWidget {
                           ),
                           child: Text(
                             label,
+                            maxLines: 1, // Kategori adı taşmasın
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: accentColor,
                               fontSize: 9,
@@ -208,7 +230,7 @@ class EgitimEkrani extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           title,
-                          maxLines: 1,
+                          maxLines: 1, // Başlık her zaman tek satırda kalmalı
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF1E293B),
@@ -219,7 +241,7 @@ class EgitimEkrani extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           desc,
-                          maxLines: 2,
+                          maxLines: 2, // Açıklama büyük fontlarda bile 2 satırla sınırlandırılır
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF64748B),
@@ -232,9 +254,9 @@ class EgitimEkrani extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
+                  const Icon(
                     Icons.chevron_right_rounded,
-                    color: const Color(0xFF94A3B8),
+                    color: Color(0xFF94A3B8),
                     size: 20,
                   ),
                 ],

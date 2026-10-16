@@ -44,7 +44,9 @@ class RozetlerEkrani extends StatelessWidget {
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
     const Color backgroundSubtle = Color(0xFFF8FAFC);
-    final bottomInset = MediaQuery.paddingOf(context).bottom + 80;
+
+    // Bottom inset (navigation bar vs) güvenli hesaplama
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     if (user == null) {
       return const Scaffold(
@@ -71,60 +73,85 @@ class RozetlerEkrani extends StatelessWidget {
           ),
         ),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).snapshots(),
-        builder: (context, userSnap) {
-          return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('badges').snapshots(),
-            builder: (context, badgeSnap) {
-              if (!userSnap.hasData || !badgeSnap.hasData) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+      body: SafeArea(
+        bottom: false,
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).snapshots(),
+          builder: (context, userSnap) {
+            return FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('badges')
+                  .get(const GetOptions(source: Source.serverAndCache)),
+              builder: (context, badgeSnap) {
+                if (!userSnap.hasData || !badgeSnap.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                  );
+                }
+
+                final userData = userSnap.data!.data() as Map<String, dynamic>?;
+                final List kazanilanIds = userData?['rozetler'] ?? [];
+
+                final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
+
+                tumRozetler.sort((a, b) {
+                  bool aKazanildi = kazanilanIds.contains(a.id);
+                  bool bKazanildi = kazanilanIds.contains(b.id);
+                  if (aKazanildi && !bKazanildi) return -1;
+                  if (!aKazanildi && bKazanildi) return 1;
+                  return 0;
+                });
+
+                return LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Geniş ekranlarda (Tablet vs) grid kolon sayısını hesapla
+                      int crossAxisCount = 3;
+                      if (constraints.maxWidth > 800) {
+                        crossAxisCount = 5;
+                      } else if (constraints.maxWidth > 500) {
+                        crossAxisCount = 4;
+                      }
+
+                      return CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Center(
+                              child: ConstrainedBox(
+                                // Header alanının dev ekranlarda abartılı uzamasını engeller
+                                constraints: const BoxConstraints(maxWidth: 600),
+                                child: _buildEnhancedHeader(kazanilanIds.length, tumRozetler.length),
+                              ),
+                            ),
+                          ),
+
+                          SliverPadding(
+                            // Alt taraftan hem bottomInset (cihaz bariyesi) hem de menü boşluğu eklendi
+                            padding: EdgeInsets.fromLTRB(20, 5, 20, bottomInset + 80),
+                            sliver: SliverGrid(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 14,
+                                // Ekran genişliğine göre dikey/yatay orantısı ayarlama (taşmaları önler)
+                                mainAxisExtent: 130, // Sabit yükseklik, childAspectRatio yerine tercih edildi. RenderFlex'i önler.
+                              ),
+                              delegate: SliverChildBuilderDelegate((context, index) {
+                                final rozet = tumRozetler[index];
+                                final data = rozet.data() as Map<String, dynamic>;
+                                final bool isEarned = kazanilanIds.contains(rozet.id);
+                                return _buildModernBadgeCard(context, data, isEarned, index);
+                              }, childCount: tumRozetler.length),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
                 );
-              }
-
-              final userData = userSnap.data!.data() as Map<String, dynamic>?;
-              final List kazanilanIds = userData?['rozetler'] ?? [];
-
-              final List<QueryDocumentSnapshot> tumRozetler = List.from(badgeSnap.data!.docs);
-
-              tumRozetler.sort((a, b) {
-                bool aKazanildi = kazanilanIds.contains(a.id);
-                bool bKazanildi = kazanilanIds.contains(b.id);
-                if (aKazanildi && !bKazanildi) return -1;
-                if (!aKazanildi && bKazanildi) return 1;
-                return 0;
-              });
-
-              return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _buildEnhancedHeader(kazanilanIds.length, tumRozetler.length),
-                  ),
-
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(20, 5, 20, bottomInset),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.72,
-                      ),
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final rozet = tumRozetler[index];
-                        final data = rozet.data() as Map<String, dynamic>;
-                        final bool isEarned = kazanilanIds.contains(rozet.id);
-                        return _buildModernBadgeCard(context, data, isEarned, index);
-                      }, childCount: tumRozetler.length),
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -338,19 +365,22 @@ class RozetlerEkrani extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isEarned 
-                  ? badgeColor.withAlpha(20) 
-                  : const Color(0xFFF1F5F9),
+                color: isEarned
+                    ? badgeColor.withAlpha(20)
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                data['kriter_tipi'] == 'puan' 
-                  ? "${data['hedef_deger'] ?? '100'} P" 
-                  : "GÖREV",
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  color: isEarned ? badgeColor : const Color(0xFF94A3B8),
+              child: FittedBox( // Uzun puan/görev yazılarının taşmasını engeller
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  data['kriter_tipi'] == 'puan'
+                      ? "${data['hedef_deger'] ?? '100'} P"
+                      : "GÖREV",
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: isEarned ? badgeColor : const Color(0xFF94A3B8),
+                  ),
                 ),
               ),
             ),
@@ -368,82 +398,106 @@ class RozetlerEkrani extends StatelessWidget {
       kriterMetni = "Daha fazla siber senaryo tamamlayarak";
     }
 
-    final bottomPadding = MediaQuery.paddingOf(context).bottom + 20;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
-        padding: EdgeInsets.fromLTRB(24, 20, 24, bottomPadding),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(10)),
-              ),
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: color.withAlpha(20),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: color.withAlpha(30), width: 2)
+      useSafeArea: true,
+      builder: (context) => SafeArea(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+            maxWidth: 600,
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(10)
+                  ),
                 ),
-                child: Icon(
-                  isEarned ? icon : Icons.lock_outline_rounded,
-                  size: 48,
-                  color: color,
-                ),
-              ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
-              const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-              Text(
-                data['ad'] ?? "Gizemli Rozet",
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.3),
-              ),
-              const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                      color: color.withAlpha(20),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: color.withAlpha(30), width: 2)
+                  ),
+                  child: Icon(
+                    isEarned ? icon : Icons.lock_outline_rounded,
+                    size: 48,
+                    color: color,
+                  ),
+                ).animate().scale(duration: 200.ms, curve: Curves.bounceOut),
+                const SizedBox(height: 16),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  isEarned
-                      ? "Harika iş çıkardın! Zorbalığa karşı verdiğin mücadele ve kazandığın bu rozet projemizin en değerli parçası. Kahramanlığa devam et!"
-                      : "Bu güç kalkanı henüz aktifleşmedi. $kriterMetni bu rozeti başarı koleksiyonuna katabilirsin! ⚡",
+                Text(
+                  data['ad'] ?? "Gizemli Rozet",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w500),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: -0.3
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 10),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isEarned ? color : const Color(0xFF64748B),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "TAMAM",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    isEarned
+                        ? "Harika iş çıkardın! Zorbalığa karşı verdiğin mücadele ve kazandığın bu rozet projemizin en değerli parçası. Kahramanlığa devam et!"
+                        : "Bu güç kalkanı henüz aktifleşmedi. $kriterMetni bu rozeti başarı koleksiyonuna katabilirsin! ⚡",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF64748B),
+                        height: 1.5,
+                        fontWeight: FontWeight.w500
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isEarned ? color : const Color(0xFF64748B),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "TAMAM",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 0.2
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

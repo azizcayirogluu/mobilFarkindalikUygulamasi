@@ -26,7 +26,8 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
+    // Alt sistem navigasyon barı (Android gesture/3-button & iOS home indicator) için dinamik güvenli alan
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 20;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -35,13 +36,16 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "Kahramanlık Görevleri",
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-            letterSpacing: -0.5,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "Kahramanlık Görevleri",
+            style: TextStyle(
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
         leading: Padding(
@@ -75,59 +79,59 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
         ),
       ),
       body: _uid == null || _userFuture == null
-        ? const Center(child: Text("Lütfen giriş yapın."))
-        : FutureBuilder<DocumentSnapshot>(
-            future: _userFuture,
-            builder: (context, userSnap) {
-              if (userSnap.connectionState == ConnectionState.waiting) {
+          ? const Center(child: Text("Lütfen giriş yapın."))
+          : FutureBuilder<DocumentSnapshot>(
+        future: _userFuture,
+        builder: (context, userSnap) {
+          if (userSnap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          String kullaniciYasGrubu = "6-12";
+          if (userSnap.hasData && userSnap.data!.exists) {
+            final userData = userSnap.data!.data() as Map<String, dynamic>;
+            kullaniciYasGrubu = userData['yasGrubu'] ?? "6-12";
+          }
+
+          return FutureBuilder<QuerySnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('scenarios')
+                .where('yasGrubu', isEqualTo: kullaniciYasGrubu)
+                .limit(20)
+                .get(const GetOptions(source: Source.serverAndCache)),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              String kullaniciYasGrubu = "6-12";
-              if (userSnap.hasData && userSnap.data!.exists) {
-                final userData = userSnap.data!.data() as Map<String, dynamic>;
-                kullaniciYasGrubu = userData['yasGrubu'] ?? "6-12";
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildEmptyState(kullaniciYasGrubu);
               }
 
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('scenarios')
-                    .where('yasGrubu', isEqualTo: kullaniciYasGrubu)
-                    .limit(20)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildEmptyState(kullaniciYasGrubu);
-                  }
-
-                  return ListView.builder(
-                    padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      var doc = snapshot.data!.docs[index];
-                      var data = doc.data() as Map<String, dynamic>;
-                      return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index)
-                          .animate(delay: (index * 15).ms)
-                          .fadeIn(duration: 300.ms)
-                          .slideY(begin: 0.05, curve: Curves.easeOutQuad);
-                    },
-                  );
+              return ListView.builder(
+                padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset),
+                physics: const BouncingScrollPhysics(),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  var doc = snapshot.data!.docs[index];
+                  var data = doc.data() as Map<String, dynamic>;
+                  return _buildModernScenarioCard(context, data['baslik'] ?? "İsimsiz", doc.id, index)
+                      .animate(delay: (index * 15).ms)
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: 0.05, curve: Curves.easeOutQuad);
                 },
               );
             },
-          ),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildModernScenarioCard(BuildContext context, String baslik, String docId, int index) {
     final List<Color> renkler = [
-      const Color(0xFF6366F1), 
-      const Color(0xFFEC4899), 
-      const Color(0xFFF59E0B), 
+      const Color(0xFF6366F1),
+      const Color(0xFFEC4899),
+      const Color(0xFFF59E0B),
       const Color(0xFF10B981)
     ];
     final Color anaRenk = renkler[index % renkler.length];
@@ -150,10 +154,10 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => Navigator.push(
-            context, 
-            MaterialPageRoute(
-              builder: (c) => SenaryoBolumListelemeEkrani(docId: docId, kategoriBaslik: baslik)
-            )
+              context,
+              MaterialPageRoute(
+                  builder: (c) => SenaryoBolumListelemeEkrani(docId: docId, kategoriBaslik: baslik)
+              )
           ),
           borderRadius: BorderRadius.circular(24),
           child: Padding(
@@ -180,8 +184,8 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w900, 
-                          fontSize: 17, 
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
                           color: Color(0xFF1E293B),
                           height: 1.2,
                         ),
@@ -192,7 +196,7 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.blueGrey.shade300, 
+                          color: Colors.blueGrey.shade300,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -212,47 +216,54 @@ class _SenaryoListelemeEkraniState extends State<SenaryoListelemeEkrani> {
 
   Widget _buildEmptyState(String yasGrubu) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x0D4F46E5),
-                  blurRadius: 20,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(28),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x0D4F46E5),
+                      blurRadius: 20,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "$yasGrubu Yaş İçin Hazırlık!",
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF475569),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              "Bu yaş grubuna özel yeni maceralar çok yakında burada olacak.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF94A3B8),
-                fontWeight: FontWeight.w500,
+                child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
               ),
-            ),
-          ),
-        ],
-      ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+              const SizedBox(height: 20),
+              Text(
+                "$yasGrubu Yaş İçin Hazırlık!",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF475569),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  "Bu yaş grubuna özel yeni maceralar çok yakında burada olacak.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+        ),
+      ),
     );
   }
 }

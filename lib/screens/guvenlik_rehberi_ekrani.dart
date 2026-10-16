@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
-import '../app_theme.dart';
 import 'siber_asistan_ekrani.dart';
 
 class GuvenlikRehberiEkrani extends StatefulWidget {
@@ -19,7 +18,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
   final ScrollController _scrollController = ScrollController();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final List<StreamSubscription<dynamic>> _subscriptions = [];
-  final ValueNotifier<double> _scrollProgressNotifier = ValueNotifier(0);
   final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier(false);
 
   int _selectedSection = 0;
@@ -32,7 +30,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       title: 'Zorbalığı Tanı 🔍',
       shortTitle: 'Tanı',
       icon: Icons.visibility_rounded,
-      color: Color(0xFF6F8FB3),
+      color: Color(0xFF3B82F6),
       audioAsset: 'assets/audio/zorbaligi_tani.mp3',
       intro: 'Zorbalığı tanımak, doğru yardımı istemenin ilk adımıdır.',
       points: [
@@ -40,13 +38,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         'Zorbalık fiziksel, sözel, sosyal ya da dijital olabilir.',
         'Bunu yaşayan kişinin suçu değildir. Yardım istemek en doğru adımdır.',
       ],
-      action: 'Kendine sor: Bu davranış beni korkutuyor veya üzüyor mu?',
+      action: 'Bu davranış beni korkutuyor veya üzüyor mu?',
     ),
     _GuideSection(
       title: 'Güvende Kal 🛡️',
       shortTitle: 'Güvenlik',
       icon: Icons.shield_rounded,
-      color: Color(0xFF6FA89C),
+      color: Color(0xFF10B981),
       audioAsset: 'assets/audio/guvende_kal.mp3',
       intro: 'Zor bir anda ilk hedef tartışmak değil, güvende kalmaktır.',
       points: [
@@ -54,13 +52,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         'Güvendiğin bir yetişkinden veya öğretmeninden destek iste.',
         'Fiziksel bir risk varsa tek başına çözmeye çalışma!',
       ],
-      action: 'Kısa Plan: Uzaklaş, güvenilir bir yetişkine git ve anlat.',
+      action: 'Tartışmaya girmeden hemen uzaklaş ve güvenli bir yere geç.',
     ),
     _GuideSection(
       title: 'Siber Zorbalık 📱',
       shortTitle: 'Dijital',
       icon: Icons.phonelink_lock_rounded,
-      color: Color(0xFF9687B8),
+      color: Color(0xFF8B5CF6),
       audioAsset: 'assets/audio/siber_zorbalik.mp3',
       intro: 'İnternette yapılan zorbalık da gerçektir ve engellenmelidir.',
       points: [
@@ -68,13 +66,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         'Tartışmadan hesabı engelle ve şikayet et.',
         'Şifreni, adresini veya özel fotoğraflarını kimseyle paylaşma!',
       ],
-      action: 'Kanıtı sakla, kişiyi engelle ve bir yetişkine haber ver.',
+      action: 'Ekran görüntüsü al, hesabı engelle ve bir yetişkine haber ver.',
     ),
     _GuideSection(
       title: 'Arkadaşına Destek Ol 🤝',
       shortTitle: 'Destek Ol',
       icon: Icons.groups_rounded,
-      color: Color(0xFFC58D72),
+      color: Color(0xFFF59E0B),
       audioAsset: 'assets/audio/arkadasina_destek_ol.mp3',
       intro: 'Sessiz kalmamak bir arkadaşının hayatını değiştirebilir.',
       points: [
@@ -82,13 +80,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         'Olay tehlikeliyse araya girmek yerine hemen bir yetişkine söyle.',
         'Dedikodu veya alay videolarını sakın başkalarına yayma!',
       ],
-      action: 'Nazikçe destek ol ve bir yetişkinden yardım iste.',
+      action: 'Arkadaşının yanında olduğunu hissettir ve yetişkine söyle.',
     ),
     _GuideSection(
       title: 'Yardım İstemek Cesarettir 🦁',
       shortTitle: 'Yardım İste',
       icon: Icons.volunteer_activism_rounded,
-      color: Color(0xFFB78391),
+      color: Color(0xFFEC4899),
       audioAsset: 'assets/audio/yardim_iste.mp3',
       intro: 'Sorunu tek başına taşımak zorunda değilsin!',
       points: [
@@ -96,14 +94,13 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         'İlk kişi seni anlamazsa başka bir güvenilir yetişkine anlat.',
         'Acil bir durum varsa 112 Acil Çağrı Merkezi’nden yardım iste.',
       ],
-      action: 'Hemen Seç: Aile, Öğretmen veya Rehberlik Servisi.',
+      action: 'Ailen, öğretmenlerin veya rehberlik servisi sana yardım için burada.',
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_updateScrollProgress);
     _listenToAudio();
   }
 
@@ -114,17 +111,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         _isPlayingNotifier.value = state.playing;
       }),
     );
-  }
-
-  void _updateScrollProgress() {
-    if (!_scrollController.hasClients) return;
-    final maxExtent = _scrollController.position.maxScrollExtent;
-    if (maxExtent <= 0) return;
-
-    final next = (_scrollController.offset / maxExtent).clamp(0.0, 1.0);
-    if ((next - _scrollProgressNotifier.value).abs() > 0.01) {
-      _scrollProgressNotifier.value = next;
-    }
   }
 
   Future<void> _playAsset(String asset) async {
@@ -142,19 +128,19 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       }
 
       await _audioPlayer.stop();
-      
+
       final ByteData data = await rootBundle.load(asset);
       final Directory tempDir = await getTemporaryDirectory();
       final String fileName = asset.split('/').last;
       final File tempFile = File('${tempDir.path}/$fileName');
-      
+
       await tempFile.writeAsBytes(
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         flush: true,
       );
-      
+
       await _audioPlayer.setFilePath(tempFile.path);
-      
+
       if (!mounted) return;
       setState(() {
         _loadedAsset = asset;
@@ -164,7 +150,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
       debugPrint('Ses Oynatma Hatası: $e');
       if (!mounted) return;
       _isPlayingNotifier.value = false;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ses yüklenemedi: $asset'),
@@ -191,7 +177,6 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _scrollProgressNotifier.dispose();
     _isPlayingNotifier.dispose();
     for (final subscription in _subscriptions) {
       subscription.cancel();
@@ -203,192 +188,202 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
   @override
   Widget build(BuildContext context) {
     final section = _sections[_selectedSection];
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 30;
 
     return Scaffold(
-      backgroundColor: AppColors.zemin,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            ValueListenableBuilder<double>(
-              valueListenable: _scrollProgressNotifier,
-              builder: (context, progress, _) {
-                return LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  color: const Color(0xFF6F8FB3),
-                  backgroundColor: AppColors.softPurple.withOpacity(0.3),
-                );
-              },
-            ),
-            Expanded(
-              child: CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(child: _buildHero()),
-                  SliverToBoxAdapter(child: _buildSectionPicker()),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
-                    sliver: SliverList.list(
-                      children: [
-                        _buildLessonCard(section),
-                        const SizedBox(height: 18),
-                        _buildQuickPlan(),
-                        const SizedBox(height: 18),
-                        _buildAskForHelpCard(),
-                      ],
-                    ),
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Güvenlik Rehberi",
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x0F4F46E5),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
+                ],
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: Color(0xFF475569),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  children: [
+                    _buildSubHeader(),
+                    const SizedBox(height: 16),
+                    _buildLearningTipCard(),
+                    const SizedBox(height: 20),
+                    _buildCategoryNavigation(),
+                  ],
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset),
+              sliver: SliverList.list(
+                children: [
+                  _buildContentCard(section),
+                  const SizedBox(height: 20),
+                  _buildSelfReflectionCard(section),
+                  const SizedBox(height: 20),
+                  _buildQuickActionPlan(),
+                  const SizedBox(height: 20),
+                  _buildAskAssistantCard(),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomSheet: _buildFloatingAudioPlayer(section),
     );
   }
 
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 20, 8),
+  Widget _buildSubHeader() {
+    return const Center(
+      child: Text(
+        "Bilgi, kendini korumanın ilk adımıdır. 💡",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLearningTipCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.anaMavi.withOpacity(0.12),
-                  blurRadius: 8,
-                ),
-              ],
             ),
-            child: IconButton(
-              tooltip: 'Geri dön',
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                size: 22,
-                color: AppColors.anaMavi,
-              ),
+            child: const Icon(
+              Icons.bolt_rounded,
+              color: Color(0xFFF59E0B),
+              size: 26,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           const Expanded(
-            child: Text(
-              'GÜVENLİK REHBERİ 📚',
-              style: TextStyle(
-                color: AppColors.yaziRengi,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Bilgi, Güçtür! ⚡",
+                  style: TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Kısa bilgileri oku, kendini korumayı öğren.",
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.04);
   }
 
-  Widget _buildHero() {
-    return RepaintBoundary(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7896B5), Color(0xFF9B9AC3)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accentMavi.withOpacity(0.3),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: Color(0xFFD8B86A),
-                size: 36,
-              ),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Bilgi, Gücündür! ⚡',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Kısa bölümleri oku veya sesli dinle. Kendini korumayı öğren!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ).animate().fadeIn(duration: 250.ms).slideY(begin: -0.05),
-    );
-  }
-
-  Widget _buildSectionPicker() {
+  Widget _buildCategoryNavigation() {
     return SizedBox(
-      height: 110, // Yükseklik biraz artırıldı
+      height: 90,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 18),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: _sections.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final item = _sections[index];
-          final selected = index == _selectedSection;
+          final bool selected = index == _selectedSection;
+
           return InkWell(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             onTap: () => _selectSection(index),
             child: AnimatedContainer(
-              duration: 200.ms,
-              width: 100, // Genişlik biraz artırıldı
-              padding: const EdgeInsets.all(10),
+              duration: const Duration(milliseconds: 200),
+              width: 92,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               decoration: BoxDecoration(
                 color: selected ? item.color : Colors.white,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: selected ? item.color : item.color.withOpacity(0.2),
-                  width: 2,
+                  color: selected
+                      ? item.color
+                      : item.color.withValues(alpha: 0.25),
+                  width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: selected
-                        ? item.color.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
+                        ? item.color.withValues(alpha: 0.3)
+                        : const Color(0x05000000),
+                    blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -399,18 +394,17 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
                   Icon(
                     item.icon,
                     color: selected ? Colors.white : item.color,
-                    size: 26,
+                    size: 24,
                   ),
                   const SizedBox(height: 6),
-                  Flexible(
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Text(
                       item.shortTitle,
                       textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.visible,
                       style: TextStyle(
-                        color: selected ? Colors.white : AppColors.yaziRengi,
-                        fontSize: 12,
+                        color: selected ? Colors.white : const Color(0xFF1E293B),
+                        fontSize: 11,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -424,19 +418,22 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
-  Widget _buildLessonCard(_GuideSection section) {
+  Widget _buildContentCard(_GuideSection section) {
     return AnimatedSwitcher(
-      duration: 250.ms,
+      duration: const Duration(milliseconds: 250),
       child: Container(
         key: ValueKey(section.title),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: section.color.withOpacity(0.2), width: 1.5),
+          border: Border.all(
+            color: section.color.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: section.color.withOpacity(0.08),
+              color: section.color.withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -445,87 +442,197 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Kart Başlığı ve Satır İçi Ses Dinleme Butonu
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: section.color.withOpacity(0.12),
+                    color: section.color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(section.icon, color: section.color, size: 26),
+                  child: Icon(section.icon, color: section.color, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     section.title,
                     style: const TextStyle(
-                      color: AppColors.yaziRengi,
-                      fontSize: 19,
+                      color: Color(0xFF1E293B),
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
+                _buildInlineAudioButton(section.audioAsset, section.color),
               ],
             ),
-            const SizedBox(height: 14),
+
+            // Satır içi oynatıcı detay paneli (Eğer o an oynatılıyorsa)
+            _buildInlinePlayerProgress(section),
+
+            const SizedBox(height: 16),
             Text(
               section.intro,
               style: const TextStyle(
                 color: Color(0xFF475569),
                 fontSize: 14,
-                height: 1.4,
+                height: 1.45,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             ...section.points.asMap().entries.map(
-              (entry) => _buildPoint(
+                  (entry) => _buildPointItem(
                 number: entry.key + 1,
                 text: entry.value,
                 color: section.color,
               ),
             ),
-            const SizedBox(height: 8),
-            _buildActionBox(section),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPoint({
+  Widget _buildInlineAudioButton(String audioAsset, Color color) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isPlayingNotifier,
+      builder: (context, isPlaying, _) {
+        final isCurrent = _loadedAsset == audioAsset;
+        final bool activePlaying = isCurrent && isPlaying;
+
+        return ElevatedButton.icon(
+          onPressed: () => _playAsset(audioAsset),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: activePlaying ? color : color.withValues(alpha: 0.12),
+            foregroundColor: activePlaying ? Colors.white : color,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          icon: Icon(
+            activePlaying ? Icons.pause_rounded : Icons.volume_up_rounded,
+            size: 18,
+          ),
+          label: Text(
+            activePlaying ? 'Durdur' : 'Dinle 🎧',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInlinePlayerProgress(_GuideSection section) {
+    if (_loadedAsset != section.audioAsset) return const SizedBox.shrink();
+
+    return StreamBuilder<Duration>(
+      stream: _audioPlayer.positionStream,
+      builder: (context, positionSnapshot) {
+        return StreamBuilder<Duration?>(
+          stream: _audioPlayer.durationStream,
+          builder: (context, durationSnapshot) {
+            final position = positionSnapshot.data ?? Duration.zero;
+            final duration = durationSnapshot.data ?? Duration.zero;
+            final sliderMaximum = duration.inMilliseconds > 0
+                ? duration.inMilliseconds.toDouble()
+                : 1.0;
+            final sliderValue = position.inMilliseconds
+                .clamp(0, sliderMaximum.round())
+                .toDouble();
+
+            return Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: section.color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    _formatDuration(position),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: section.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 5,
+                        ),
+                      ),
+                      child: Slider(
+                        value: sliderValue,
+                        max: sliderMaximum,
+                        activeColor: section.color,
+                        inactiveColor: section.color.withValues(alpha: 0.2),
+                        onChanged: (val) => _seekTo(val),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _formatDuration(duration),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: section.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPointItem({
     required int number,
     required String text,
     required Color color,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 26,
+            height: 26,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
             child: Text(
-              '$number',
+              '0$number',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                color: AppColors.yaziRengi,
-                fontSize: 13,
-                height: 1.4,
+                color: Color(0xFF1E293B),
+                fontSize: 13.5,
+                height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -535,27 +642,43 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
-  Widget _buildActionBox(_GuideSection section) {
+  Widget _buildSelfReflectionCard(_GuideSection section) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: section.color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: section.color.withOpacity(0.2)),
+        color: section.color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: section.color.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.bolt_rounded, color: section.color, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              section.action,
-              style: TextStyle(
-                color: section.color,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w900,
+          Row(
+            children: [
+              Icon(Icons.psychology_rounded, color: section.color, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                "Kendine Sor 🤔",
+                style: TextStyle(
+                  color: section.color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            section.action,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
             ),
           ),
         ],
@@ -563,32 +686,39 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
-  Widget _buildQuickPlan() {
+  Widget _buildQuickActionPlan() {
     const steps = [
-      ('1', 'Dur ve uzaklaş', 'Kendini güvene al.'),
-      ('2', 'Kanıtı sakla', 'Ekran görüntüsü al veya not et.'),
-      ('3', 'Yetişkine anlat', 'Yardımı birlikte iste.'),
+      ('01', 'Uzaklaş', 'Tartışmaya girmeden güvenli bir yere geç.'),
+      ('02', 'Kanıtını Koru', 'Mesajları veya ekran görüntülerini sakla.'),
+      ('03', 'Birine Anlat', 'Güvendiğin bir yetişkinden yardım iste.'),
     ];
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF9EE),
+        color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Color(0xFFE0C98E), width: 1.5),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.flash_on_rounded, color: Color(0xFFC58D72)),
-              const SizedBox(width: 6),
+              const Icon(Icons.flash_on_rounded, color: Color(0xFFD97706), size: 22),
+              const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Hızlı Güvenlik Planı ⚡',
+                  'Şimdi Ne Yapabilirim? ⚡',
                   style: TextStyle(
-                    color: AppColors.yaziRengi,
+                    color: Color(0xFF1E293B),
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
@@ -597,56 +727,69 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
               ValueListenableBuilder<bool>(
                 valueListenable: _isPlayingNotifier,
                 builder: (context, isPlaying, _) {
-                  final isCurrentAudio = _loadedAsset == _quickPlanAudio;
+                  final isCurrent = _loadedAsset == _quickPlanAudio;
+                  final activePlaying = isCurrent && isPlaying;
+
                   return IconButton.filled(
                     tooltip: 'Dinle',
                     onPressed: () => _playAsset(_quickPlanAudio),
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFFE4CD93),
-                      foregroundColor: AppColors.yaziRengi,
+                      backgroundColor: const Color(0xFFFDE68A),
+                      foregroundColor: const Color(0xFF92400E),
                     ),
                     icon: Icon(
-                      isCurrentAudio && isPlaying
+                      activePlaying
                           ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
+                          : Icons.volume_up_rounded,
+                      size: 20,
                     ),
                   );
                 },
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           ...steps.map(
-            (step) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+                (step) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: const Color(0xFFC58D72),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Text(
                       step.$1,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: RichText(
                       text: TextSpan(
                         style: const TextStyle(
-                          color: AppColors.yaziRengi,
+                          color: Color(0xFF1E293B),
                           fontSize: 13,
+                          height: 1.35,
                         ),
                         children: [
                           TextSpan(
                             text: '${step.$2}: ',
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
-                          TextSpan(text: step.$3),
+                          TextSpan(
+                            text: step.$3,
+                            style: const TextStyle(
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -660,21 +803,21 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
     );
   }
 
-  Widget _buildAskForHelpCard() {
+  Widget _buildAskAssistantCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF9D91B8), Color(0xFFB79EAB)],
+          colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(26),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Color(0x4D9D91B8),
+            color: Color(0x336366F1),
             blurRadius: 14,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -683,14 +826,16 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         children: [
           const Row(
             children: [
-              Icon(Icons.forum_rounded, color: Colors.white, size: 26),
-              SizedBox(width: 8),
-              Text(
-                'Aklına Bir Şey Mi Takıldı?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              Icon(Icons.smart_toy_rounded, color: Colors.white, size: 26),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Aklına Bir Şey Mi Takıldı?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -699,10 +844,10 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
           const Text(
             'Siber Asistan ile konuşarak merak ettiklerini sorabilir, yalnız olmadığını hissedebilirsin.',
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.white70,
               fontSize: 12.5,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 16),
@@ -714,182 +859,21 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: Color(0xFF756782),
+              foregroundColor: const Color(0xFF4F46E5),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
               ),
+              elevation: 0,
             ),
-            icon: const Icon(Icons.chat_bubble_rounded),
+            icon: const Icon(Icons.chat_bubble_rounded, size: 18),
             label: const Text(
               'Siber Asistana Sor 🤖',
-              style: TextStyle(fontWeight: FontWeight.w900),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  // Yenilenmiş Havada Yüzen Sevimli Ses Oynatıcı
-  Widget _buildFloatingAudioPlayer(_GuideSection section) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _isPlayingNotifier,
-      builder: (context, isPlaying, _) {
-        return StreamBuilder<Duration>(
-          stream: _audioPlayer.positionStream,
-          builder: (context, positionSnapshot) {
-            return StreamBuilder<Duration?>(
-              stream: _audioPlayer.durationStream,
-              builder: (context, durationSnapshot) {
-                final position = positionSnapshot.data ?? Duration.zero;
-                final duration = durationSnapshot.data ?? Duration.zero;
-
-                final isCurrentAudio = _loadedAsset == section.audioAsset;
-                final sliderMaximum = duration.inMilliseconds > 0
-                    ? duration.inMilliseconds.toDouble()
-                    : 1.0;
-                final sliderValue = position.inMilliseconds
-                    .clamp(0, sliderMaximum.round())
-                    .toDouble();
-
-                return RepaintBoundary(
-                  child: Container(
-                    color: Colors.transparent,
-                    padding: const EdgeInsets.all(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: section.color.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: section.color.withOpacity(0.18),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: section.color.withOpacity(0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  section.icon,
-                                  color: section.color,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      isCurrentAudio && isPlaying
-                                          ? 'Seslendiriliyor... 🎧'
-                                          : 'Sesli Dinle 🔊',
-                                      style: TextStyle(
-                                        color: section.color,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    Text(
-                                      section.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: AppColors.yaziRengi,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton.filled(
-                                onPressed: () => _playAsset(section.audioAsset),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: section.color,
-                                  foregroundColor: Colors.white,
-                                ),
-                                icon: Icon(
-                                  isCurrentAudio && isPlaying
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (isCurrentAudio) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  _formatDuration(position),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.yaziRengi,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: SliderTheme(
-                                    data: SliderThemeData(
-                                      trackHeight: 3,
-                                      thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 6,
-                                      ),
-                                    ),
-                                    child: Slider(
-                                      value: sliderValue,
-                                      max: sliderMaximum,
-                                      activeColor: section.color,
-                                      inactiveColor: section.color.withOpacity(
-                                        0.15,
-                                      ),
-                                      onChanged: (value) => _seekTo(value),
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  _formatDuration(duration),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.yaziRengi,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
     );
   }
 

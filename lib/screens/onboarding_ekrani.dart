@@ -1,7 +1,8 @@
+import 'dart:math' as math; // Responsive hesaplamalar için eklendi
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
+import 'package:zorbalik_uygulamasi/main.dart' show AuthGate;
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 
 class OnboardingEkrani extends StatefulWidget {
@@ -24,8 +25,8 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       desc: 'Siber Asistan arkadaşın 7/24 seninle! Takıldığın her an ona danışabilir, siber dünyada güvenle sohbet edebilirsin.',
       image: 'assets/image/robot.png',
       icon: Icons.smart_toy_rounded,
-      accent: Color(0xFF6366F1), // Modern Indigo
-      lightAccent: Color(0xFFEEF2FF),
+      accent: const Color(0xFF6366F1), // Modern Indigo
+      lightAccent: const Color(0xFFEEF2FF),
       badge: 'SİBER ASİSTAN',
     ),
     OnboardingData(
@@ -33,8 +34,8 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       desc: 'Gizemli senaryoları bir dedektif gibi incele, doğru kararlar ver ve siber zorbalık tuzaklarını zekanla alt et!',
       image: 'assets/image/team.png',
       icon: Icons.psychology_alt_rounded,
-      accent: Color(0xFF10B981), // Modern Emerald
-      lightAccent: Color(0xFFECFDF5),
+      accent: const Color(0xFF10B981), // Modern Emerald
+      lightAccent: const Color(0xFFECFDF5),
       badge: 'KAHRAMAN DEDEKTİF',
     ),
     OnboardingData(
@@ -42,8 +43,8 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       desc: 'Eğlenceli görevleri tamamla, efsanevi siber rozetleri kazan ve akademinin en güçlü koruyucusu ol!',
       image: 'assets/image/rozet.png',
       icon: Icons.emoji_events_rounded,
-      accent: Color(0xFFF59E0B), // Modern Amber
-      lightAccent: Color(0xFFFEF3C7),
+      accent: const Color(0xFFF59E0B), // Modern Amber
+      lightAccent: const Color(0xFFFEF3C7),
       badge: 'SÜPER AKADEMİ',
     ),
   ];
@@ -69,11 +70,13 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
     await StorageService().setFirstRunComplete();
     if (!mounted) return;
 
+    // Onboarding root route'tur. Yerine KarsilamaEkrani değil AuthGate konmalı;
+    // aksi halde AuthGate hiç kurulmaz ve login sonrası yönlendirme çalışmaz.
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (_, __, ___) => const KarsilamaEkrani(),
+        pageBuilder: (_, __, ___) => const AuthGate(),
         transitionsBuilder: (_, animation, __, child) => FadeTransition(opacity: animation, child: child),
       ),
     );
@@ -115,6 +118,7 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
           _buildDecorations(page),
 
           SafeArea(
+            // Ekranın alt ve üstündeki sistem barlarına taşmayı önler
             child: Column(
               children: [
                 _buildTopBar(),
@@ -157,24 +161,35 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
   }
 
   Widget _buildTopBar() {
+    // Ekran genişliğine göre yatay padding hesaplaması
+    final horizontalPadding = math.max(16.0, MediaQuery.of(context).size.width * 0.06);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
       child: Row(
         children: [
           const Icon(Icons.shield_rounded, color: Color(0xFF6366F1), size: 24),
           const SizedBox(width: 8),
-          const Text(
-            'KAHRAMAN GÜNLÜĞÜ',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-              color: Color(0xFF1E293B),
-              letterSpacing: 1.5,
+          const Flexible( // Taşmaları engellemek için Flexible eklendi
+            child: Text(
+              'KAHRAMAN GÜNLÜĞÜ',
+              overflow: TextOverflow.ellipsis, // Sığmadığında üç nokta gösterir
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                color: Color(0xFF1E293B),
+                letterSpacing: 1.5,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           TextButton(
             onPressed: _finishOnboarding,
+            style: TextButton.styleFrom(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Dokunma alanını korurken taşmayı azaltır
+            ),
             child: const Text(
               'Geç ✨',
               style: TextStyle(
@@ -192,18 +207,23 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
   Widget _buildPage(OnboardingData data) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Yatay boşlukları ekran genişliğine göre dinamik ayarla
+        final horizontalPadding = math.max(16.0, constraints.maxWidth * 0.08);
+
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 10),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildBadge(data),
-                const SizedBox(height: 35),
-                _buildHeroImage(data),
-                const SizedBox(height: 45),
+                // Sabit 35 yüksekliği, ekranın %4'ü veya minimum 16 olacak şekilde değiştirildi
+                SizedBox(height: math.max(16.0, constraints.maxHeight * 0.04)),
+                _buildHeroImage(data, constraints),
+                // Sabit 45 yüksekliği, ekranın %5'i veya minimum 24 olacak şekilde değiştirildi
+                SizedBox(height: math.max(24.0, constraints.maxHeight * 0.05)),
                 Text(
                   data.title,
                   textAlign: TextAlign.center,
@@ -246,13 +266,16 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
         children: [
           Icon(data.icon, size: 16, color: data.accent),
           const SizedBox(width: 8),
-          Text(
-            data.badge,
-            style: TextStyle(
-              color: data.accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
+          Flexible(
+            child: Text(
+              data.badge,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: data.accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
         ],
@@ -260,10 +283,17 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
     ).animate().scale(curve: Curves.easeOutBack);
   }
 
-  Widget _buildHeroImage(OnboardingData data) {
+  Widget _buildHeroImage(OnboardingData data, BoxConstraints constraints) {
+    // Sabit 240 genişlik/yükseklik kaldırıldı.
+    // Hem çok dar ekranlarda hem de yatay (landscape) modda taşmayı engellemek için oranlandı.
+    final double maxSize = 240.0;
+    final double minSize = 120.0;
+    final double responsiveSize = math.min(constraints.maxWidth * 0.6, constraints.maxHeight * 0.35);
+    final double finalSize = math.min(maxSize, math.max(minSize, responsiveSize));
+
     return Container(
-      width: 240,
-      height: 240,
+      width: finalSize,
+      height: finalSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
@@ -278,11 +308,11 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       ),
       child: ClipOval(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(finalSize * 0.08), // Padding de resimle oranlı hale getirildi
           child: Image.asset(
             data.image,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(data.icon, size: 80, color: data.accent),
+            errorBuilder: (_, __, ___) => Icon(data.icon, size: finalSize * 0.35, color: data.accent),
           ),
         ),
       ),
@@ -290,8 +320,12 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
   }
 
   Widget _buildBottomControls(OnboardingData page) {
+    // Ekran genişliğine göre dinamik padding (sağ ve sol için)
+    final horizontalPadding = math.max(16.0, MediaQuery.of(context).size.width * 0.08);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 10, 30, 30),
+      // Alt boşluk SafeArea içerisinde kalındığı için 20 olarak sabitlendi, aşırı yüksek boşluklar engellendi
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -311,7 +345,7 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height: 60, // Dokunma alanı standart olduğu için bu yükseklik korundu
             child: ElevatedButton(
               onPressed: _nextPage,
               style: ElevatedButton.styleFrom(

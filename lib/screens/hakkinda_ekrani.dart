@@ -7,8 +7,11 @@ class HakkindaEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    // İçeriğin maksimum genişliğini sınırlandıracağımız için padding'i dengeli tutuyoruz.
     final paddingValue = size.width > 600 ? 32.0 : 20.0;
     const Color backgroundSubtle = Color(0xFFF8FAFC);
+    // Alt sistem navigasyon barı (gesture veya 3-buton) boşluğunu hesaplıyoruz
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
@@ -18,6 +21,8 @@ class HakkindaEkrani extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           "Uygulama Hakkında",
+          maxLines: 1, // Büyük font kullanımlarında başlığın taşmasını engeller
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: Color(0xFF1E293B),
             fontWeight: FontWeight.w900,
@@ -55,49 +60,58 @@ class HakkindaEkrani extends StatelessWidget {
           ),
         ),
       ),
+      // SafeArea'nın bottom değerini false yaparak içeriğin ekranın en altına kadar kaymasını sağlıyoruz,
+      // ancak en alta dinamik bir padding (bottomInset) ekleyerek içeriğin butonların altında kalmasını engelliyoruz.
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(paddingValue, 15, paddingValue, 20),
-                child: _buildHeroSection(),
-              ),
-            ),
-            _buildSectionHeader("KAHRAMAN GÜÇLERİN 🛡️", paddingValue),
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: paddingValue),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildModernInfoCard(
-                    icon: Icons.auto_awesome_rounded,
-                    title: "Cesaret Elçisi",
-                    content: "Sessiz kalmak değil, durumu paylaşmak gerçek bir kahramanlıktır. Yardım istemekten korkma!",
-                    color: const Color(0xFF6366F1),
-                  ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.05),
-                  
-                  _buildModernInfoCard(
-                    icon: Icons.security_rounded,
-                    title: "Güvenlik Kalkanı",
-                    content: "Zorbalığa karşı en büyük silahın bilgindir. İnternette ve hayatta güvenliğin bize emanet!",
-                    color: const Color(0xFFEC4899),
-                  ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05),
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640), // Tablet/iPad uyumluluğu için genişlik limiti
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(paddingValue, 15, paddingValue, 20),
+                    child: _buildHeroSection(),
+                  ),
+                ),
+                _buildSectionHeader("KAHRAMAN GÜÇLERİN 🛡️", paddingValue),
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: paddingValue),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _buildModernInfoCard(
+                        icon: Icons.auto_awesome_rounded,
+                        title: "Cesaret Elçisi",
+                        content: "Sessiz kalmak değil, durumu paylaşmak gerçek bir kahramanlıktır. Yardım istemekten korkma!",
+                        color: const Color(0xFF6366F1),
+                      ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.05),
 
-                  _buildModernInfoCard(
-                    icon: Icons.sentiment_very_satisfied_rounded,
-                    title: "Nezaket Maskotu",
-                    content: "Kelimelerin sandığından çok daha güçlü! İnterneti nezaketinle aydınlatmaya hazır mısın?",
-                    color: const Color(0xFF10B981),
-                  ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.05),
+                      _buildModernInfoCard(
+                        icon: Icons.security_rounded,
+                        title: "Güvenlik Kalkanı",
+                        content: "Zorbalığa karşı en büyük silahın bilgindir. İnternette ve hayatta güvenliğin bize emanet!",
+                        color: const Color(0xFFEC4899),
+                      ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05),
 
-                  const SizedBox(height: 30),
-                  _buildFooter(),
-                  const SizedBox(height: 40),
-                ]),
-              ),
+                      _buildModernInfoCard(
+                        icon: Icons.sentiment_very_satisfied_rounded,
+                        title: "Nezaket Maskotu",
+                        content: "Kelimelerin sandığından çok daha güçlü! İnterneti nezaketinle aydınlatmaya hazır mısın?",
+                        color: const Color(0xFF10B981),
+                      ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.05),
+
+                      const SizedBox(height: 30),
+                      _buildFooter(),
+                      // Güvenli alt boşluk (sabit 40 yerine dinamik değer + 40)
+                      SizedBox(height: bottomInset + 40),
+                    ]),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -165,6 +179,8 @@ class HakkindaEkrani extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(padding, 10, padding, 15),
         child: Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 14,

@@ -38,8 +38,11 @@ class _AnaNavigationState extends State<AnaNavigation> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      // IndexedStack yerine basit geçiş kullanıyoruz (Daha az RAM harcar)
-      body: _sayfalar[_secilenIndeks],
+      // IndexedStack ile sekmeler arası state korunur, gereksiz re-fetch engellenir.
+      body: IndexedStack(
+        index: _secilenIndeks,
+        children: _sayfalar,
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _buildKahramanFAB(),
       bottomNavigationBar: _buildModernBottomBar(),
@@ -103,34 +106,41 @@ class _AnaNavigationState extends State<AnaNavigation> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isSelected = _secilenIndeks == index;
     final Color color =
-        isSelected ? const Color(0xFF3B82F6) : Colors.grey.shade400;
+    isSelected ? const Color(0xFF3B82F6) : Colors.grey.shade400;
 
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _secilenIndeks = index),
         borderRadius: BorderRadius.circular(15),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: color,
-              size: isSelected ? 26 : 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+        // Dokunma alanı en az 48 dp olsun (içerik görsel olarak aynı yerde kalır).
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
                 color: color,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                size: isSelected ? 26 : 24,
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

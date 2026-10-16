@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math; // Responsive hesaplamalar için eklendi
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -101,8 +102,8 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
     _checkInitialConnection();
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      List<ConnectivityResult> result,
-    ) {
+        List<ConnectivityResult> result,
+        ) {
       _updateConnectionStatus(result);
     });
   }
@@ -138,9 +139,11 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
             children: [
               Icon(Icons.wifi_off_rounded, color: Colors.white),
               SizedBox(width: 10),
-              Text(
-                "İnternet bağlantını kontrol etmelisin! 🌐",
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Flexible( // Yazının Snackbar içinde taşmasını önler
+                child: Text(
+                  "İnternet bağlantını kontrol etmelisin! 🌐",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -171,6 +174,8 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
   @override
   Widget build(BuildContext context) {
     const Color backgroundSubtle = Color(0xFFF8FAFC);
+    // Alt navigasyon alanı (iOS Home Indicator veya Android Gesture/3-button) için dinamik boşluk
+    final double bottomInset = math.max(30.0, MediaQuery.paddingOf(context).bottom + 20.0);
 
     return Scaffold(
       backgroundColor: backgroundSubtle,
@@ -189,14 +194,15 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        title: Text(
-          _currentTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
+        title: FittedBox( // Başlığın büyük fontlarda ekran dışına taşmasını engeller
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _currentTitle,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
           ),
         ),
         centerTitle: true,
@@ -206,7 +212,8 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
           Container(
             width: double.infinity,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.35,
+              // Büyük ekranlarda (Örn. iPad portre modu) videonun çok uzayıp listeyi ezmemesi için max 300 limiti eklendi.
+              maxHeight: math.min(300.0, MediaQuery.sizeOf(context).height * 0.35),
             ),
             decoration: BoxDecoration(
               color: Colors.black,
@@ -244,13 +251,16 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                         color: widget.temaRengi.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        "GÖREV VİDEOSU",
-                        style: TextStyle(
-                          color: widget.temaRengi,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
+                      child: FittedBox( // Büyük cihaz fontunda rozetin taşmasını engeller
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "GÖREV VİDEOSU",
+                          style: TextStyle(
+                            color: widget.temaRengi,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
@@ -296,13 +306,16 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
               children: [
                 const Text("⚡", style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 6),
-                const Text(
-                  "SIRADAKİ EĞİTİMLER",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF475569),
-                    letterSpacing: 1.2,
+                const Flexible( // Uzun başlık veya büyük fontta taşmayı önler
+                  child: Text(
+                    "SIRADAKİ EĞİTİMLER",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF475569),
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
               ],
@@ -311,7 +324,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
 
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(22, 2, 22, 30),
+              padding: EdgeInsets.fromLTRB(22, 2, 22, bottomInset), // Sistem barlarına dinamik mesafe
               physics: const BouncingScrollPhysics(),
               itemCount: _videoList.where((video) {
                 final String yId = (video['youtubeId'] ?? video['data']?['youtubeId'])?.toString().trim() ?? '';
@@ -325,7 +338,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
 
                 final video = otherVideos[index];
                 final String yId = (video['youtubeId'] ?? video['data']?['youtubeId'])?.toString().trim() ?? '';
-                
+
                 return _buildVideoKarti(video, yId, index);
               },
             ),
@@ -365,12 +378,14 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                   borderRadius: BorderRadius.circular(14),
                   child: CachedNetworkImage(
                     imageUrl: "https://img.youtube.com/vi/$yId/mqdefault.jpg",
+                    memCacheWidth: 300,
                     width: 105,
                     height: 68,
                     fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(width: 14),
+                // Sağ taraf zaten Expanded içinde olduğu için metin taşması engellenmiştir
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

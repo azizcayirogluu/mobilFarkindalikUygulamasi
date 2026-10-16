@@ -19,7 +19,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
   final User? _currentUser = FirebaseAuth.instance.currentUser;
   Stream<DocumentSnapshot>? _userProgressStream;
   Future<DocumentSnapshot>? _userFuture;
-  Stream<DocumentSnapshot>? _scenarioStream;
+  Future<DocumentSnapshot>? _scenarioFuture;
 
   @override
   void initState() {
@@ -29,7 +29,10 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       final uid = user.uid;
       _userProgressStream = FirebaseFirestore.instance.collection('usersProgress').doc(uid).snapshots();
       _userFuture = FirebaseFirestore.instance.collection('users').doc(uid).get();
-      _scenarioStream = FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).snapshots();
+      _scenarioFuture = FirebaseFirestore.instance
+          .collection('scenarios')
+          .doc(widget.docId)
+          .get(const GetOptions(source: Source.serverAndCache));
     }
   }
 
@@ -39,6 +42,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // Android/iOS alt navigasyon bar (gesture bar) alanına içeriklerin girmesini önler
     final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -64,8 +68,8 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                     kullaniciYasGrubu = (userSnap.data!.data() as Map<String, dynamic>)['yasGrubu'] ?? "6-12";
                   }
 
-                  return StreamBuilder<DocumentSnapshot>(
-                    stream: _scenarioStream,
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: _scenarioFuture,
                     builder: (context, scenarioSnapshot) {
                       if (scenarioSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                       if (!scenarioSnapshot.hasData || !scenarioSnapshot.data!.exists) return const Center(child: Text("Görevler bulunamadı."));
@@ -153,13 +157,15 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                _buildScoreBadge(tamamlananSayisi),
+                const SizedBox(width: 12), // Taşma riskine karşı araya boşluk konuldu
+                // Rozet büyük fontlarda veya dar ekranlarda taşmasın diye Flexible ile sarıldı
+                Flexible(child: _buildScoreBadge(tamamlananSayisi)),
               ],
             ),
             const SizedBox(height: 16),
             Text(
               widget.kategoriBaslik,
-              maxLines: 1,
+              maxLines: 1, // Zaten ellipsis ile korunmuş, harika bir yaklaşım
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 24,
@@ -202,9 +208,13 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
         children: [
           const Icon(Icons.stars_rounded, color: Colors.amber, size: 18),
           const SizedBox(width: 8),
-          Text(
-            "$count Görev Bitti",
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+          // Biten görev sayısı metni dar ekranda veya büyük text ayarında taşmasın diye Flexible'a alındı
+          Flexible(
+            child: Text(
+              "$count Görev Bitti",
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+            ),
           ),
         ],
       ),
@@ -214,7 +224,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
   Widget _buildMissionStep(dynamic bolum, int index, bool acik, bool bitti, bool sonMu, bool suAnkiGorevMi) {
     String? amac = bolum['bolumAmaci'];
 
-    return IntrinsicHeight(
+    return IntrinsicHeight( // Timeline çizgisi ile sağdaki kartın yüksekliğini orantılamak için gerekli
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -262,15 +272,20 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "GÖREV ${index + 1}",
-                          style: TextStyle(
-                            color: acik ? const Color(0xFF6366F1) : const Color(0xFF94A3B8),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 10,
-                            letterSpacing: 1.5,
+                        // Başlık (GÖREV X) ile İkonlar çarpışmasın diye Flexible eklendi
+                        Flexible(
+                          child: Text(
+                            "GÖREV ${index + 1}",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: acik ? const Color(0xFF6366F1) : const Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
+                              letterSpacing: 1.5,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         if (bitti) const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 20),
                         if (!acik) const Icon(Icons.lock_rounded, color: Color(0xFFCBD5E1), size: 16),
                       ],
@@ -300,6 +315,7 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
                           children: [
                             const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF6366F1)),
                             const SizedBox(width: 8),
+                            // Expanded kullanımı burada çok doğru yapılmış, korundu.
                             Expanded(
                               child: Text(
                                 amac,
@@ -371,38 +387,43 @@ class _SenaryoBolumListelemeEkraniState extends State<SenaryoBolumListelemeEkran
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+      child: Padding(
+        // Çok dar ekranlarda yazıların kenarlara yapışmasını engellemek için Padding eklendi
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
             ),
-            child: const Icon(Icons.rocket_launch_rounded, size: 56, color: Color(0xFFCBD5E1)),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            "Yolculuk Hazırlanıyor!",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF475569),
+            const SizedBox(height: 20),
+            const Text(
+              "Yolculuk Hazırlanıyor!",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF475569),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "Sana uygun görevler çok yakında burada olacak.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF94A3B8),
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 8),
+            const Text(
+              "Sana uygun görevler çok yakında burada olacak.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
-      ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+          ],
+        ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+      ),
     );
   }
 }

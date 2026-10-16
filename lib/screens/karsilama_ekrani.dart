@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/giris_yapma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/kayit_olma_ekrani.dart';
 
@@ -44,6 +45,7 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final bool isShort = size.height < 700;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -51,39 +53,45 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
         children: [
           _buildBackground(size),
           SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SizedBox(height: 20),
-                                _buildTopBrand(),
-                                SizedBox(height: isShort ? 30 : 50),
-                                _buildHeroSection(size, isShort),
-                                SizedBox(height: isShort ? 30 : 50),
-                                _buildWelcomeText(isShort),
-                                const SizedBox(height: 30),
-                                _buildFeatureCards(isShort),
-                                const SizedBox(height: 20),
-                              ],
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(height: 20),
+                                    _buildTopBrand(),
+                                    SizedBox(height: isShort ? 24 : 40),
+                                    _buildHeroSection(size, isShort),
+                                    SizedBox(height: isShort ? 24 : 40),
+                                    _buildWelcomeText(isShort),
+                                    const SizedBox(height: 24),
+                                    _buildFeatureCards(isShort),
+                                    const SizedBox(height: 20),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    ),
+                    _buildBottomActions(size.width, bottomInset),
+                  ],
                 ),
-                _buildBottomActions(size.width),
-              ],
+              ),
             ),
           ),
         ],
@@ -95,14 +103,20 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
     return Stack(
       children: [
         Positioned(
-          top: -size.width * 0.2,
+          top: -size.width * 0.25,
           right: -size.width * 0.2,
-          child: _GlowCircle(size: size.width * 0.8, color: const Color(0xFFE0F2FE)),
+          child: _GlowCircle(
+            size: size.width * 0.85,
+            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+          ),
         ),
         Positioned(
-          bottom: size.height * 0.2,
+          bottom: size.height * 0.15,
           left: -size.width * 0.3,
-          child: _GlowCircle(size: size.width * 0.7, color: const Color(0xFFF0F9FF)),
+          child: _GlowCircle(
+            size: size.width * 0.75,
+            color: const Color(0xFF38BDF8).withValues(alpha: 0.1),
+          ),
         ),
       ],
     );
@@ -113,17 +127,42 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(color: Color(0xFF6366F1), shape: BoxShape.circle),
-          child: const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+          width: 44,
+          height: 44,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFEEF2FF), width: 2),
+          ),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/image/app_icon.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.shield_rounded,
+                color: Color(0xFF6366F1),
+                size: 24,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         const Flexible(
           child: Text(
-            'Kahraman Günlüğü',
+            'Kahraman Dostum',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontSize: 20,
+              color: Color(0xFF0F172A),
+              fontSize: 22,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
@@ -134,19 +173,31 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
   }
 
   Widget _buildHeroSection(Size size, bool isShort) {
-    double imageSize = isShort ? 140 : 180;
+    final double imageSize = isShort ? 140 : 180;
+
     return Stack(
       alignment: Alignment.center,
+      clipBehavior: Clip.none,
       children: [
+        // Dış Işıltı Halkası
         Container(
           width: imageSize + 60,
           height: imageSize + 60,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF6366F1).withOpacity(0.05),
+            gradient: RadialGradient(
+              colors: [
+                const Color(0xFF6366F1).withValues(alpha: 0.15),
+                const Color(0xFF818CF8).withValues(alpha: 0.03),
+                Colors.transparent,
+              ],
+            ),
           ),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 2.seconds),
-        
+        )
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 2.seconds),
+
+        // Logo Dairesi
         Container(
           width: imageSize,
           height: imageSize,
@@ -155,35 +206,55 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6366F1).withOpacity(0.1),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
+                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                blurRadius: 36,
+                offset: const Offset(0, 12),
               ),
             ],
             border: Border.all(color: Colors.white, width: 8),
           ),
           child: ClipOval(
-            child: Image.asset(
-              'assets/image/app_icon_two.png',
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.face_rounded, size: 60, color: Color(0xFF6366F1)),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Image.asset(
+                'assets/image/app_icon.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.face_rounded,
+                  size: 70,
+                  color: Color(0xFF6366F1),
+                ),
+              ),
             ),
           ),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -8, end: 8, duration: 2.seconds),
+        )
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .moveY(begin: -8, end: 8, duration: 2.seconds),
 
+        // Üst Sağ Rozet
         Positioned(
-          top: 0,
-          right: 0,
-          child: _HeroBadge(icon: Icons.star_rounded, color: const Color(0xFFF59E0B))
+          top: -6,
+          right: -6,
+          child: const _HeroBadge(
+            icon: Icons.star_rounded,
+            color: Color(0xFFF59E0B),
+            label: "Süper Güç",
+          )
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .moveY(begin: 5, end: -5, duration: 1.5.seconds),
+              .moveY(begin: 4, end: -4, duration: 1.5.seconds),
         ),
+
+        // Alt Sol Rozet
         Positioned(
-          bottom: 10,
-          left: 0,
-          child: _HeroBadge(icon: Icons.verified_user_rounded, color: const Color(0xFF10B981))
+          bottom: 0,
+          left: -10,
+          child: const _HeroBadge(
+            icon: Icons.verified_user_rounded,
+            color: Color(0xFF10B981),
+            label: "Güvenli Rehber",
+          )
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .moveY(begin: -5, end: 5, duration: 2.seconds),
+              .moveY(begin: -4, end: 4, duration: 2.seconds),
         ),
       ],
     );
@@ -198,7 +269,7 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Color(0xFF1E293B),
+            color: Color(0xFF0F172A),
             fontSize: 28,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
@@ -206,7 +277,7 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
         ),
         const SizedBox(height: 12),
         const Text(
-          'Daha bilinçli, cesur ve güçlü olacağın\nsihirli yolculuk burada başlıyor!',
+          'Daha bilinçli, cesur ve güçlü olacağın\nsihirli macera seni bekliyor!',
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -214,7 +285,7 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
             color: Color(0xFF64748B),
             fontSize: 15,
             height: 1.5,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -230,30 +301,46 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
         const SizedBox(width: 12),
         _buildFeatureItem(Icons.emoji_events_rounded, 'Kazan', const Color(0xFFF59E0B)),
       ],
-    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.9, 0.9));
+    ).animate().fadeIn(delay: 350.ms).scale(begin: const Offset(0.92, 0.92));
   }
 
   Widget _buildFeatureItem(IconData icon, String label, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.18), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 28),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
             const SizedBox(height: 8),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF1E293B),
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -262,17 +349,17 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
     );
   }
 
-  Widget _buildBottomActions(double width) {
+  Widget _buildBottomActions(double width, double bottomInset) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-      decoration: BoxDecoration(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, bottomInset > 0 ? bottomInset + 12 : 20),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: const [
+        borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 20,
-            offset: Offset(0, -10),
+            color: Color(0x0C000000),
+            blurRadius: 24,
+            offset: Offset(0, -8),
           ),
         ],
       ),
@@ -285,14 +372,18 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
             child: ElevatedButton(
               onPressed: _goToRegister,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
+                backgroundColor: AppColors.anaMavi,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                elevation: 6,
+                shadowColor: AppColors.anaMavi.withValues(alpha: 0.35),
               ),
-              child: const Text(
-                'Maceraya Başla! 🚀',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Maceraya Başla! 🚀',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                ),
               ),
             ),
           ),
@@ -303,13 +394,16 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
             child: OutlinedButton(
               onPressed: _goToLogin,
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF6366F1),
+                foregroundColor: AppColors.anaMavi,
                 side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
               ),
-              child: const Text(
-                'Zaten Kayıtlıyım',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Zaten Kayıtlıyım',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                ),
               ),
             ),
           ),
@@ -322,25 +416,45 @@ class _KarsilamaEkraniState extends State<KarsilamaEkrani>
 class _HeroBadge extends StatelessWidget {
   final IconData icon;
   final Color color;
+  final String label;
 
-  const _HeroBadge({required this.icon, required this.color});
+  const _HeroBadge({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 10,
+            color: color.withValues(alpha: 0.22),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
       ),
-      child: Icon(icon, color: color, size: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: const Color(0xFF0F172A),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
+import 'package:zorbalik_uygulamasi/services/scenario_export_service.dart';
 
 class ScenarioManager extends StatefulWidget {
   const ScenarioManager({super.key});
@@ -12,6 +13,7 @@ class ScenarioManager extends StatefulWidget {
 
 class _ScenarioManagerState extends State<ScenarioManager> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isExporting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +73,71 @@ class _ScenarioManagerState extends State<ScenarioManager> {
     );
   }
 
+  Future<void> _exportScenariosToJson() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+
+    try {
+      final exportService = ScenarioExportService();
+      final result = await exportService.exportScenariosToJson();
+
+      if (!mounted) return;
+
+      if (result.success) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                SizedBox(width: 10),
+                Text("Dışa Aktarma Başarılı!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("${result.totalScenarios} senaryo başarıyla JSON formatında dışa aktarıldı."),
+                const SizedBox(height: 12),
+                Text("Dosya Adı: ${result.fileName}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage ?? "Dışa aktarma başarısız."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Hata oluştu: $e"),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -84,18 +151,42 @@ class _ScenarioManagerState extends State<ScenarioManager> {
                 style: TextStyle(color: Colors.blueGrey)),
           ],
         ),
-        ElevatedButton.icon(
-          onPressed: () => _showScenarioDialog(), // Yeni senaryo oluşturma penceresini açar
-          icon: const Icon(Icons.add_to_photos_rounded),
-          label: const Text("YENİ SENARYO OLUŞTUR"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.anaMavi,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 22),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 8,
-            shadowColor: AppColors.anaMavi.withOpacity(0.4),
-          ),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isExporting ? null : _exportScenariosToJson,
+              icon: _isExporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(color: Colors.indigo, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_rounded),
+              label: Text(_isExporting ? "Dışa Aktarılıyor..." : "JSON OLARAK DIŞA AKTAR 📥"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.indigo,
+                side: const BorderSide(color: Colors.indigo, width: 1.5),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: () => _showScenarioDialog(),
+              icon: const Icon(Icons.add_to_photos_rounded),
+              label: const Text("YENİ SENARYO OLUŞTUR"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.anaMavi,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                shadowColor: AppColors.anaMavi.withOpacity(0.4),
+              ),
+            ),
+          ],
         ),
       ],
     );

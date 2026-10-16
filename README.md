@@ -124,4 +124,6 @@ Tasarımın responsive (duyarlı) yapısını öne çıkaran temel uygulama ekra
 
 <div align="center">
   <strong>Siber Dost</strong> · Dijital dünyada daha bilinçli, daha güvenli ve daha cesur adımlar için.[cite: 10]
+</div>=======
 </div>
+>>>>>>> theirs

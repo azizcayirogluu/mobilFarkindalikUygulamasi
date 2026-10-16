@@ -11,6 +11,7 @@ class VideoListelemeEkrani extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color backgroundSubtle = Color(0xFFF8FAFC);
+    // Gesture navigasyon barları için dinamik olarak hesaplanmış alt boşluk
     final bottomInset = MediaQuery.paddingOf(context).bottom + 40;
 
     return Scaffold(
@@ -20,13 +21,16 @@ class VideoListelemeEkrani extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "EĞİTİCİ VİDEOLAR 🎥",
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-            color: Color(0xFF1E293B),
-            letterSpacing: 1.2,
+        title: const FittedBox( // Büyük fontlarda başlığın taşmasını engeller
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "EĞİTİCİ VİDEOLAR 🎥",
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              color: Color(0xFF1E293B),
+              letterSpacing: 1.2,
+            ),
           ),
         ),
         leading: Padding(
@@ -51,8 +55,11 @@ class VideoListelemeEkrani extends StatelessWidget {
           ),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('videos').limit(20).snapshots(),
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('videos')
+            .limit(20)
+            .get(const GetOptions(source: Source.serverAndCache)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildShimmerLoading(bottomInset);
@@ -82,6 +89,10 @@ class VideoListelemeEkrani extends StatelessWidget {
     String yId = data['youtubeId']?.toString() ?? "";
     String baslik = data['baslik'] ?? "Eğitici Video";
     String sure = data['sure'] ?? "5 Dakika";
+
+    // Kart içindeki thumbnail (kapak) için ekran boyutuna orantılı bir yükseklik
+    // 180 sabit değerdi, ekranın %25'i veya min 120 max 220 arasına sabitlendi (Yatay mod / tabletler için)
+    final double thumbnailHeight = (MediaQuery.sizeOf(context).height * 0.25).clamp(120.0, 220.0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -118,7 +129,7 @@ class VideoListelemeEkrani extends StatelessWidget {
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    _buildThumbnail(yId, data['kapakYolu']),
+                    _buildThumbnail(yId, data['kapakYolu'], thumbnailHeight),
                     Positioned.fill(child: Container(color: Colors.black.withAlpha(25))),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -143,9 +154,12 @@ class VideoListelemeEkrani extends StatelessWidget {
                           children: [
                             const Icon(Icons.timer_outlined, size: 12, color: Colors.amber),
                             const SizedBox(width: 4),
-                            Text(
-                              sure,
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                            Flexible(
+                              child: Text(
+                                sure,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                              ),
                             ),
                           ],
                         ),
@@ -180,20 +194,29 @@ class VideoListelemeEkrani extends StatelessWidget {
                               color: const Color(0xFF6366F1).withAlpha(20),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              "SİBER GÖREV",
-                              style: TextStyle(color: Color(0xFF6366F1), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                "SİBER GÖREV",
+                                style: TextStyle(color: Color(0xFF6366F1), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                              ),
                             ),
                           ),
-                          const Row(
-                            children: [
-                              Text(
-                                "Hemen İzle",
-                                style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w800),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
-                            ],
+                          const Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "Hemen İzle",
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -208,33 +231,35 @@ class VideoListelemeEkrani extends StatelessWidget {
     ).animate(delay: (index * 20).ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad);
   }
 
-  Widget _buildThumbnail(String yId, String? kapakYolu) {
+  Widget _buildThumbnail(String yId, String? kapakYolu, double height) {
     return CachedNetworkImage(
       imageUrl: "https://img.youtube.com/vi/$yId/maxresdefault.jpg",
-      height: 180,
+      memCacheWidth: 600,
+      height: height,
       width: double.infinity,
       fit: BoxFit.cover,
       errorWidget: (context, url, error) {
         if (kapakYolu != null && kapakYolu.isNotEmpty) {
           if (kapakYolu.startsWith('assets/')) {
-            return Image.asset(kapakYolu, height: 180, width: double.infinity, fit: BoxFit.cover);
+            return Image.asset(kapakYolu, height: height, width: double.infinity, fit: BoxFit.cover);
           }
           return CachedNetworkImage(
             imageUrl: kapakYolu,
-            height: 180,
+            memCacheWidth: 600,
+            height: height,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorWidget: (c, u, e) => _buildPlaceholder(),
+            errorWidget: (c, u, e) => _buildPlaceholder(height),
           );
         }
-        return _buildPlaceholder();
+        return _buildPlaceholder(height);
       },
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(double height) {
     return Container(
-      height: 180,
+      height: height,
       width: double.infinity,
       color: const Color(0xFFF1F5F9),
       child: const Icon(Icons.video_library_rounded, size: 40, color: Color(0xFFCBD5E1)),
@@ -243,20 +268,26 @@ class VideoListelemeEkrani extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x0D4F46E5), blurRadius: 20)]),
-            child: const Icon(Icons.movie_filter_rounded, size: 56, color: Color(0xFFCBD5E1)),
-          ),
-          const SizedBox(height: 20),
-          const Text("Henüz Video Yok!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF475569))),
-          const SizedBox(height: 8),
-          const Text("Eğitici videolar çok yakında burada olacak.", style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
-        ],
-      ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(28),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x0D4F46E5), blurRadius: 20)]),
+                child: const Icon(Icons.movie_filter_rounded, size: 56, color: Color(0xFFCBD5E1)),
+              ),
+              const SizedBox(height: 20),
+              const Text("Henüz Video Yok!", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF475569))),
+              const SizedBox(height: 8),
+              const Text("Eğitici videolar çok yakında burada olacak.", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
+            ],
+          ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+        ),
+      ),
     );
   }
 

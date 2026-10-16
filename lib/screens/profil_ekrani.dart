@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
-import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/admin_home.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/admin_guard.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -14,7 +13,9 @@ import 'hakkinda_ekrani.dart';
 import 'gizlilik_politikasi_ekrani.dart';
 import 'siber_imdat_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
+import 'package:zorbalik_uygulamasi/services/user_presence_service.dart';
 import 'package:zorbalik_uygulamasi/widgets/profile_avatar.dart';
+import 'package:zorbalik_uygulamasi/utils/password_validator.dart';
 
 const _diceBearAvatarSeeds = [
   'kahraman-mavi-01',
@@ -98,10 +99,8 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     );
   }
 
-  Future<void> _profiliDuzenle() async {
-    final TextEditingController nameController = TextEditingController(text: _user?.displayName ?? widget.kullaniciAdi);
+  Future<void> _avatarSecmeDiyalogu() async {
     String tempAvatar = _currentAvatar;
-    String tempYas = _currentYasGrubu;
 
     await showDialog(
       context: context,
@@ -112,85 +111,340 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             children: [
               Text("🎨", style: TextStyle(fontSize: 24)),
               SizedBox(width: 10),
-              Text("Kahramanını Güncelle", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+              Expanded(
+                child: Text("Profil Fotoğrafını Seç", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+              ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: "Kahraman Adın",
-                    prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.anaMavi),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12, runSpacing: 12,
+                    children: [
+                      _avatarOption("assets/image/boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
+                      for (final seed in _diceBearAvatarSeeds)
+                        _avatarOption(
+                          _diceBearAvatarUrl(seed),
+                          tempAvatar,
+                              (path) => setDialogState(() => tempAvatar = path),
+                        ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text("Yaş Grubun", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _yasSecenek("6-12", tempYas, (val) => setDialogState(() => tempYas = val)),
-                    const SizedBox(width: 10),
-                    _yasSecenek("13-18", tempYas, (val) => setDialogState(() => tempYas = val)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text("kendine karakter Seç", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 4),
-                const SizedBox(height: 10),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12, runSpacing: 12,
-                  children: [
-                    _avatarOption("assets/image/boy.png", tempAvatar, (path) => setDialogState(() => tempAvatar = path)),
-                    for (final seed in _diceBearAvatarSeeds)
-                      _avatarOption(
-                        _diceBearAvatarUrl(seed),
-                        tempAvatar,
-                        (path) => setDialogState(() => tempAvatar = path),
-                      ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.trim().isNotEmpty) {
+                try {
+                  await FirebaseFirestore.instance.collection('users').doc(_user?.uid).set({
+                    'avatarUrl': tempAvatar,
+                  }, SetOptions(merge: true));
+
+                  if (mounted) {
+                    setState(() {
+                      _currentAvatar = tempAvatar;
+                    });
+                    Navigator.pop(context);
+                    _showSnack("Profil fotoğrafın güncellendi! ✨");
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    _showSnack("Fotoğraf güncellenirken hata oluştu.", isError: true);
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.anaMavi,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text("Kaydet", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _ayarlarDiyalogu() async {
+    final TextEditingController nameController = TextEditingController(text: _user?.displayName ?? widget.kullaniciAdi);
+    String tempYas = _currentYasGrubu;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          title: const Row(
+            children: [
+              Icon(Icons.settings_rounded, color: AppColors.anaMavi, size: 26),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text("Uygulama ve Profil Ayarları", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Kahraman Adın", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.anaMavi, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text("Yaş Grubun", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _yasSecenek("6-12", tempYas, (val) => setDialogState(() => tempYas = val)),
+                      const SizedBox(width: 10),
+                      _yasSecenek("13-18", tempYas, (val) => setDialogState(() => tempYas = val)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 10),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.amber.shade100, shape: BoxShape.circle),
+                        child: Icon(Icons.key_rounded, color: Colors.amber.shade900, size: 20),
+                      ),
+                      title: const Text("Şifre / PIN Değiştir", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: const Text("Hesap güvenliğini güncelle", style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.amber),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _sifreDegistirDialog();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = nameController.text.trim();
+                if (newName.isNotEmpty) {
                   try {
-                    await _user?.updateDisplayName(nameController.text.trim());
+                    await _user?.updateDisplayName(newName);
                     await FirebaseFirestore.instance.collection('users').doc(_user?.uid).set({
-                      'kullaniciAdi': nameController.text.trim(),
-                      'avatarUrl': tempAvatar,
+                      'kullaniciAdi': newName,
                       'yasGrubu': tempYas,
                     }, SetOptions(merge: true));
                     await _user?.reload();
                     if (mounted) {
                       setState(() {
                         _user = FirebaseAuth.instance.currentUser;
-                        _currentAvatar = tempAvatar;
                         _currentYasGrubu = tempYas;
                       });
                       Navigator.pop(context);
-                      _showSnack("Harika! Kahramanın güncellendi. ✨");
+                      _showSnack("Ayarların başarıyla güncellendi! ✨");
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      _showSnack("Bir hata oluştu.", isError: true);
+                      _showSnack("Ayarlar güncellenirken hata oluştu.", isError: true);
                     }
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.anaMavi, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.anaMavi,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
               child: const Text("Kaydet", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sifreDegistirDialog() async {
+    final oldPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+    bool showOld = false;
+    bool showNew = false;
+    bool showConfirm = false;
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_reset_rounded, color: AppColors.anaMavi, size: 26),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Şifre / PIN Değiştir 🔐",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: oldPassController,
+                    obscureText: !showOld,
+                    decoration: InputDecoration(
+                      labelText: "Mevcut Şifren / PIN",
+                      prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(showOld ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18),
+                        onPressed: () => setModalState(() => showOld = !showOld),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: newPassController,
+                    obscureText: !showNew,
+                    decoration: InputDecoration(
+                      labelText: "Yeni Şifren / PIN",
+                      prefixIcon: const Icon(Icons.key_rounded, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(showNew ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18),
+                        onPressed: () => setModalState(() => showNew = !showNew),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: confirmPassController,
+                    obscureText: !showConfirm,
+                    decoration: InputDecoration(
+                      labelText: "Yeni Şifren (Tekrar)",
+                      prefixIcon: const Icon(Icons.key_off_rounded, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(showConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18),
+                        onPressed: () => setModalState(() => showConfirm = !showConfirm),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(context),
+              child: const Text("Vazgeç", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final oldPass = oldPassController.text.trim();
+                      final newPass = newPassController.text.trim();
+                      final confirmPass = confirmPassController.text.trim();
+
+                      final err = CredentialValidator.validatePasswordChange(
+                        oldPassword: oldPass,
+                        newPassword: newPass,
+                        confirmPassword: confirmPass,
+                        ageGroup: _currentYasGrubu,
+                      );
+
+                      if (err != null) {
+                        _showSnack(err, isError: true);
+                        return;
+                      }
+
+                      setModalState(() => isSubmitting = true);
+
+                      try {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null && user.email != null) {
+                          final cred = EmailAuthProvider.credential(
+                            email: user.email!,
+                            password: oldPass,
+                          );
+
+                          await user.reauthenticateWithCredential(cred);
+                          await user.updatePassword(newPass);
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            _showSnack("Şifren / PIN kodun başarıyla güncellendi! 🔐✨");
+                          }
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        setModalState(() => isSubmitting = false);
+                        String message = "Şifre değiştirilemedi. Lütfen tekrar dene.";
+                        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+                          message = "Mevcut şifren veya PIN kodun yanlış! 🔐";
+                        } else if (e.code == 'weak-password') {
+                          message = "Yeni şifre yeterince güçlü değil.";
+                        } else if (e.code == 'requires-recent-login') {
+                          message = "Güvenlik nedeniyle tekrar giriş yapman gerekiyor.";
+                        }
+                        _showSnack(message, isError: true);
+                      } catch (e) {
+                        setModalState(() => isSubmitting = false);
+                        _showSnack("Bir sorun oluştu. Lütfen tekrar dene.", isError: true);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.anaMavi,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: isSubmitting
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Güncelle", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -204,13 +458,16 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       child: GestureDetector(
         onTap: () => onSelect(label),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.anaMavi : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: isSelected ? AppColors.anaMavi : Colors.grey.shade300),
           ),
-          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
+          ),
         ),
       ),
     );
@@ -238,9 +495,12 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       renk: AppColors.anaMavi,
     );
     if (onay == true) {
+      await UserPresenceService.instance.setOffline();
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const KarsilamaEkrani()), (route) => false);
+      // Çıkış sonrası ekranı AuthGate belirler (oturum yok -> Karşılama ekranı).
+      // Yeni bir Karşılama route'u açmak AuthGate'i yığından atıyordu.
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
@@ -252,10 +512,13 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     try {
       final deleteFn = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('deleteSelfAccount');
       await deleteFn.call();
+      await UserPresenceService.instance.setOffline();
       await FirebaseAuth.instance.signOut();
       await StorageService().clearUserData();
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const KarsilamaEkrani()), (route) => false);
+      // Çıkış sonrası ekranı AuthGate belirler (oturum yok -> Karşılama ekranı).
+      // Yeni bir Karşılama route'u açmak AuthGate'i yığından atıyordu.
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         setState(() => _isDeleting = false);
@@ -281,43 +544,53 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   @override
   Widget build(BuildContext context) {
     if (_user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final size = MediaQuery.of(context).size;
+
+    final size = MediaQuery.sizeOf(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     final String ekrandaGozukenIsim = _user!.displayName ?? widget.kullaniciAdi;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFF),
-        body: _isDeleting
-            ? const Center(child: CircularProgressIndicator(color: AppColors.anaMavi))
-            : StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('usersProgress').doc(_user!.uid).snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-  
-                  final progressData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
-                  final List bitti = progressData['tamamlanan_bolumler'] as List? ?? [];
-                  final List okundu = progressData['okunan_hikayeler'] as List? ?? [];
-                  final List dedektif = progressData['bilinen_dedektif_sorulari'] as List? ?? [];
-                  final List rozetler = progressData['rozetler'] as List? ?? [];
-                  final int toplamPuan = progressData['toplam_puan'] ?? 0;
-  
-                  Set<String> tamamlananSenaryoIdleri = {};
-                  for (var item in bitti) {
-                    String s = item.toString();
-                    if (s.contains('_')) { tamamlananSenaryoIdleri.add(s.split('_')[0]); } else { tamamlananSenaryoIdleri.add(s); }
+        value: SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFF),
+          body: _isDeleting
+              ? const Center(child: CircularProgressIndicator(color: AppColors.anaMavi))
+              : StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance.collection('usersProgress').doc(_user!.uid).snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+              final progressData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+              final List bitti = progressData['tamamlanan_bolumler'] as List? ?? [];
+              final List okundu = progressData['okunan_hikayeler'] as List? ?? [];
+              final List dedektif = progressData['bilinen_dedektif_sorulari'] as List? ?? [];
+              final List rozetler = progressData['rozetler'] as List? ?? [];
+              final int toplamPuan = progressData['toplam_puan'] ?? 0;
+
+              Set<String> tamamlananSenaryoIdleri = {};
+              for (var item in bitti) {
+                String s = item.toString();
+                if (s.contains('_')) { tamamlananSenaryoIdleri.add(s.split('_')[0]); } else { tamamlananSenaryoIdleri.add(s); }
+              }
+              final int tamamlananToplam = tamamlananSenaryoIdleri.length + okundu.length + dedektif.length;
+
+              return FutureBuilder<Map<String, dynamic>>(
+                future: _statsFuture,
+                builder: (context, statsSnap) {
+                  // ÇÖZÜM: Future (veri) gelene kadar beklet ki hesaplama hatasından dolayı ilerleme %100 görünmesin.
+                  if (statsSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: AppColors.anaMavi));
                   }
-                  final int tamamlananToplam = tamamlananSenaryoIdleri.length + okundu.length + dedektif.length;
-  
-                  return FutureBuilder<Map<String, dynamic>>(
-                    future: _statsFuture,
-                    builder: (context, statsSnap) {
-                      final bool isAdmin = statsSnap.data?['isAdmin'] ?? false;
-                      final int toplamGorev = statsSnap.data?['toplamGorev'] ?? 1;
-                      final double ilerleme = (tamamlananToplam / toplamGorev).clamp(0.0, 1.0);
-                      final int seviye = (tamamlananToplam ~/ 3) + 1;
-  
-                      return SingleChildScrollView(
+
+                  final bool isAdmin = statsSnap.data?['isAdmin'] ?? false;
+                  final int toplamGorev = statsSnap.data?['toplamGorev'] ?? 1;
+                  final double ilerleme = (tamamlananToplam / toplamGorev).clamp(0.0, 1.0);
+                  final int seviye = (tamamlananToplam ~/ 3) + 1;
+
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 640),
+                      child: SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
                         child: Column(
                           children: [
@@ -338,17 +611,20 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                             _buildDangerZoneZone().animate(delay: 200.ms).fadeIn(),
                             const SizedBox(height: 16),
                             _buildFooter(),
-                            const SizedBox(height: 100),
+                            // Güvenli alt boşluk (sabit 100 yerine dinamik değer)
+                            SizedBox(height: bottomInset + 40),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   );
                 },
-              ),
-      )
+              );
+            },
+          ),
+        )
     );
-}
+  }
 
   Widget _buildHeader(int seviye, String isim, Size size) {
     String rutbe() {
@@ -370,33 +646,70 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           _buildBlob(top: -20, right: -60, color: const Color(0xFFF3E8FF), size: 180),
 
           SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                Stack(
-                  alignment: Alignment.bottomCenter,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10))]),
-                      child: ProfileAvatar(image: _currentAvatar, radius: 55),
-                    ),
-                    Positioned(
-                      bottom: -10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.4), blurRadius: 8)],
+                GestureDetector(
+                  onTap: _avatarSecmeDiyalogu,
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: Offset(0, 10))],
                         ),
-                        child: Text("SEVİYE $seviye", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 10)),
+                        child: ProfileAvatar(image: _currentAvatar, radius: 55),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.anaMavi,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2.5),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                          ),
+                          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -10,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.4), blurRadius: 8)],
+                            ),
+                            child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text("SEVİYE $seviye", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 10))
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ).animate().scale(delay: 200.ms, curve: Curves.elasticOut, duration: 200.ms),
-                const SizedBox(height: 18),
-                Text(isim.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: 1.5)),
+                const SizedBox(height: 22),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                      isim.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: 1.5)
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -407,10 +720,10 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             ),
           ),
           Positioned(
-            top: 50, right: 25,
+            top: MediaQuery.paddingOf(context).top + 10, right: 25,
             child: IconButton(
               icon: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]), child: const Icon(Icons.settings_rounded, color: Colors.blueGrey, size: 20)),
-              onPressed: _profiliDuzenle,
+              onPressed: _ayarlarDiyalogu,
             ),
           ),
         ],
@@ -443,14 +756,25 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("KAHRAMANLIK YOLU 🗺️", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.indigo, fontSize: 10, letterSpacing: 1.5)),
+                        const Expanded(
+                            child: Text(
+                                "KAHRAMANLIK YOLU 🗺️",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontWeight: FontWeight.w900, color: Colors.indigo, fontSize: 10, letterSpacing: 1.5)
+                            )
+                        ),
+                        const SizedBox(width: 8),
                         Text("%${(ilerleme * 100).toInt()}", style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.indigo, fontSize: 14)),
                       ],
                     ),
                     const SizedBox(height: 14),
                     _buildLinearProgress(ilerleme),
                     const SizedBox(height: 12),
-                    Text("Harika ilerliyorsun, süper kahraman! 🚀", style: TextStyle(color: Colors.indigo.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+                    FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text("Harika ilerliyorsun, süper kahraman! 🚀", style: TextStyle(color: Colors.indigo.shade700, fontSize: 12, fontWeight: FontWeight.bold))
+                    ),
                   ],
                 ),
               ),
@@ -507,7 +831,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   Widget _statCard(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(25),
           boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
@@ -516,8 +840,9 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(height: 6),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF2D3142))),
-            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+            FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF2D3142)))),
+            const SizedBox(height: 2),
+            FittedBox(fit: BoxFit.scaleDown, child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade400))),
           ],
         ),
       ),
@@ -536,7 +861,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             children: [
               Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 28),
               SizedBox(width: 15),
-              Expanded(child: Text("YÖNETİCİ PANELİ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1))),
+              Expanded(child: Text("YÖNETİCİ PANELİ", maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1))),
               Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
             ],
           ),
@@ -554,7 +879,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         child: SwitchListTile.adaptive(
           value: _bildirimlerAcik,
           onChanged: (v) => setState(() => _bildirimlerAcik = v),
-          title: const Text("Bildirimler", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          title: const Text("Bildirimler", maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
           secondary: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle), child: const Icon(Icons.notifications_active, color: Colors.blue, size: 20)),
           activeTrackColor: Colors.blue,
         ),
@@ -565,7 +890,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   Widget _buildBolumBasligi(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 30, bottom: 12),
-      child: Align(alignment: Alignment.centerLeft, child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 11, letterSpacing: 1.2))),
+      child: Align(alignment: Alignment.centerLeft, child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 11, letterSpacing: 1.2))),
     );
   }
 
@@ -581,6 +906,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: GridView.builder(
         shrinkWrap: true,
+        padding: EdgeInsets.zero,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 15, mainAxisSpacing: 15, childAspectRatio: 1.8),
         itemCount: items.length,
@@ -593,14 +919,19 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     return InkWell(
       onTap: oge.onTap, borderRadius: BorderRadius.circular(25),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: oge.color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(oge.icon, color: oge.color, size: 22)),
             const SizedBox(height: 8),
-            Text(oge.label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF2D3142))),
+            Flexible(
+              child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(oge.label, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF2D3142)))
+              ),
+            ),
           ],
         ),
       ),
@@ -616,10 +947,13 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
             backgroundColor: Colors.white, foregroundColor: Colors.blue, elevation: 0,
             minimumSize: const Size(200, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Colors.blue.shade100)),
           ),
-          child: const Text("OTURUMU KAPAT", style: TextStyle(fontWeight: FontWeight.w900)),
+          child: const FittedBox(fit: BoxFit.scaleDown, child: Text("OTURUMU KAPAT", style: TextStyle(fontWeight: FontWeight.w900))),
         ),
         const SizedBox(height: 10),
-        TextButton(onPressed: _hesabiSil, child: const Text("Hesabı Kalıcı Olarak Sil 🗑️", style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold))),
+        TextButton(
+            onPressed: _hesabiSil,
+            child: const FittedBox(fit: BoxFit.scaleDown, child: Text("Hesabı Kalıcı Olarak Sil 🗑️", style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)))
+        ),
       ],
     );
   }

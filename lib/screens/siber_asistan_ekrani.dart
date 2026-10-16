@@ -107,21 +107,12 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         if (pData != null) {
           setState(() {
             _kalanHak = pData['gemini_hakki'] ?? 5;
-            if (pData['sohbet_gecmisi'] != null) {
-              _mesajlar.clear();
-              for (var item in (pData['sohbet_gecmisi'] as List)) {
-                String r = (item['rol'] ?? item['role'] ?? 'asistan').toString().toLowerCase();
-                _mesajlar.add({
-                  'role': (r == 'kullanici' || r == 'user') ? 'user' : 'assistant',
-                  'metin': item['metin'] ?? item['text'] ?? '',
-                });
-              }
-            }
           });
         }
       }
 
-      if (_mesajlar.isEmpty) _ilkMesajEkle();
+      _mesajlar.clear();
+      _ilkMesajEkle();
       _scrollToBottom();
     } catch (e) {
       debugPrint("Veri yükleme hatası: $e");
@@ -140,6 +131,18 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     });
   }
 
+  /// Aktif oturum sohbet belleğini sıfırlar (Firestore'a müdahale etmez)
+  void clearChatSession() {
+    if (mounted) {
+      setState(() {
+        _mesajlar.clear();
+        _ilkMesajEkle();
+      });
+    } else {
+      _mesajlar.clear();
+    }
+  }
+
   Future<void> _sohbetiTemizle() async {
     final onay = await showDialog<bool>(
       context: context,
@@ -152,10 +155,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           background: AppColors.softPink,
           color: _Ui.dangerText,
         ),
-        title: const Text("Sohbeti silelim mi?"),
+        title: const Text("Sohbeti temizleyelim mi?"),
         titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
         content: const Text(
-          "Konuşmalarımız tamamen silinecek. Yeni bir başlangıca hazır mısın?",
+          "Bu oturumdaki tüm mesajlar temizlenecek. Yeni bir sohbet başlatmak ister misin?",
           textAlign: TextAlign.center,
         ),
         contentTextStyle: const TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
@@ -168,18 +171,14 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
             onPressed: () => Navigator.pop(c, true),
-            child: const Text("Evet, sil", style: TextStyle(color: _Ui.dangerText, fontWeight: FontWeight.w700)),
+            child: const Text("Evet, temizle", style: TextStyle(color: _Ui.dangerText, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
 
-    final user = _currentUser;
-    if (onay == true && user != null) {
-      setState(() { _mesajlar.clear(); _ilkMesajEkle(); });
-      try {
-        await FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).update({'sohbet_gecmisi': FieldValue.delete()});
-      } catch (e) { debugPrint(e.toString()); }
+    if (onay == true) {
+      clearChatSession();
     }
   }
 
@@ -202,6 +201,15 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       return;
     }
 
+    // Aktif oturum geçmişi payload'ı (Gemini bağlamı için geçici olarak gönderilir, veritabanına yazılmaz)
+    final sessionHistory = _mesajlar
+        .where((m) => (m['metin'] ?? '').isNotEmpty)
+        .map((m) => {
+              'rol': m['role'] == 'user' ? 'user' : 'assistant',
+              'metin': m['metin'] ?? '',
+            })
+        .toList();
+
     setState(() {
       _mesajlar.add({"role": "user", "metin": temizMetin});
       _yukleniyor = true;
@@ -222,7 +230,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       await user.getIdToken();
 
       final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('geminiChat');
-      final result = await callable.call({'mesaj': temizMetin});
+      final result = await callable.call({
+        'mesaj': temizMetin,
+        'gecmis': sessionHistory,
+      });
       if (!mounted) return;
       final data = result.data as Map?;
       final botCevabi = data?['cevap']?.toString() ?? 'Buradayım Kahraman! 💙';
@@ -244,7 +255,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           AppLogger.log("SiberAsistan: Unauthenticated hatası alındı, token yenilenerek tekrar deneniyor...");
           await user.getIdToken(true);
           final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('geminiChat');
-          final retryResult = await callable.call({'mesaj': temizMetin});
+          final retryResult = await callable.call({
+            'mesaj': temizMetin,
+            'gecmis': sessionHistory,
+          });
           if (!mounted) return;
           final retryData = retryResult.data as Map?;
           final botCevabi = retryData?['cevap']?.toString() ?? 'Buradayım Kahraman! 💙';
@@ -375,6 +389,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     _ttsService.stop();
     _controller.dispose();
     _scrollController.dispose();
+    _mesajlar.clear();
     super.dispose();
   }
 
@@ -391,17 +406,24 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     final klavyeAcik = MediaQuery.viewInsetsOf(context).bottom > 0;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    return Scaffold(
-      backgroundColor: _Ui.background,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildStatsBar(),
-          Expanded(child: _buildMessageList(reduceMotion)),
-          if (_yukleniyor) _buildTypingIndicator(reduceMotion),
-          if (!klavyeAcik) _buildQuickActions(),
-          _buildInputArea(),
-        ],
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _mesajlar.clear();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _Ui.background,
+        appBar: _buildAppBar(),
+        body: Column(
+          children: [
+            _buildStatsBar(),
+            Expanded(child: _buildMessageList(reduceMotion)),
+            if (_yukleniyor) _buildTypingIndicator(reduceMotion),
+            if (!klavyeAcik) _buildQuickActions(),
+            _buildInputArea(),
+          ],
+        ),
       ),
     );
   }
@@ -476,15 +498,45 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   Widget _buildStatsBar() {
     final enerjiBitti = !_isExempt && _kalanHak <= 0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 12, _Ui.chatPadding, 4),
-      child: Center(
-        child: _StatChip(
-          icon: Icons.bolt_rounded,
-          label: _isExempt ? "Sınırsız Güç" : "$_kalanHak Enerji",
-          background: enerjiBitti ? AppColors.softPink : _Ui.pointBg,
-          foreground: enerjiBitti ? _Ui.dangerText : _Ui.pointText,
-          iconColor: enerjiBitti ? _Ui.dangerText : AppColors.oyunSarisi,
-        ),
+      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 10, _Ui.chatPadding, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _isExempt
+                          ? "Sınırsız mesaj hakkına sahipsin! ✨"
+                          : "Her mesaj 1 Enerji tüketir. Enerjin bittiğinde video izleyerek +5 Enerji kazanabilirsin! ⚡",
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    backgroundColor: AppColors.anaMavi,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+            },
+            child: _StatChip(
+              icon: Icons.bolt_rounded,
+              label: _isExempt ? "Sınırsız Güç" : "$_kalanHak Enerji",
+              background: enerjiBitti ? AppColors.softPink : _Ui.pointBg,
+              foreground: enerjiBitti ? _Ui.dangerText : _Ui.pointText,
+              iconColor: enerjiBitti ? _Ui.dangerText : AppColors.oyunSarisi,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _isExempt
+                ? "Sohbetlerin bu oturum sonunda otomatik temizlenir 🔒"
+                : "Enerjin bittiğinde video izleyerek +5 Enerji kazanabilirsin! ⚡",
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: _Ui.textSecondary, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
@@ -888,20 +940,31 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
               _AksiyonKarti(
                 icon: Icons.shield_rounded,
                 text: "Zorbalıkla karşı karşıya kalınca ne yapabileceğini öğrenebilirsin",
-                iconColor: AppColors.oyunSarisi ?? Colors.orange,
+                iconColor: AppColors.oyunSarisi,
                 bgColor: _Ui.pointBg,
               ),
               _AksiyonKarti(
                 icon: Icons.search_rounded,
                 text: "Neyin zorbalık olup olmadığını keşfedebilirsin",
-                iconColor: AppColors.basariYesili ?? Colors.green,
-                bgColor: (AppColors.basariYesili ?? Colors.green).withOpacity(0.1),
+                iconColor: AppColors.basariYesili,
+                bgColor: AppColors.basariYesili.withAlpha(25),
               ),
-              const _AksiyonKarti(
+              _AksiyonKarti(
                 icon: Icons.sports_esports_rounded,
                 text: "Eğitici oyunlar oynayabilirsin",
-                iconColor: AppColors.softPurple,
-                bgColor: AppColors.softPurple,
+                iconColor: AppColors.yaziRengi,
+                bgColor: AppColors.softPurple.withAlpha(80),
+              ),
+              const SizedBox(height: 32),
+
+              // Gizlilik ve Geçici Bellek
+              const _BolumBasligi(ikon: "🔒", baslik: "GİZLİLİK VE VERİ GÜVENLİĞİ"),
+              const SizedBox(height: 16),
+              _AksiyonKarti(
+                icon: Icons.cleaning_services_rounded,
+                text: "Sohbetlerin veritabanında saklanmaz. Bu sayfadan ayrıldığında tüm konuşmalar tamamen temizlenir.",
+                iconColor: AppColors.anaMavi,
+                bgColor: AppColors.anaMavi.withOpacity(0.1),
               ),
               const SizedBox(height: 32),
 

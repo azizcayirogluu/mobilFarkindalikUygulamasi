@@ -78,33 +78,42 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _buildModernInfoCard(
                     icon: Icons.face_rounded,
-                    title: "Hangi Bilgileri Kullanıyoruz? 🎭",
+                    title: "Hangi Bilgileri Topluyoruz? 🎭",
                     content:
-                        "Hesap açarken kullanıcı adını, yaş grubunu (6-12 veya 13-18) ve giriş için 6 rakamlı PIN'ini girersin. Gerçek adını, gerçek e-posta adresini, telefonunu veya ev adresini istemeyiz. Firebase giriş hesabı için kullanıcı adından bir tanımlayıcı oluşturulur; bu gerçek bir e-posta adresi değildir. Seçtiğin avatar, ilerlemen ve rozetlerin de hesabında saklanır. DiceBear avatarları internetten yüklenir; genel seed kullanılır, kullanıcı adın avatar isteğine eklenmez.",
+                        "• Seçtiğin kahraman kullanıcı adı, yaş grubun (6-12 veya 13-18) ve avatarın.\n"
+                        "• Giriş yapabilmen için belirlediğin 6 haneli güvenlik PIN'in.\n"
+                        "• Kazandığın puanlar, rozetler ve tamamladığın eğitici görevler.\n"
+                        "• Gerçek adın, e-posta adresin, telefon numaran veya ev adresin İSTENMEZ.",
                     color: AppColors.anaMavi,
                   ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
-                    icon: Icons.shield_rounded,
-                    title: "Güvenli Süper Kalkan 🔒",
+                    icon: Icons.stars_rounded,
+                    title: "Bu Bilgileri Neden Kullanıyoruz? 🎯",
                     content:
-                        "Hesap ve ilerleme bilgilerin uygulamanın çalışması için Firebase hizmetlerinde saklanır. Uygulama hatalarını incelemek için teknik tanılama kayıtları da işlenebilir. Bu hizmetler bilgileri korumak ve uygulamayı çalıştırmak için kullanılır; ayrıntılar için aşağıdaki e-posta adresinden bize ulaşabilirsin.",
+                        "• Oyundaki puanlarını ve rozetlerini güvenle kaydedip saklamak,\n"
+                        "• Sana ve yaş grubuna en uygun eğitici maceraları sunmak,\n"
+                        "• Siber Asistan ile güvenli ve eğlenceli sohbet etmeni sağlamak için.",
                     color: AppColors.basariYesili,
                   ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
-                    icon: Icons.smart_toy_rounded,
-                    title: "Dost Canlısı Yapay Zeka 🤖",
+                    icon: Icons.shield_rounded,
+                    title: "Bilgilerini Kimlerle Paylaşıyoruz? 🔒",
                     content:
-                        "Siber Asistan yanıt vermek için mesajlarını, sohbet geçmişini ve yaş grubunu Google Gemini hizmetine gönderir; profilde ad bilgisi varsa bu da kullanılabilir. Sohbet geçmişin hesabında saklanır ve asistan ekranındaki silme düğmesiyle temizlenebilir. Gerçek adını, okulunu, adresini veya telefonunu mesajlara yazma. İsteğe bağlı ödüllü reklamlar Google AdMob tarafından sunulur.",
+                        "• Kişisel verilerin kesinlikle 3. şahıslara satılmaz veya reklamcılara verilmez.\n"
+                        "• Bilgilerin yalnızca uygulamanın çalışması için güvenli Firebase sunucularında korunur.\n"
+                        "• Siber Asistan sohbetlerin veritabanında kalıcı tutulmaz, ekrandan çıkılınca otomatik silinir.",
                     color: AppColors.yumusakMor,
                   ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.05),
 
                   _buildModernInfoCard(
                     icon: Icons.child_care_rounded,
-                    title: "Çocuk Dostu Kurallar ✨",
+                    title: "Çocuk ve Aile Güvenliği ✨",
                     content:
-                        "Kayıt sırasında 6-12 veya 13-18 yaş grubunu seçersin. 6-12 yaş grubundaysan kayıt adımında bir yetişkinden yardım iste. İnternette kendini tanıtabilecek bilgileri paylaşmamaya dikkat et.",
+                        "• 6-12 yaş grubundaki kahramanlar için ebeveyn onay süreçleri desteklenir.\n"
+                        "• İnternette ve sohbetlerde gerçek adını, okulunu, adresini veya telefonunu paylaşmamalısın.\n"
+                        "• Rahatsız olduğun durumları güvendiğin bir yetişkinle paylaşmayı unutma.",
                     color: AppColors.uyariTuruncusu,
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.05),
 
@@ -112,7 +121,7 @@ class GizlilikPolitikasiEkrani extends StatelessWidget {
                     icon: Icons.delete_forever_rounded,
                     title: "Verilerini İstediğin An Sil 🗑️",
                     content:
-                        "Profil ayarlarından hesap silmeyi seçip onaylayabilirsin. İşlem tamamlandığında uygulama hesabın ve ilişkili ilerleme kayıtların silinir. Google gibi hizmet sağlayıcıların güvenlik kayıtları kendi saklama kurallarına tabi olabilir.",
+                        "Profil ayarlarından 'Hesabımı Sil' butonuna dokunarak tüm hesabını, puanlarını ve rozetlerini kalıcı olarak silebilirsin.",
                     color: const Color(0xFFEF4444),
                   ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.05),
 

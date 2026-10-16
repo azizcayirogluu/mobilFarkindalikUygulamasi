@@ -8,8 +8,7 @@ import 'package:zorbalik_uygulamasi/admin_panel/video_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/user_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/detective_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/badge_manager.dart';
-import 'package:zorbalik_uygulamasi/screens/karsilama_ekrani.dart';
-import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/user_presence_service.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -143,7 +142,7 @@ class _AdminHomeState extends State<AdminHome> {
                 ),
               ),
               Text("Yönetim Paneli" , style: TextStyle(
-                color: Colors.white
+                  color: Colors.white
               ),)
             ],
           ),
@@ -211,11 +210,10 @@ class _AdminHomeState extends State<AdminHome> {
       child: Column(
         children: [
           ElevatedButton.icon(
-            onPressed: () => Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const AnaNavigation()),
-              (r) => false,
-            ),
+            // Admin paneli profilden push ile açılıyor; kapatınca kök (AuthGate ->
+            // ana uygulama) zaten altta duruyor. Yeni bir ana ekran kurmak
+            // AuthGate'i yığından atıyordu.
+            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
             icon: const Icon(Icons.launch_rounded, size: 16),
             label: const Text("UYGULAMAYA DÖN"),
             style: ElevatedButton.styleFrom(
@@ -230,13 +228,11 @@ class _AdminHomeState extends State<AdminHome> {
           const SizedBox(height: 10),
           TextButton.icon(
             onPressed: () async {
+              await UserPresenceService.instance.setOffline();
               await FirebaseAuth.instance.signOut();
               if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const KarsilamaEkrani()),
-                (r) => false,
-              );
+              // Çıkış sonrası ekranı AuthGate belirler (oturum yok -> Karşılama).
+              Navigator.of(context).popUntil((r) => r.isFirst);
             },
             icon: const Icon(Icons.power_settings_new_rounded, size: 16),
             label: const Text("GÜVENLİ ÇIKIŞ"),

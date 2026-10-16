@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:zorbalik_uygulamasi/screens/ana_navigation_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/giris_yapma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/gizlilik_politikasi_ekrani.dart';
+import 'package:zorbalik_uygulamasi/utils/password_validator.dart';
 
 class KayitEkrani extends StatefulWidget {
   const KayitEkrani({super.key});
@@ -33,25 +33,35 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
   Future<void> _kayitBaslat() async {
     FocusScope.of(context).unfocus();
-    final username = _usernameController.text.trim().toLowerCase();
+    final rawUsername = _usernameController.text.trim();
     final pin = _pinController.text.trim();
 
-    if (username.isEmpty) {
+    if (rawUsername.isEmpty) {
       _showMessage('Önce kendine bir kahraman adı seç! 🦸', isError: true);
       return;
     }
-    if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(username)) {
-      _showMessage('Kullanıcı adı 3-20 karakter olmalı.', isError: true);
+    if (rawUsername.length < 3 || rawUsername.length > 20) {
+      _showMessage('Kullanıcı adı 3-20 karakter arasında olmalı.', isError: true);
       return;
     }
-    if (!RegExp(r'^\d{6}$').hasMatch(pin)) {
-      _showMessage('PIN tam olarak 6 rakamdan oluşmalı 🔐', isError: true);
+    if (!RegExp(r'^[a-zA-Z0-9çğıöşüÇĞİÖŞÜ\s_.-]+$').hasMatch(rawUsername)) {
+      _showMessage('Kullanıcı adı sadece harf, rakam ve tire/alt çizgi içerebilir.', isError: true);
       return;
     }
     if (seciliGrup.isEmpty) {
       _showMessage('Yaş grubunu seçmeyi unutma 🎂', isError: true);
       return;
     }
+
+    final credError = CredentialValidator.validateRegistrationCredential(
+      rawInput: pin,
+      ageGroup: seciliGrup,
+    );
+    if (credError != null) {
+      _showMessage(credError, isError: true);
+      return;
+    }
+
     if (!_privacyAccepted) {
       _showMessage('Gizlilik Politikasını kabul etmelisin 📋', isError: true);
       return;
@@ -115,9 +125,10 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
     setState(() => _loading = true);
 
-    final username = _usernameController.text.trim().toLowerCase();
+    final rawUsername = _usernameController.text.trim();
     final pin = _pinController.text.trim();
-    final email = '$username@zorbalik.app';
+    final emailUsername = rawUsername.toLowerCase().replaceAll(' ', '');
+    final email = '$emailUsername@zorbalik.app';
 
     try {
       // Firebase Authentication'da kullanıcı oluştur
@@ -150,7 +161,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
       batch.set(
         userRef,
         {
-          'kullaniciAdi': username,
+          'kullaniciAdi': rawUsername,
           'yasGrubu': seciliGrup,
           'avatarUrl': 'assets/image/boy.png',
           'isOnline': true,
@@ -163,7 +174,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
       batch.set(
         progressRef,
         {
-          'kullaniciAdi': username,
+          'kullaniciAdi': rawUsername,
           'sonGuncelleme': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -173,17 +184,12 @@ class _KayitEkraniState extends State<KayitEkrani> {
       await batch.commit();
 
       // Firebase Auth profil adını güncelle
-      await user.updateDisplayName(username);
+      await user.updateDisplayName(rawUsername);
 
       if (!mounted) return;
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const AnaNavigation(),
-        ),
-            (route) => false,
-      );
+      // Root'taki AuthGate yaş grubuna göre gerekli veli onayı kontrolünü yapar.
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e, stackTrace) {
       debugPrint('KAYIT - FIREBASE AUTH HATASI');
       debugPrint('Kod: ${e.code}');
@@ -338,6 +344,9 @@ class _KayitEkraniState extends State<KayitEkrani> {
   }
 
   Widget _buildFormCard() {
+    final isTeens = seciliGrup == '13-18';
+    final credLabel = isTeens ? "Gizli Şifren (En az 6 karakter)" : "6 Haneli PIN";
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -348,11 +357,11 @@ class _KayitEkraniState extends State<KayitEkrani> {
       ),
       child: Column(
         children: [
-          _buildInput("Kullanıcı Adın", Icons.face_rounded, _usernameController, false),
+          _buildInput("Kullanıcı Adın", Icons.face_rounded, _usernameController, isPin: false, isNumeric: false, maxLen: 20),
           const SizedBox(height: 20),
-          _buildInput("6 Haneli PIN", Icons.lock_rounded, _pinController, true),
-          const SizedBox(height: 24),
           _buildAgeSelector(),
+          const SizedBox(height: 20),
+          _buildInput(credLabel, Icons.lock_rounded, _pinController, isPin: true, isNumeric: !isTeens, maxLen: isTeens ? 30 : 6),
           const SizedBox(height: 24),
           _buildPrivacyToggle(),
           const SizedBox(height: 30),
@@ -362,12 +371,12 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
-  Widget _buildInput(String label, IconData icon, TextEditingController controller, bool isPin) {
+  Widget _buildInput(String label, IconData icon, TextEditingController controller, {required bool isPin, required bool isNumeric, int? maxLen}) {
     return TextField(
       controller: controller,
       obscureText: isPin && !_showPin,
-      keyboardType: isPin ? TextInputType.number : TextInputType.text,
-      maxLength: isPin ? 6 : 20,
+      keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+      maxLength: maxLen,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 20),

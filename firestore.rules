@@ -31,18 +31,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
-      // İlk kayıt: Sadece kendi dokümanını oluşturabilir, admin/premium yetkisi veremez.
+      // Parent consent alanı yalnız Cloud Functions Admin SDK tarafından yazılır.
       allow create: if isOwner(userId) &&
-                    !request.resource.data.diff({}).affectedKeys().hasAny(['isAdmin', 'isPremium', 'role']);
+                    !request.resource.data.diff({}).affectedKeys().hasAny(['isAdmin', 'isPremium', 'role', 'parentConsent']);
 
       // Güncelleme: Sadece kendi bilgilerini (ad, yaş vb.) güncelleyebilir.
-      // Kritik alanlar (isAdmin, isPremium, uid, kayitTarihi) korunur.
+      // Kritik alanlar ve parent consent istemci tarafından değiştirilemez.
       allow update: if (isOwner(userId) || isAdmin()) &&
                     isUnchanged('isAdmin') &&
                     isUnchanged('isPremium') &&
                     isUnchanged('uid') &&
                     isUnchanged('kayitTarihi') &&
-                    isUnchanged('role');
+                    isUnchanged('role') &&
+                    isUnchanged('parentConsent');
 
       // Silme: Yalnızca sistem yöneticisi silebilir (veya Cloud Function üzerinden).
       allow delete: if isAdmin();
@@ -72,7 +73,6 @@ service cloud.firestore {
         isUnchanged('gemini_hakki') &&
         isUnchanged('riskDurumu') &&
         isUnchanged('riskNedeni') &&
-        isUnchanged('sohbet_gecmisi') &&
         isUnchanged('tamamlanan_bolumler') &&
         isUnchanged('bilinen_dedektif_sorulari')
       );
@@ -115,6 +115,11 @@ service cloud.firestore {
 
     match /deletedAccounts/{id} {
       allow read, write: if isAdmin();
+    }
+
+    match /parentConsentRequests/{id} {
+      // Rule 11: Parent consent requests are strictly managed by Cloud Functions Admin SDK
+      allow read, write: if false;
     }
 
     // Default Deny

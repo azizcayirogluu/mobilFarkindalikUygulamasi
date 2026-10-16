@@ -17,6 +17,7 @@ class TtsService {
 
   TtsService._internal() {
     _initAudioPlayer();
+    _clearOldTempFiles();
   }
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -154,6 +155,24 @@ class TtsService {
       // Silme hatası loglanabilir ama kullanıcıyı etkilemez
     } finally {
       _lastTempFile = null;
+    }
+  }
+
+  Future<void> _clearOldTempFiles() async {
+    if (kIsWeb) return;
+    try {
+      final Directory tempDir = await getTemporaryDirectory();
+      if (!await tempDir.exists()) return;
+      final List<FileSystemEntity> entities = tempDir.listSync();
+      for (final entity in entities) {
+        if (entity is File && entity.path.contains('tts_') && entity.path.endsWith('.mp3')) {
+          try {
+            await entity.delete();
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint("Old TTS temp file cleanup error: $e");
     }
   }
 

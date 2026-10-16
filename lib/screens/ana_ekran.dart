@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/senaryo_detay_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/hikaye_detay_ekrani.dart';
@@ -10,7 +12,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/services/content_service.dart';
 import 'package:zorbalik_uygulamasi/widgets/profile_avatar.dart';
 
-/// Bu ekrana özel tasarım sabitleri (renk, radius, boşluk).
 class _Ui {
   static const background = AppColors.zemin;
   static const surface = Colors.white;
@@ -40,10 +41,6 @@ class AnaSayfa extends StatefulWidget {
   final VoidCallback onProfileTap;
   final Function(int) onTabChanged;
   final String kullaniciAdi;
-
-  /// Üst widget alt navigasyonu içeriğin ÜZERİNE bindiriyorsa
-  /// (extendBody / Stack), o navigasyonun yüksekliğini buradan ver.
-  /// Normal Scaffold.bottomNavigationBar kullanılıyorsa 0 kalmalı.
   final double altKaplamaBoslugu;
 
   const AnaSayfa({
@@ -66,11 +63,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   final User? _currentUser = FirebaseAuth.instance.currentUser;
   final ContentService _contentService = ContentService();
-
-  // Stream'ler build içinde değil bir kez oluşturulur; setState'te
-  // yeniden abone olunup yanıp sönme yaşanmaz.
   Stream<DocumentSnapshot>? _userStream;
   Stream<DocumentSnapshot>? _progressStream;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool? _wasOnline;
 
   @override
   void initState() {
@@ -84,9 +80,26 @@ class _AnaSayfaState extends State<AnaSayfa> {
       _progressStream = _contentService.getUserProgressStream(user.uid);
     }
     _initData();
+    _initConnectivityListener();
   }
 
-  // ───────────────────────── Veri yardımcıları ─────────────────────────
+  void _initConnectivityListener() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+      if (!mounted) return;
+      final bool isNowOnline = results.any((r) => r != ConnectivityResult.none);
+
+      if (_wasOnline == false && isNowOnline) {
+        _initData();
+      }
+      _wasOnline = isNowOnline;
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
 
   Color _hexToColor(String? hexString) {
     if (hexString == null || hexString.isEmpty) return AppColors.anaMavi;
@@ -134,7 +147,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
     return (item['altBaslik'] ?? '').toString();
   }
 
-  /// Puan ve tamamlanan görev sayısı. Hesaplama mantığı eskisiyle aynı.
   _IlerlemeOzeti _ozetle(DocumentSnapshot? snap) {
     if (snap == null || !snap.exists) return const _IlerlemeOzeti(0, 0);
 
@@ -187,7 +199,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
         _isLoading = false;
         _hasError = true;
       });
-      // Liste zaten doluysa ekranı bozmadan sadece bilgilendir.
       if (_kesifHavuzu.isNotEmpty) {
         _showMessage("İçerikler güncellenemedi. Tekrar denemek için ekranı aşağı çek.");
       }
@@ -332,6 +343,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 children: [
                   const Text(
                     "KAHRAMAN GÜNLÜĞÜ",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: _Ui.textSecondary,
                       fontSize: 12,
@@ -435,7 +448,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
           child: Stack(
             children: [
-              // Dekor daireler köşelerde kalır, yazı alanına girmez.
+              // Arka plan dekoratif şekilleri
               Positioned(right: -36, top: -36, child: _blob(112, AppColors.softPink)),
               Positioned(
                 left: -44,
@@ -443,84 +456,119 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 child: _blob(124, AppColors.softPurple.withAlpha(150)),
               ),
               Positioned(right: 28, bottom: -34, child: _blob(72, _Ui.pointBg)),
+
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
+                    // 1. SATIR: İkon, Başlık ve Puan Rozeti
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: _Ui.surface,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.oyunSarisi.withAlpha(60),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _Ui.surface,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.oyunSarisi.withAlpha(60),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
-                              child: const Icon(
-                                Icons.auto_awesome_rounded,
-                                color: AppColors.oyunSarisi,
-                                size: 24,
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: AppColors.oyunSarisi,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                "MACERA SEVİYESİ",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: _Ui.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Gelişimini takip et",
+                                style: TextStyle(
+                                  color: _Ui.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildPointBadge(ozet.puan),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 2. SATIR: Motivasyon Mesajı ve % Yüzde (Progress Bar'ın hemen üstü)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _ilerlemeMesaji(ilerleme),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _Ui.textBody,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            const Text(
+                              "%",
+                              style: TextStyle(
+                                color: _Ui.textSecondary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    "MACERA SEVİYESİ",
-                                    style: TextStyle(
-                                      color: _Ui.textSecondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "%$yuzde tamamlandı ✨",
-                                    style: const TextStyle(
-                                      color: _Ui.textPrimary,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              "$yuzde",
+                              style: const TextStyle(
+                                color: _Ui.textPrimary, // Veya AppColors.oyunSarisi yapabilirsin
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ],
                         ),
-                        _buildPointBadge(ozet.puan),
                       ],
                     ),
-                    const SizedBox(height: 16),
+
+                    const SizedBox(height: 10),
+
+                    // 3. SATIR: Progress Bar
                     _buildProgressBar(ilerleme, yuzde, reduceMotion),
-                    const SizedBox(height: 12),
-                    Text(
-                      _ilerlemeMesaji(ilerleme),
-                      style: const TextStyle(
-                        color: _Ui.textBody,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -665,6 +713,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     children: [
                       Text(
                         (item['tip'] ?? '').toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: koyu,
                           fontWeight: FontWeight.w700,
