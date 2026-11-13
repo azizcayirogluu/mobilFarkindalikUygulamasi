@@ -119,11 +119,3 @@ Tasarımın responsive (duyarlı) yapısını öne çıkaran temel uygulama ekra
 ## 📝 Önemli Yasal Uyarı
 
 **Siber Dost (Kahraman Dostum)**, eğitsel ve farkındalık oluşturma amaçlı bir platformdur; profesyonel psikolojik destek, tıbbi tanı, hukuki danışmanlık veya acil yardım hizmetlerinin yerine geçmez[cite: 10]. Kullanıcı kendisi veya bir başkası için acil bir fiziksel/siber tehlike hissediyorsa, vakit kaybetmeden **112 Acil Çağrı Merkezi**'ne veya güvenilir bir yetişkine başvurmalıdır[cite: 10].
-
-<br>
-
-<div align="center">
-  <strong>Siber Dost</strong> · Dijital dünyada daha bilinçli, daha güvenli ve daha cesur adımlar için.[cite: 10]
-</div>=======
-</div>
->>>>>>> theirs
