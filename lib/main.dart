@@ -33,7 +33,6 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Crashlytics Yapılandırması (Sadece Web dışındaki platformlarda aktiftir)
     if (!kIsWeb) {
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
       PlatformDispatcher.instance.onError = (error, stack) {
@@ -53,8 +52,7 @@ void main() async {
         unawaited(MobileAds.instance.initialize().then((_) {
           MobileAds.instance.updateRequestConfiguration(
             RequestConfiguration(
-              tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
-              tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.yes,
+              ageRestrictedTreatment: AgeRestrictedTreatment.child,
               maxAdContentRating: MaxAdContentRating.g,
             ),
           );
@@ -146,6 +144,14 @@ class AuthGate extends StatelessWidget {
         }
         if (snapshot.hasData && snapshot.data != null) {
           return UserDataGate(uid: snapshot.data!.uid);
+        }
+        final pendingRequestId = StorageService().getPendingRequestId();
+        if (pendingRequestId != null && pendingRequestId.isNotEmpty) {
+          final pendingParentEmail = StorageService().getPendingParentEmail() ?? '';
+          return ParentConsentPendingEkrani(
+            requestId: pendingRequestId,
+            parentEmail: pendingParentEmail,
+          );
         }
         return const KarsilamaEkrani();
       },

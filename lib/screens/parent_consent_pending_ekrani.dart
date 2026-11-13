@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,15 +6,18 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/gizlilik_politikasi_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 import 'package:zorbalik_uygulamasi/utils/app_logger.dart';
 
 class ParentConsentPendingEkrani extends StatefulWidget {
-  final String uid;
+  final String? uid;
+  final String? requestId;
   final String parentEmail;
 
   const ParentConsentPendingEkrani({
     super.key,
-    required this.uid,
+    this.uid,
+    this.requestId,
     required this.parentEmail,
   });
 
@@ -23,12 +27,124 @@ class ParentConsentPendingEkrani extends StatefulWidget {
 
 class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani> {
   bool _resending = false;
+  bool _checkingStatus = false;
   late String _currentEmail;
+  Timer? _statusCheckTimer;
 
   @override
   void initState() {
     super.initState();
     _currentEmail = widget.parentEmail;
+    if (widget.requestId != null && widget.requestId!.isNotEmpty) {
+      _startStatusPolling();
+    }
+  }
+
+  @override
+  void dispose() {
+    _statusCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startStatusPolling() {
+    _statusCheckTimer?.cancel();
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) {
+        _checkPreAuthConsentStatus(silent: true);
+      }
+    });
+  }
+
+  Future<void> _checkPreAuthConsentStatus({bool silent = false}) async {
+    final reqId = widget.requestId;
+    if (reqId == null || reqId.isEmpty || _checkingStatus) return;
+
+    if (!silent) setState(() => _checkingStatus = true);
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('checkPendingRegistrationStatus');
+      final response = await callable.call({'requestId': reqId});
+      final data = response.data as Map?;
+      final status = (data?['status'] ?? '').toString();
+
+      if (status == 'approved') {
+        _statusCheckTimer?.cancel();
+        await _finalizePreAuthRegistration(reqId);
+      } else if (status == 'expired') {
+        _statusCheckTimer?.cancel();
+        await StorageService().clearPendingRequestId();
+        if (mounted && !silent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Onay süresi doldu. Lütfen yeniden kayıt olun."),
+              backgroundColor: Colors.orangeAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Ebeveyniniz henüz onay vermedi. Onaylandığında otomatik giriş yapacaksınız. ✉️"),
+            backgroundColor: AppColors.anaMavi,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error("checkPendingRegistrationStatus error", e);
+    } finally {
+      if (mounted && !silent) setState(() => _checkingStatus = false);
+    }
+  }
+
+  Future<void> _finalizePreAuthRegistration(String reqId) async {
+    if (_checkingStatus) return;
+    setState(() => _checkingStatus = true);
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('finalize612Registration');
+      final response = await callable.call({'requestId': reqId});
+      final data = response.data as Map?;
+      final email = (data?['canonicalEmail'] ?? '').toString();
+      final pin = (data?['pin'] ?? '').toString();
+
+      if (email.isNotEmpty && pin.isNotEmpty) {
+        await StorageService().clearPendingRequestId();
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: pin,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ebeveyniniz onay verdi! Kahraman dünyasına hoş geldin! 🎉"),
+              backgroundColor: AppColors.basariYesili,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      }
+    } on FirebaseFunctionsException catch (e) {
+      AppLogger.error("finalize612Registration error", e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Kayıt tamamlanamadı."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error("finalize612Registration beklenmeyen hata", e);
+    } finally {
+      if (mounted) setState(() => _checkingStatus = false);
+    }
   }
 
   Future<void> _resendEmail() async {
@@ -36,13 +152,18 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
     setState(() => _resending = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await user.getIdToken();
-      }
+      if (widget.requestId != null && widget.requestId!.isNotEmpty) {
+        final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+            .httpsCallable('resend612ParentConsent');
+        await callable.call({'requestId': widget.requestId});
+      } else {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) await user.getIdToken();
 
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('requestParentConsent');
-      await callable.call({'parentEmail': _currentEmail});
+        final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+            .httpsCallable('requestParentConsent');
+        await callable.call({'parentEmail': _currentEmail});
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -94,7 +215,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
               title: const Text('Ebeveyn E-Postasını Değiştir', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-              // Klavye açıldığında taşmayı önlemek için SingleChildScrollView eklendi
               content: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Column(
@@ -137,26 +257,40 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                     setDialogState(() => loading = true);
 
                     try {
-                      final user = FirebaseAuth.instance.currentUser;
-                      if (user != null) await user.getIdToken();
+                      if (widget.requestId != null && widget.requestId!.isNotEmpty) {
+                        final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+                            .httpsCallable('update612ParentEmail');
+                        await callable.call({
+                          'requestId': widget.requestId,
+                          'newParentEmail': newEmail,
+                        });
+                      } else {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) await user.getIdToken();
 
-                      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('updateParentEmail');
-                      await callable.call({'newParentEmail': newEmail});
+                        final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+                            .httpsCallable('updateParentEmail');
+                        await callable.call({'newParentEmail': newEmail});
+                      }
+
+                      await StorageService().savePendingParentEmail(newEmail);
 
                       if (mounted) {
                         setState(() => _currentEmail = newEmail);
-                        Navigator.pop(dialogContext);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Ebeveyn e-postası güncellendi ve yeni onay linki gönderildi! ✉️'),
-                            backgroundColor: AppColors.basariYesili,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Ebeveyn e-postası güncellendi ve yeni onay linki gönderildi! ✉️'),
+                              backgroundColor: AppColors.basariYesili,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
                     } catch (e) {
                       AppLogger.error("Ebeveyn e-posta güncelleme hatası", e);
-                      if (mounted) {
+                      if (mounted && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('E-posta güncellenirken bir hata oluştu.'),
@@ -169,7 +303,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                       setDialogState(() => loading = false);
                     }
                   },
-                  // Buton metni sığmazsa taşmasını engellemek için FittedBox
                   child: loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : const FittedBox(fit: BoxFit.scaleDown, child: Text('Güncelle ve Gönder')),
@@ -182,18 +315,22 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
     );
   }
 
-  Future<void> _signOut() async {
+  Future<void> _cancelAndClearPending() async {
+    _statusCheckTimer?.cancel();
+    await StorageService().clearPendingRequestId();
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
-    // Çıkış sonrası ekranı AuthGate belirler (oturum yok -> Karşılama ekranı).
-    // Yeni bir route ile yığını sıfırlamak AuthGate'i kaldırıyordu.
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
   Widget build(BuildContext context) {
+    final uid = widget.uid;
+
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(widget.uid).snapshots(),
+      stream: (uid != null && uid.isNotEmpty)
+          ? FirebaseFirestore.instance.collection('users').doc(uid).snapshots()
+          : const Stream.empty(),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
@@ -209,8 +346,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           body: SafeArea(
-            // Ana içerik küçük ekranlarda kaydırılabilir, büyük ekranlarda ise ortalanmış kalması için
-            // CustomScrollView ve SliverFillRemaining kullanıldı. Bu, Spacer() kullanımını bozmadan taşmayı önler.
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
@@ -284,7 +419,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                             children: [
                               const Icon(Icons.mail_outline_rounded, color: AppColors.anaMavi, size: 20),
                               const SizedBox(width: 12),
-                              // Buradaki Expanded ve TextOverflow.ellipsis halihazırda duyarlıydı, korundu.
                               Expanded(
                                 child: Text(
                                   _currentEmail.isEmpty ? "Ebeveyn e-posta adresini ekleyin" : _currentEmail,
@@ -305,7 +439,28 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+
+                        // Check status button (manual trigger)
+                        if (widget.requestId != null && widget.requestId!.isNotEmpty) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.anaMavi,
+                                side: const BorderSide(color: AppColors.anaMavi, width: 1.5),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              onPressed: _checkingStatus ? null : () => _checkPreAuthConsentStatus(silent: false),
+                              icon: _checkingStatus
+                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.refresh_rounded, size: 20),
+                              label: const Text("ONAYI KONTROL ET", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
 
                         // Resend Button
                         SizedBox(
@@ -322,7 +477,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                             icon: _resending
                                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                                 : const Icon(Icons.send_rounded, size: 18),
-                            // Dar ekranlarda uzun buton metninin sağdan soldan kesilmesini önlemek için FittedBox eklendi
                             label: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
@@ -344,7 +498,6 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
                               MaterialPageRoute(builder: (_) => const GizlilikPolitikasiEkrani()),
                             );
                           },
-                          // Dar ekranlar için FittedBox
                           child: const FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -356,15 +509,14 @@ class _ParentConsentPendingEkraniState extends State<ParentConsentPendingEkrani>
 
                         const Spacer(),
 
-                        // Sign out button
+                        // Sign out / Cancel button
                         TextButton.icon(
-                          onPressed: _signOut,
-                          icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
-                          // Dar ekranlar için FittedBox
+                          onPressed: _cancelAndClearPending,
+                          icon: const Icon(Icons.close_rounded, size: 18, color: Colors.redAccent),
                           label: const FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              "Çıkış Yap / Başka Hesapla Giriş Yap",
+                              "İptal Et / Başka Hesapla Giriş Yap",
                               style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ),

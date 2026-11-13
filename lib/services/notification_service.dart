@@ -145,6 +145,23 @@ class NotificationService {
     }
   }
 
+  /// FCM Konu Aboneliğini Aç/Kapa
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    try {
+      if (!kIsWeb) {
+        if (enabled) {
+          await _fcm.subscribeToTopic('all_users');
+          if (kDebugMode) debugPrint("FCM 'all_users' konusuna abone olundu. ✅");
+        } else {
+          await _fcm.unsubscribeFromTopic('all_users');
+          if (kDebugMode) debugPrint("FCM 'all_users' konusu aboneliği iptal edildi. 🛑");
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint("FCM konu aboneliği değiştirme hatası: $e");
+    }
+  }
+
   /// Manuel yerel bildirim gösterimi.
   Future<void> showLocalNotification(String title, String body) async {
     await _localNotifications.show(

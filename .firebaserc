@@ -1,6 +1,8 @@
 {
   "projects": {
-    "default": "tubitak-akran-zorbaligi"
+    "default": "tubitak-akran-zorbaligi",
+    "production": "tubitak-akran-zorbaligi",
+    "development": "tubitak-akran-zorbaligi-dev"
   },
   "targets": {
     "tubitak-akran-zorbaligi": {

@@ -102,10 +102,45 @@ class StorageService {
     await _prefs.setInt('chat_limit', current + count);
   }
 
+  // --- BİLDİRİM AYARLARI ---
+
+  bool getNotificationsEnabled() {
+    return _prefs.getBool('notifications_enabled') ?? true;
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    await _prefs.setBool('notifications_enabled', enabled);
+  }
+
   Future<void> clearUserData() async {
     await _secureStorage.delete(key: 'auth_token');
     await _prefs.remove('chat_limit');
+    await _prefs.remove('notifications_enabled');
+    await clearPendingRequestId();
     await clearLoginSecurityData();
+  }
+
+  // --- BEKLEYEN 6-12 KAYIT SİSTEMİ ---
+
+  Future<void> savePendingRequestId(String requestId) async {
+    await _prefs.setString('pending_request_id', requestId);
+  }
+
+  String? getPendingRequestId() {
+    return _prefs.getString('pending_request_id');
+  }
+
+  Future<void> clearPendingRequestId() async {
+    await _prefs.remove('pending_request_id');
+    await _prefs.remove('pending_parent_email');
+  }
+
+  Future<void> savePendingParentEmail(String email) async {
+    await _prefs.setString('pending_parent_email', email);
+  }
+
+  String? getPendingParentEmail() {
+    return _prefs.getString('pending_parent_email');
   }
 
   // Standart API desteği için ek metodlar

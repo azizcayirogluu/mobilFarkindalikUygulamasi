@@ -35,7 +35,7 @@ class _BadgeManagerState extends State<BadgeManager> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -105,15 +105,15 @@ class _BadgeManagerState extends State<BadgeManager> {
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: badgeColor.withOpacity(0.15), width: 1.5),
-        boxShadow: [BoxShadow(color: badgeColor.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 6))],
+        border: Border.all(color: badgeColor.withValues(alpha: 0.15), width: 1.5),
+        boxShadow: [BoxShadow(color: badgeColor.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 6))],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: badgeColor.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(_getIconData(data['ikon']), color: badgeColor, size: 40),
           ),
           const SizedBox(height: 16),
@@ -121,7 +121,7 @@ class _BadgeManagerState extends State<BadgeManager> {
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: badgeColor.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)),
             child: Text(
               data['kriter_tipi'] == 'puan' ? "${data['hedef_deger']} Puan" : "${data['hedef_deger']} Senaryo",
               style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.w800),
@@ -150,7 +150,7 @@ class _BadgeManagerState extends State<BadgeManager> {
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            border: Border.all(color: c.withOpacity(0.2)),
+            border: Border.all(color: c.withValues(alpha: 0.2)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(i, color: c, size: 20),
@@ -188,7 +188,7 @@ class _BadgeManagerState extends State<BadgeManager> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: currentType,
+                    initialValue: currentType,
                     decoration: InputDecoration(labelText: "Kriter Tipi", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                     items: const [
                       DropdownMenuItem(value: 'puan', child: Text("Toplam Puan")),
@@ -214,7 +214,7 @@ class _BadgeManagerState extends State<BadgeManager> {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: isSel ? _parseColor(currentColor).withOpacity(0.1) : Colors.transparent,
+                            color: isSel ? _parseColor(currentColor).withValues(alpha: 0.1) : Colors.transparent,
                             border: Border.all(color: isSel ? _parseColor(currentColor) : Colors.grey.shade300, width: 2),
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -267,6 +267,7 @@ class _BadgeManagerState extends State<BadgeManager> {
                 } else {
                   await _firestore.collection('badges').doc(docId).update(data);
                 }
+                if (!c.mounted) return;
                 Navigator.pop(c);
               },
               child: const Text("KAYDET"),

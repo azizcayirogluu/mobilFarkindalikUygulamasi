@@ -12,7 +12,7 @@ import 'package:zorbalik_uygulamasi/services/ad_manager.dart';
 import 'package:zorbalik_uygulamasi/utils/app_logger.dart';
 import 'package:zorbalik_uygulamasi/screens/siber_imdat_ekrani.dart';
 
-/// Bu ekrana özel tasarım sabitleri (ana ekranla aynı palet ve ölçü dili).
+/// Bu ekrana özel tasarım sabitleri (Kahraman Dostum evrenine özel ölçü dili).
 class _Ui {
   static const background = AppColors.zemin;
   static const surface = Colors.white;
@@ -42,12 +42,14 @@ BoxDecoration _balonDekor({required bool isMe}) {
       bottomLeft: Radius.circular(isMe ? _Ui.radiusBubble : _Ui.radiusTail),
       bottomRight: Radius.circular(isMe ? _Ui.radiusTail : _Ui.radiusBubble),
     ),
-    border: isMe ? null : Border.all(color: _Ui.border),
+    border: isMe
+        ? null
+        : Border.all(color: AppColors.softPurple.withValues(alpha: 0.6), width: 1.5),
     boxShadow: [
       BoxShadow(
-        color: AppColors.yaziRengi.withAlpha(10),
-        blurRadius: 8,
-        offset: const Offset(0, 2),
+        color: AppColors.yaziRengi.withValues(alpha: 0.05),
+        blurRadius: 10,
+        offset: const Offset(0, 3),
       ),
     ],
   );
@@ -94,14 +96,19 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     final uid = user.uid;
 
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (mounted && userDoc.exists) {
         setState(() {
-          _isExempt = userDoc.data()?['isAdmin'] == true || userDoc.data()?['isPremium'] == true;
+          _isExempt = userDoc.data()?['isAdmin'] == true ||
+              userDoc.data()?['isPremium'] == true;
         });
       }
 
-      final progressDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(uid).get();
+      final progressDoc = await FirebaseFirestore.instance
+          .collection('usersProgress')
+          .doc(uid)
+          .get();
       if (mounted && progressDoc.exists) {
         final pData = progressDoc.data();
         if (pData != null) {
@@ -126,12 +133,12 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     setState(() {
       _mesajlar.add({
         "role": "assistant",
-        "metin": "Selam $ad! 🤖 Bugün siber dünyada neler yaptın? Merak ettiğin her şeyi bana sorabilirsin! ✨"
+        "metin":
+        "Selam $ad! Ben Siber Dost. Aklına takılan bir şey varsa, yaşadığın bir durumu anlatmak ya da bir konuda ne yapabileceğini öğrenmek istiyorsan buradayımm."
       });
     });
   }
 
-  /// Aktif oturum sohbet belleğini sıfırlar (Firestore'a müdahale etmez)
   void clearChatSession() {
     if (mounted) {
       setState(() {
@@ -149,29 +156,36 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       builder: (c) => AlertDialog(
         backgroundColor: _Ui.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_Ui.radiusDialog)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_Ui.radiusDialog)),
         icon: const _DialogIkon(
           icon: Icons.delete_outline_rounded,
           background: AppColors.softPink,
           color: _Ui.dangerText,
         ),
         title: const Text("Sohbeti temizleyelim mi?"),
-        titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
+        titleTextStyle: const TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
         content: const Text(
           "Bu oturumdaki tüm mesajlar temizlenecek. Yeni bir sohbet başlatmak ister misin?",
           textAlign: TextAlign.center,
         ),
-        contentTextStyle: const TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
+        contentTextStyle:
+            const TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
         actions: [
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
             onPressed: () => Navigator.pop(c, false),
-            child: const Text("Vazgeç", style: TextStyle(color: _Ui.textSecondary, fontWeight: FontWeight.w600)),
+            child: const Text("Vazgeç",
+                style: TextStyle(
+                    color: _Ui.textSecondary, fontWeight: FontWeight.w600)),
           ),
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
             onPressed: () => Navigator.pop(c, true),
-            child: const Text("Evet, temizle", style: TextStyle(color: _Ui.dangerText, fontWeight: FontWeight.w700)),
+            child: const Text("Evet, temizle",
+                style: TextStyle(
+                    color: _Ui.dangerText, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -185,11 +199,15 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   Future<void> _mesajGonder(String metin) async {
     final temizMetin = metin.trim();
     if (temizMetin.isEmpty || _yukleniyor) return;
-    if (!_isExempt && _kalanHak <= 0) { _enerjiUyarisi(); return; }
+    if (!_isExempt && _kalanHak <= 0) {
+      _enerjiUyarisi();
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppLogger.error("SiberAsistan: Mesaj gönderilemedi, oturum kapalı.", "unauthenticated");
+      AppLogger.error(
+          "SiberAsistan: Mesaj gönderilemedi, oturum kapalı.", "unauthenticated");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -201,7 +219,6 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       return;
     }
 
-    // Aktif oturum geçmişi payload'ı (Gemini bağlamı için geçici olarak gönderilir, veritabanına yazılmaz)
     final sessionHistory = _mesajlar
         .where((m) => (m['metin'] ?? '').isNotEmpty)
         .map((m) => {
@@ -223,13 +240,13 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         "Project: ${Firebase.app().options.projectId}, "
         "Region: europe-west1, "
         "Function: geminiChat, "
-        "UID: ${user.uid}"
+        "UID: ${user.uid}",
       );
 
-      // Token tazeleme garantisi
       await user.getIdToken();
 
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('geminiChat');
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('geminiChat');
       final result = await callable.call({
         'mesaj': temizMetin,
         'gecmis': sessionHistory,
@@ -247,26 +264,33 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       if (_sesAcik) _ttsService.speak(botCevabi);
       if (data?['riskLevel'] == 'IMMINENT') _tehlikeYonlendirmesi();
     } on FirebaseFunctionsException catch (e, stack) {
-      AppLogger.error("geminiChat FirebaseFunctionsException: [${e.code}] ${e.message}", e, stack);
+      AppLogger.error(
+          "geminiChat FirebaseFunctionsException: [${e.code}] ${e.message}",
+          e,
+          stack);
 
-      // 401 unauthenticated durumunda token force-refresh yapıp bir kez daha dene
       if (e.code == 'unauthenticated') {
         try {
-          AppLogger.log("SiberAsistan: Unauthenticated hatası alındı, token yenilenerek tekrar deneniyor...");
+          AppLogger.log(
+              "SiberAsistan: Unauthenticated hatası alındı, token yenilenerek tekrar deneniyor...");
           await user.getIdToken(true);
-          final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('geminiChat');
+          final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+              .httpsCallable('geminiChat');
           final retryResult = await callable.call({
             'mesaj': temizMetin,
             'gecmis': sessionHistory,
           });
           if (!mounted) return;
           final retryData = retryResult.data as Map?;
-          final botCevabi = retryData?['cevap']?.toString() ?? 'Buradayım Kahraman! 💙';
+          final botCevabi =
+              retryData?['cevap']?.toString() ?? 'Buradayım Kahraman! 💙';
 
           setState(() {
             _yukleniyor = false;
             _mesajlar.add({"role": "assistant", "metin": botCevabi});
-            if (retryData?['newLimit'] != null) _kalanHak = retryData!['newLimit'];
+            if (retryData?['newLimit'] != null) {
+              _kalanHak = retryData!['newLimit'];
+            }
           });
 
           if (_sesAcik) _ttsService.speak(botCevabi);
@@ -278,7 +302,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         }
       }
 
-      final offlineCevap = await _offlineEngine.getResponseForMessage(temizMetin);
+      final offlineCevap =
+          await _offlineEngine.getResponseForMessage(temizMetin);
       if (mounted) {
         setState(() {
           _yukleniyor = false;
@@ -289,7 +314,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
     } catch (e, stack) {
       debugPrint("geminiChat Hatasi: $e");
       AppLogger.error("Siber Asistan geminiChat Hatasi", e, stack);
-      final offlineCevap = await _offlineEngine.getResponseForMessage(temizMetin);
+      final offlineCevap =
+          await _offlineEngine.getResponseForMessage(temizMetin);
       if (mounted) {
         setState(() {
           _yukleniyor = false;
@@ -302,7 +328,12 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   void _tehlikeYonlendirmesi() {
-    Future.delayed(1.seconds, () { if (mounted) Navigator.push(context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani())); });
+    Future.delayed(1.seconds, () {
+      if (mounted) {
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const SiberImdatEkrani()));
+      }
+    });
   }
 
   void _enerjiUyarisi() {
@@ -311,37 +342,45 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       builder: (c) => AlertDialog(
         backgroundColor: _Ui.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_Ui.radiusDialog)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_Ui.radiusDialog)),
         icon: const _DialogIkon(
           icon: Icons.bolt_rounded,
           background: _Ui.pointBg,
           color: AppColors.oyunSarisi,
         ),
-        title: const Text("Enerjin bitti"),
-        titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
+        title: const Text("Siber Enerjin Bitti"),
+        titleTextStyle: const TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
         content: const Text(
-          "Siber Asistan'ın biraz dinlenmesi gerek. Reklam izleyerek +5 hak kazanabilirsin!",
+          "Siber Dost'un biraz dinlenmesi gerek. Kısa bir video izleyerek +5 Siber Enerji kazanabilirsin!",
           textAlign: TextAlign.center,
         ),
-        contentTextStyle: const TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
+        contentTextStyle:
+            const TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
         actions: [
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
             onPressed: () => Navigator.pop(c),
-            child: const Text("Vazgeç", style: TextStyle(color: _Ui.textSecondary, fontWeight: FontWeight.w600)),
+            child: const Text("Vazgeç",
+                style: TextStyle(
+                    color: _Ui.textSecondary, fontWeight: FontWeight.w600)),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.anaMavi,
               minimumSize: const Size(0, 48),
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
             ),
             onPressed: () {
               Navigator.pop(c);
               _reklamIzle();
             },
             icon: const Icon(Icons.play_circle_rounded, size: 20),
-            label: const Text("Reklam izle", style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text("Kazan (+5 ⚡)",
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -356,7 +395,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           if (user != null) {
             await user.getIdToken();
           }
-          final callable = FirebaseFunctions.instanceFor(region: 'europe-west1').httpsCallable('grantAdReward');
+          final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+              .httpsCallable('grantAdReward');
           await callable.call();
           if (mounted) {
             setState(() {
@@ -365,12 +405,14 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text(
-                  "Harika! +5 Enerji Kazandın! ⚡",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  "Harika! +5 Siber Enerji Kazandın! ⚡",
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 backgroundColor: AppColors.basariYesili,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
             );
           }
@@ -396,7 +438,10 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: 300.ms, curve: Curves.easeOut);
+        _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: 300.ms,
+            curve: Curves.easeOut);
       }
     });
   }
@@ -438,7 +483,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       titleSpacing: 0,
       leading: IconButton(
         tooltip: "Geri",
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: _Ui.textBody),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+            size: 20, color: _Ui.textBody),
         onPressed: () => Navigator.pop(context),
       ),
       title: GestureDetector(
@@ -451,16 +497,49 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           );
         },
         behavior: HitTestBehavior.opaque,
-        child: const Row(
+        child: Row(
           children: [
-            _BotAvatar(size: 36),
-            SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                "Kahraman Dostum",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: _Ui.textPrimary, fontWeight: FontWeight.w800, fontSize: 17),
+            const _BotAvatar(size: 40, isOnline: true),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Kahraman Dostum",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _Ui.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.basariYesili,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        "Buradayım · Güvenli Alan",
+                        style: TextStyle(
+                          color: AppColors.basariYesili,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -469,7 +548,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       actions: [
         IconButton(
           tooltip: "Sohbeti temizle",
-          icon: const Icon(Icons.delete_outline_rounded, color: _Ui.textBody, size: 24),
+          icon: const Icon(Icons.delete_outline_rounded,
+              color: _Ui.textBody, size: 22),
           onPressed: _sohbetiTemizle,
         ),
         IconButton(
@@ -477,7 +557,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
           icon: Icon(
             _sesAcik ? Icons.volume_up_rounded : Icons.volume_off_rounded,
             color: _sesAcik ? AppColors.anaMavi : _Ui.textBody,
-            size: 24,
+            size: 22,
           ),
           onPressed: () {
             setState(() {
@@ -486,7 +566,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
             });
           },
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
       ],
       bottom: const PreferredSize(
         preferredSize: Size.fromHeight(1),
@@ -497,11 +577,18 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
   Widget _buildStatsBar() {
     final enerjiBitti = !_isExempt && _kalanHak <= 0;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 10, _Ui.chatPadding, 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    final int hakGosterim = _kalanHak.clamp(0, 5);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: _Ui.chatPadding, vertical: 10),
+      decoration: BoxDecoration(
+        color: _Ui.surface,
+        border: const Border(bottom: BorderSide(color: _Ui.border, width: 1)),
+      ),
+      child: Row(
         children: [
+          // Gamified Energy Badge
           GestureDetector(
             onTap: () {
               ScaffoldMessenger.of(context)
@@ -511,7 +598,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
                     content: Text(
                       _isExempt
                           ? "Sınırsız mesaj hakkına sahipsin! ✨"
-                          : "Her mesaj 1 Enerji tüketir. Enerjin bittiğinde video izleyerek +5 Enerji kazanabilirsin! ⚡",
+                          : "Her mesaj 1 Siber Enerji tüketir. Enerjin bittiğinde video izleyerek +5 Enerji kazanabilirsin! ⚡",
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     backgroundColor: AppColors.anaMavi,
@@ -520,21 +607,68 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
                   ),
                 );
             },
-            child: _StatChip(
-              icon: Icons.bolt_rounded,
-              label: _isExempt ? "Sınırsız Güç" : "$_kalanHak Enerji",
-              background: enerjiBitti ? AppColors.softPink : _Ui.pointBg,
-              foreground: enerjiBitti ? _Ui.dangerText : _Ui.pointText,
-              iconColor: enerjiBitti ? _Ui.dangerText : AppColors.oyunSarisi,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: enerjiBitti ? AppColors.softPink : _Ui.pointBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: enerjiBitti
+                      ? _Ui.dangerText.withValues(alpha: 0.3)
+                      : AppColors.oyunSarisi.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    color: enerjiBitti ? _Ui.dangerText : AppColors.oyunSarisi,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _isExempt ? "Sınırsız Güç" : "⚡ $_kalanHak Enerji",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      color: enerjiBitti ? _Ui.dangerText : _Ui.pointText,
+                    ),
+                  ),
+                  if (!_isExempt) ...[
+                    const SizedBox(width: 8),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => Container(
+                          margin: const EdgeInsets.only(left: 2),
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: index < hakGosterim
+                                ? AppColors.oyunSarisi
+                                : Colors.black12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            _isExempt
-                ? "Sohbetlerin bu oturum sonunda otomatik temizlenir 🔒"
-                : "Enerjin bittiğinde video izleyerek +5 Enerji kazanabilirsin! ⚡",
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: _Ui.textSecondary, fontWeight: FontWeight.w600),
+          const Spacer(),
+          const Icon(Icons.lock_outline_rounded,
+              size: 13, color: _Ui.textSecondary),
+          const SizedBox(width: 4),
+          const Text(
+            "Geçici Sohbet 🔒",
+            style: TextStyle(
+              fontSize: 11,
+              color: _Ui.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -552,7 +686,8 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 16, _Ui.chatPadding, 8),
+      padding:
+          const EdgeInsets.fromLTRB(_Ui.chatPadding, 16, _Ui.chatPadding, 8),
       physics: const BouncingScrollPhysics(),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemCount: _mesajlar.length,
@@ -570,23 +705,58 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.all(32),
+    return Padding(
+      padding: const EdgeInsets.all(28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _BotAvatar(size: 64),
-          SizedBox(height: 16),
-          Text(
-            "Merhaba Kahraman!",
+          const _BotAvatar(size: 80, isOnline: true),
+          const SizedBox(height: 20),
+          const Text(
+            "Selam Kahraman! 👋",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _Ui.textPrimary),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: _Ui.textPrimary,
+              letterSpacing: -0.5,
+            ),
           ),
-          SizedBox(height: 8),
-          Text(
-            "Siber dünyayla ilgili merak ettiklerini bana sorabilirsin.",
+          const SizedBox(height: 8),
+          const Text(
+            "Bugün aklına takılan ne var?",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, height: 1.4, color: _Ui.textBody),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.anaMavi,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _Ui.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x05000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Text(
+              "İnternette, arkadaşlıklarında veya zorbalıkla ilgili merak ettiğin her şeyi bana sorabilirsin.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13.5,
+                height: 1.45,
+                color: _Ui.textBody,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
@@ -600,7 +770,7 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         height: 8,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _Ui.textSecondary.withAlpha(170),
+          color: AppColors.anaMavi.withValues(alpha: 0.8),
         ),
       );
       return Padding(
@@ -608,18 +778,19 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
         child: reduceMotion
             ? dot
             : dot
-            .animate(
-          delay: (i * 160).ms,
-          onPlay: (c) => c.repeat(reverse: true),
-        )
-            .fade(begin: 0.3, end: 1.0, duration: 500.ms),
+                .animate(
+                  delay: (i * 160).ms,
+                  onPlay: (c) => c.repeat(reverse: true),
+                )
+                .fade(begin: 0.3, end: 1.0, duration: 500.ms),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 0, _Ui.chatPadding, 8),
+      padding:
+          const EdgeInsets.fromLTRB(_Ui.chatPadding, 0, _Ui.chatPadding, 12),
       child: Semantics(
-        label: "Asistan yazıyor",
+        label: "Siber Dost düşünüyor",
         liveRegion: true,
         child: ExcludeSemantics(
           child: Row(
@@ -628,11 +799,25 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
               const _BotAvatar(size: 32),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: _balonDekor(isMe: false),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [nokta(0), nokta(1), nokta(2)],
+                  children: [
+                    const Text(
+                      "Düşünüyorum ",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: _Ui.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    nokta(0),
+                    nokta(1),
+                    nokta(2),
+                  ],
                 ),
               ),
             ],
@@ -643,25 +828,89 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
   }
 
   Widget _buildQuickActions() {
-    const actions = ["Zorbalık nedir? ❓", "Oyun oynayalım! 🎮", "Nasıl güvende kalırım 🛡️"];
+    final actions = [
+      (
+        icon: Icons.shield_rounded,
+        title: "Güvende kalmak istiyorum",
+        color: const Color(0xFF10B981),
+        prompt: "İnternette nasıl daha güvende kalabilirim? 🛡️",
+      ),
+      (
+        icon: Icons.chat_bubble_rounded,
+        title: "Bir şey oldu, anlatmak istiyorum",
+        color: const Color(0xFF6366F1),
+        prompt: "Birisi canımı sıktı, seninle konuşmak istiyorum. 💬",
+      ),
+      (
+        icon: Icons.search_rounded,
+        title: "Bu davranım zorbalık mı?",
+        color: const Color(0xFFF59E0B),
+        prompt: "Bana yapılan şey zorbalık mı, nasıl anlarım? 🔎",
+      ),
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 4, _Ui.chatPadding, 8),
+      padding:
+          const EdgeInsets.fromLTRB(_Ui.chatPadding, 4, _Ui.chatPadding, 10),
       child: Row(
         children: [
-          for (final aksiyon in actions)
+          for (final item in actions)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ActionChip(
-                label: Text(
-                  aksiyon,
-                  style: const TextStyle(color: AppColors.anaMavi, fontWeight: FontWeight.w600, fontSize: 13),
+              padding: const EdgeInsets.only(right: 10),
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: _yukleniyor ? null : () => _mesajGonder(item.prompt),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: item.color.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: item.color.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: item.color.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(item.icon, color: item.color, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            color: _Ui.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: item.color,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                backgroundColor: _Ui.surface,
-                side: BorderSide(color: AppColors.anaMavi.withAlpha(50)),
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                onPressed: _yukleniyor ? null : () => _mesajGonder(aksiyon),
               ),
             ),
         ],
@@ -682,40 +931,73 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(_Ui.chatPadding, 10, _Ui.chatPadding, 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  minLines: 1,
-                  maxLines: 4,
-                  keyboardType: TextInputType.text,
-                  textInputAction: TextInputAction.send,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: const TextStyle(fontSize: 15, color: _Ui.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: "Mesajını yaz...",
-                    hintStyle: const TextStyle(color: _Ui.textSecondary),
-                    filled: true,
-                    fillColor: _Ui.inputFill,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                    border: inputBorder,
-                    enabledBorder: inputBorder,
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(_Ui.radiusInput),
-                      borderSide: BorderSide(color: AppColors.anaMavi.withAlpha(90), width: 1.5),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Kişisel bilgi uyarı çubuğu (Çocuk güvenliği)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              color: const Color(0xFFEFF6FF),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shield_outlined,
+                      size: 12, color: Color(0xFF3B82F6)),
+                  SizedBox(width: 6),
+                  Text(
+                    "🔒 Kişisel bilgilerini (adres, telefon, şifre) kimseyle paylaşma.",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D4ED8),
                     ),
                   ),
-                  onSubmitted: _mesajGonder,
-                ),
+                ],
               ),
-              const SizedBox(width: 10),
-              _buildSendButton(),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  _Ui.chatPadding, 10, _Ui.chatPadding, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      minLines: 1,
+                      maxLines: 4,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.send,
+                      textCapitalization: TextCapitalization.sentences,
+                      style:
+                          const TextStyle(fontSize: 15, color: _Ui.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: "Siber Dost'a bir şey sor...",
+                        hintStyle: const TextStyle(
+                            color: _Ui.textSecondary, fontSize: 14),
+                        filled: true,
+                        fillColor: _Ui.inputFill,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 14),
+                        border: inputBorder,
+                        enabledBorder: inputBorder,
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(_Ui.radiusInput),
+                          borderSide: BorderSide(
+                              color: AppColors.anaMavi.withValues(alpha: 0.9),
+                              width: 1.5),
+                        ),
+                      ),
+                      onSubmitted: _mesajGonder,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildSendButton(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -727,7 +1009,9 @@ class _SiberAsistanEkraniState extends State<SiberAsistanEkrani> {
       enabled: !_yukleniyor,
       label: "Gönder",
       child: Material(
-        color: _yukleniyor ? AppColors.anaMavi.withAlpha(110) : AppColors.anaMavi,
+        color: _yukleniyor
+            ? AppColors.anaMavi.withValues(alpha: 0.4)
+            : AppColors.anaMavi,
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
@@ -753,30 +1037,36 @@ class _ChatBubble extends StatelessWidget {
     final metin = msg['metin'] ?? '';
 
     return Semantics(
-      label: "${isMe ? 'Sen' : 'Asistan'}: $metin",
+      label: "${isMe ? 'Sen' : 'Siber Dost'}: $metin",
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: LayoutBuilder(
             builder: (context, box) {
-              final avatarAlani = isMe ? 0.0 : 40.0;
-              final maxBalon = (box.maxWidth * 0.84 - avatarAlani).clamp(0.0, 520.0).toDouble();
+              final avatarAlani = isMe ? 0.0 : 42.0;
+              final maxBalon =
+                  (box.maxWidth * 0.84 - avatarAlani).clamp(0.0, 520.0).toDouble();
 
               return Row(
-                mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                mainAxisAlignment:
+                    isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (!isMe) ...const [_BotAvatar(size: 32), SizedBox(width: 8)],
+                  if (!isMe) ...[
+                    const _BotAvatar(size: 34),
+                    const SizedBox(width: 8)
+                  ],
                   ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxBalon),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       decoration: _balonDekor(isMe: isMe),
                       child: Text(
                         metin,
                         style: TextStyle(
                           color: isMe ? Colors.white : _Ui.textPrimary,
-                          fontSize: 15,
+                          fontSize: 14.5,
                           height: 1.45,
                           fontWeight: FontWeight.w500,
                         ),
@@ -795,15 +1085,59 @@ class _ChatBubble extends StatelessWidget {
 
 class _BotAvatar extends StatelessWidget {
   final double size;
-  const _BotAvatar({required this.size});
+  final bool isOnline;
+  const _BotAvatar({required this.size, this.isOnline = false});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.softPurple),
-      child: Icon(Icons.smart_toy_rounded, color: AppColors.anaMavi, size: size * 0.55),
+    return Stack(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [AppColors.anaMavi, AppColors.yumusakMor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.anaMavi.withValues(alpha: 0.18),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+            child: Icon(
+              Icons.smart_toy_rounded,
+              color: AppColors.anaMavi,
+              size: size * 0.55,
+            ),
+          ),
+        ),
+        if (isOnline)
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: size * 0.3,
+              height: size * 0.3,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.basariYesili,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -812,7 +1146,8 @@ class _DialogIkon extends StatelessWidget {
   final IconData icon;
   final Color background;
   final Color color;
-  const _DialogIkon({required this.icon, required this.background, required this.color});
+  const _DialogIkon(
+      {required this.icon, required this.background, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -825,38 +1160,7 @@ class _DialogIkon extends StatelessWidget {
   }
 }
 
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color background;
-  final Color foreground;
-  final Color iconColor;
-  const _StatChip({
-    required this.icon,
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: foreground)),
-        ],
-      ),
-    );
-  }
-}
-
-// ───────────────────────────── Bilgilendirme Sayfası (Geliştirilmiş) ─────────────────────────────
+// ───────────────────────────── Bilgilendirme Sayfası ─────────────────────────────
 
 class _KahramanDostumBilgiSheet extends StatelessWidget {
   const _KahramanDostumBilgiSheet();
@@ -878,7 +1182,6 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Üst Sürükleme Çubuğu (Biraz daha yumuşatıldı)
               Center(
                 child: Container(
                   width: 48,
@@ -890,12 +1193,10 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Robot İkonu ve Başlık (Daha geniş ve ferah)
-              const Center(child: _BotAvatar(size: 84)),
+              const Center(child: _BotAvatar(size: 84, isOnline: true)),
               const SizedBox(height: 16),
               const Text(
-                "Kahraman Dostum",
+                "Siber Dost",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 26,
@@ -915,9 +1216,8 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-
               const Text(
-                "Kahraman Dostum; dijital dünyada güvende kalman, zorbalığın ne olduğunu öğrenmen ve merak ettiğin her şeyi sorman için tasarlanmış yapay zekâ destekli arkadaşındır.",
+                "Siber Dost; dijital dünyada güvende kalman, zorbalığın ne olduğunu öğrenmen ve merak ettiğin her şeyi sorman için tasarlanmış yapay zekâ destekli arkadaşındır.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -927,19 +1227,18 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 36),
-
-              // Neler Yapabilirim Bölümü
               const _BolumBasligi(ikon: "✨", baslik: "NELER YAPABİLİRİM?"),
               const SizedBox(height: 16),
               _AksiyonKarti(
                 icon: Icons.question_answer_rounded,
                 text: "Merak ettiklerini istediğin an sorabilirsin",
                 iconColor: AppColors.anaMavi,
-                bgColor: AppColors.anaMavi.withOpacity(0.1),
+                bgColor: AppColors.anaMavi.withValues(alpha: 0.1),
               ),
               _AksiyonKarti(
                 icon: Icons.shield_rounded,
-                text: "Zorbalıkla karşı karşıya kalınca ne yapabileceğini öğrenebilirsin",
+                text:
+                    "Zorbalıkla karşı karşıya kalınca ne yapabileceğini öğrenebilirsin",
                 iconColor: AppColors.oyunSarisi,
                 bgColor: _Ui.pointBg,
               ),
@@ -947,28 +1246,26 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 icon: Icons.search_rounded,
                 text: "Neyin zorbalık olup olmadığını keşfedebilirsin",
                 iconColor: AppColors.basariYesili,
-                bgColor: AppColors.basariYesili.withAlpha(25),
+                bgColor: AppColors.basariYesili.withValues(alpha: 0.12),
               ),
               _AksiyonKarti(
                 icon: Icons.sports_esports_rounded,
                 text: "Eğitici oyunlar oynayabilirsin",
                 iconColor: AppColors.yaziRengi,
-                bgColor: AppColors.softPurple.withAlpha(80),
+                bgColor: AppColors.softPurple.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 32),
-
-              // Gizlilik ve Geçici Bellek
-              const _BolumBasligi(ikon: "🔒", baslik: "GİZLİLİK VE VERİ GÜVENLİĞİ"),
+              const _BolumBasligi(
+                  ikon: "🔒", baslik: "GİZLİLİK VE VERİ GÜVENLİĞİ"),
               const SizedBox(height: 16),
               _AksiyonKarti(
                 icon: Icons.cleaning_services_rounded,
-                text: "Sohbetlerin veritabanında saklanmaz. Bu sayfadan ayrıldığında tüm konuşmalar tamamen temizlenir.",
+                text:
+                    "Sohbetlerin veritabanında saklanmaz. Bu sayfadan ayrıldığında tüm konuşmalar tamamen temizlenir.",
                 iconColor: AppColors.anaMavi,
-                bgColor: AppColors.anaMavi.withOpacity(0.1),
+                bgColor: AppColors.anaMavi.withValues(alpha: 0.1),
               ),
               const SizedBox(height: 32),
-
-              // Yapay Zeka Altyapısı
               const _BolumBasligi(ikon: "🧠", baslik: "YAPAY ZEKÂ ALTYAPISI"),
               const SizedBox(height: 16),
               Container(
@@ -980,15 +1277,16 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.auto_awesome_rounded, color: AppColors.anaMavi, size: 22),
+                      child: Icon(Icons.auto_awesome_rounded,
+                          color: AppColors.anaMavi, size: 22),
                     ),
-                    const SizedBox(width: 16),
-                    const Expanded(
+                    SizedBox(width: 16),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1016,12 +1314,11 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 36),
-
-              // Güvenli Öğrenme Alt Bilgisi
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.gpp_good_outlined, color: _Ui.textSecondary, size: 20),
+                  Icon(Icons.gpp_good_outlined,
+                      color: _Ui.textSecondary, size: 20),
                   SizedBox(width: 8),
                   Text(
                     "GÜVENLİ ÖĞRENME",
@@ -1036,7 +1333,7 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                "Kahraman Dostum, çocuklara zorbalık farkındalığı aşılamak için eğitici, güvenli ve yaşa uygun bir deneyim sunmak üzere tasarlanmıştır.",
+                "Siber Dost, çocuklara zorbalık farkındalığı aşılamak için eğitici, güvenli ve yaşa uygun bir deneyim sunmak üzere tasarlanmıştır.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -1046,8 +1343,6 @@ class _KahramanDostumBilgiSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // YENİ EKLENEN: Kapat Butonu
               SizedBox(
                 height: 56,
                 child: FilledButton(
@@ -1103,7 +1398,6 @@ class _BolumBasligi extends StatelessWidget {
   }
 }
 
-// Aksiyon Kartı Tasarımı Geliştirildi
 class _AksiyonKarti extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -1125,10 +1419,10 @@ class _AksiyonKarti extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _Ui.border.withOpacity(0.6)),
+        border: Border.all(color: _Ui.border.withValues(alpha: 0.6)),
         boxShadow: [
           BoxShadow(
-            color: _Ui.textSecondary.withOpacity(0.04),
+            color: _Ui.textSecondary.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

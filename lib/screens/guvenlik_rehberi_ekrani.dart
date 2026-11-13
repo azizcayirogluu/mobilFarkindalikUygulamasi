@@ -357,7 +357,7 @@ class _GuvenlikRehberiEkraniState extends State<GuvenlikRehberiEkrani> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: _sections.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final item = _sections[index];
           final bool selected = index == _selectedSection;

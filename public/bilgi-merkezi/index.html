@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zorbalık Bilgi Merkezi: Akran ve Siber Zorbalık Rehberleri | Kahraman Dostum</title>
+  <meta name="description"
+    content="Çocuklar, ebeveynler ve öğretmenler için akran zorbalığı, siber zorbalık ve okul güvenliği konularında kapsayıcı rehberler, pratik çözümler ve interaktif eğitim içerikleri.">
+  <link rel="canonical" href="https://kahraman-dostum.web.app/bilgi-merkezi/">
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <link rel="apple-touch-icon" href="../assets/logo.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="tr_TR">
+  <meta property="og:site_name" content="Kahraman Dostum">
+  <meta property="og:title" content="Zorbalık Bilgi Merkezi | Kahraman Dostum">
+  <meta property="og:description"
+    content="Akran zorbalığı, siber zorbalık ve çocuk güvenliği konularında kapsayıcı rehberler ve çözümler.">
+  <meta property="og:url" content="https://kahraman-dostum.web.app/bilgi-merkezi/">
+  <meta property="og:image" content="https://kahraman-dostum.web.app/assets/logo.png">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Zorbalık Bilgi Merkezi | Kahraman Dostum">
+  <meta name="twitter:description" content="Çocuklar, veliler ve öğretmenler için zorbalık farkındalık rehberleri.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Zorbalık Bilgi Merkezi",
+    "description": "Akran ve siber zorbalık konusunda kapsayıcı farkındalık rehberleri.",
+    "url": "https://kahraman-dostum.web.app/bilgi-merkezi/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Kahraman Dostum",
+      "logo": "https://kahraman-dostum.web.app/assets/logo.png"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Ana Sayfa",
+        "item": "https://kahraman-dostum.web.app/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Bilgi Merkezi",
+        "item": "https://kahraman-dostum.web.app/bilgi-merkezi/"
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --kd-primary: #173B63;
+      --kd-primary-dark: #102C4A;
+      --kd-primary-soft: #EEF5FA;
+      --kd-accent: #2F74B5;
+
+      --kd-bg: #FFFFFF;
+      --kd-bg-soft: #F8F9FC;
+
+      --kd-text: #172334;
+      --kd-text-2: #4B5563;
+      --kd-text-muted: #657487;
+
+      --kd-border: #DFE7EE;
+      --kd-border-strong: #CBDCE8;
+
+      --kd-radius-sm: 8px;
+      --kd-radius-md: 12px;
+      --kd-radius-lg: 16px;
+
+      --kd-container: 1280px;
+      --kd-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+      --kd-space-4: 16px;
+      --kd-space-5: 24px;
+      --kd-space-6: 32px;
+      --kd-space-7: 48px;
+      --kd-space-8: 64px;
+      --kd-space-9: 80px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--kd-font);
+      color: var(--kd-text);
+      background: var(--kd-bg);
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    .container {
+      width: min(var(--kd-container), calc(100% - 48px));
+      margin-inline: auto;
+    }
+
+    /* HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--kd-border);
+    }
+
+    .nav {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--kd-radius-md);
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--kd-text);
+    }
+
+    nav ul {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--kd-text-2);
+      border-radius: var(--kd-radius-sm);
+    }
+
+    nav a:hover,
+    nav a.active {
+      color: var(--kd-primary);
+      background: var(--kd-primary-soft);
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 220px;
+      background: #fff;
+      border: 1px solid var(--kd-border);
+      border-radius: var(--kd-radius-md);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      padding: 8px 0;
+      z-index: 105;
+      list-style: none;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .dropdown:hover .dropdown-menu,
+    .dropdown:focus-within .dropdown-menu {
+      display: flex;
+    }
+
+    .dropdown-menu li a {
+      display: block;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--kd-text-2);
+      white-space: nowrap;
+      transition: .15s;
+    }
+
+    .dropdown-menu li a:hover {
+      background: var(--kd-primary-soft);
+      color: var(--kd-primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 20px;
+      border-radius: var(--kd-radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--kd-primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--kd-primary-dark);
+    }
+
+    .crumb-bar {
+      background: var(--kd-bg-soft);
+      border-bottom: 1px solid var(--kd-border);
+      padding: 12px 0;
+      font-size: 13px;
+      color: var(--kd-text-muted);
+    }
+
+    .crumb-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .crumb-list a {
+      color: var(--kd-accent);
+      font-weight: 500;
+    }
+
+    /* HERO */
+    .hero {
+      padding: var(--kd-space-8) 0 var(--kd-space-7);
+      background: var(--kd-bg-soft);
+      border-bottom: 1px solid var(--kd-border);
+    }
+
+    .hero-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--kd-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--kd-space-4);
+    }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      color: var(--kd-primary);
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+
+    .lead {
+      margin-top: 16px;
+      font-size: 17px;
+      color: var(--kd-text-2);
+      max-width: 68ch;
+      line-height: 1.7;
+    }
+
+    /* HUB GRID */
+    .hub-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--kd-space-6);
+      margin-top: var(--kd-space-7);
+    }
+
+    .hub-card {
+      background: var(--kd-bg);
+      border: 1.5px solid var(--kd-border);
+      border-radius: var(--kd-radius-lg);
+      padding: var(--kd-space-6);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color .15s;
+    }
+
+    .hub-card:hover {
+      border-color: var(--kd-accent);
+    }
+
+    .hub-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--kd-primary);
+      margin-bottom: 8px;
+    }
+
+    .hub-card p {
+      font-size: 15px;
+      color: var(--kd-text-2);
+      line-height: 1.6;
+      margin-bottom: var(--kd-space-5);
+    }
+
+    .link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--kd-accent);
+    }
+
+    .link:hover {
+      color: var(--kd-primary);
+      text-decoration: underline;
+    }
+
+    /* FEATURED ARTICLES */
+    .featured {
+      margin-top: var(--kd-space-9);
+    }
+
+    .articles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--kd-space-6);
+      margin-top: var(--kd-space-6);
+    }
+
+    .article-card {
+      border: 1px solid var(--kd-border);
+      border-radius: var(--kd-radius-md);
+      padding: var(--kd-space-5);
+      background: var(--kd-bg);
+    }
+
+    .article-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--kd-text-muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .article-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--kd-primary);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .article-card p {
+      font-size: 14px;
+      color: var(--kd-text-2);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--kd-border);
+      padding: 56px 0 32px;
+      margin-top: var(--kd-space-9);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      gap: var(--kd-space-6);
+      padding-bottom: var(--kd-space-7);
+      border-bottom: 1px solid var(--kd-border);
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .footer-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--kd-radius-md);
+    }
+
+    .footer-about {
+      margin-top: 12px;
+      max-width: 34ch;
+      font-size: 14px;
+      color: var(--kd-text-muted);
+      line-height: 1.6;
+    }
+
+    footer h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--kd-text);
+      margin-bottom: 12px;
+    }
+
+    footer li a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      font-size: 14px;
+      color: var(--kd-text-muted);
+    }
+
+    footer li a:hover {
+      color: var(--kd-accent);
+    }
+
+    .footer-bottom {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-top: var(--kd-space-5);
+      font-size: 13px;
+      color: var(--kd-text-muted);
+    }
+
+    .developer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .developer img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      object-fit: contain;
+    }
+
+    @media (max-width: 900px) {
+
+      .hub-grid,
+      .articles {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      nav ul {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="container nav">
+      <a class="brand" href="../index.html" aria-label="Kahraman Dostum ana sayfa">
+        <img src="../assets/logo.png" alt="" width="36" height="36">
+        <span class="brand-name">Kahraman Dostum</span>
+      </a>
+
+      <nav aria-label="Ana menü">
+        <ul>
+          <li><a href="../index.html">Ana Sayfa</a></li>
+          <li class="dropdown">
+            <a href="index.html" class="active">Bilgi Merkezi ▾</a>
+            <ul class="dropdown-menu">
+              <li><a href="index.html">Bilgi Merkezi Ana Sayfa</a></li>
+              <li><a href="../akran-zorbaligi/">Akran Zorbalığı Rehberi</a></li>
+              <li><a href="../siber-zorbalik/">Siber Zorbalık Rehberi</a></li>
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a href="../rehberler/ebeveynler-icin-zorbalik-rehberi/">Rehberler ▾</a>
+            <ul class="dropdown-menu">
+              <li><a href="../rehberler/ebeveynler-icin-zorbalik-rehberi/">Ebeveyn Rehberi</a></li>
+              <li><a href="../rehberler/ogretmenler-icin-zorbalik-rehberi/">Öğretmen Rehberi</a></li>
+              <li><a href="../rehberler/gencler-icin-zorbalik-rehberi/">Çocuk &amp; Genç Rehberi</a></li>
+            </ul>
+          </li>
+          <li><a href="../kurumsal/hakkimizda/">Hakkımızda</a></li>
+        </ul>
+      </nav>
+
+      <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=com.siberkahramanapp.zorbalik"
+        rel="noopener">Uygulamayı İncele</a>
+    </div>
+  </header>
+
+  <div class="crumb-bar">
+    <div class="container">
+      <ul class="crumb-list">
+        <li><a href="../index.html">Ana Sayfa</a></li>
+        <li>/</li>
+        <li>Bilgi Merkezi</li>
+      </ul>
+    </div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-tag">Eğitim ve Rehberlik Platformu</div>
+        <h1>Zorbalık Bilgi Merkezi</h1>
+        <p class="lead">
+          Çocukların, gençlerin, ebeveynlerin ve öğretmenlerin akran zorbalığı ile siber zorbalığı tanıması, doğru
+          tepkileri öğrenmesi ve güvenli bir okul ortamı oluşturması için hazırlanan kapsamlı kaynak alanı.
+        </p>
+      </div>
+    </section>
+
+    <section class="container" style="padding: var(--kd-space-8) 0;">
+      <h2 style="font-size:22px;font-weight:700;color:var(--kd-primary)">Konu Merkezleri</h2>
+      <p style="color:var(--kd-text-2);margin-top:4px;font-size:15px">İhtiyacınıza uygun detaylı rehber kategorisini
+        seçin.</p>
+
+      <div class="hub-grid">
+        <article class="hub-card">
+          <div>
+            <h2>Akran Zorbalığı Rehberi</h2>
+            <p>Okulda ve sosyal çevrede akran zorbalığı nedir? Fiziksel, sözel ve ilişkisel zorbalık türleri, fark etme
+              belirtileri ve önleme yolları.</p>
+          </div>
+          <a class="link" href="../akran-zorbaligi/">
+            Rehberi incele
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </article>
+
+        <article class="hub-card">
+          <div>
+            <h2>Siber Zorbalık Rehberi</h2>
+            <p>Sosyal medyada, oyunlarda ve grup sohbetlerinde siber zorbalık nedir? Ekran görüntüsü alma, engelleme ve
+              hesap güvenliği.</p>
+          </div>
+          <a class="link" href="../siber-zorbalik/">
+            Rehberi incele
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </article>
+
+        <article class="hub-card">
+          <div>
+            <h2>Ebeveyn Zorbalık Rehberi</h2>
+            <p>Çocuğum zorbalığa uğruyorsa ne yapmalıyım? Doğru iletişim dili, okul rehberlik servisi iletişimi ve
+              veli adımları.</p>
+          </div>
+          <a class="link" href="../rehberler/ebeveynler-icin-zorbalik-rehberi/">
+            Rehberi incele
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </article>
+
+        <article class="hub-card">
+          <div>
+            <h2>Öğretmen Zorbalık Rehberi</h2>
+            <p>Sınıfta zorbalığı fark etme kriterleri, okul PDR birimi süreçleri ve öğrenciler için güvenli sınıf
+              iklimi oluşturma.</p>
+          </div>
+          <a class="link" href="../rehberler/ogretmenler-icin-zorbalik-rehberi/">
+            Rehberi incele
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </article>
+      </div>
+
+      <div class="featured">
+        <h2 style="font-size:22px;font-weight:700;color:var(--kd-primary)">Öne Çıkan Eğitim İçerikleri</h2>
+
+        <div class="articles">
+          <article class="article-card">
+            <span class="article-tag">Çocuk & Genç Rehberi</span>
+            <h3>Zorbalığa Uğruyorsan Ne Yapmalısın?</h3>
+            <p>Sana kötü davranan biri varsa yalnız değilsin! Bu senin suçun değil. Yapabileceğin 5 güvenli adım ve
+              destek alma yolları.</p>
+            <a class="link" href="../rehberler/gencler-icin-zorbalik-rehberi/">Oku & Öğren →</a>
+          </article>
+
+          <article class="article-card">
+            <span class="article-tag">Siber Güvenlik</span>
+            <h3>Sosyal Medya ve Grup Sohbetlerinde Güvende Kal</h3>
+            <p>Yabancılarla bilgi paylaşmama, şifre gizliliği ve rahatsız edici mesajları bildirme rehberi.</p>
+            <a class="link" href="../siber-zorbalik/">Oku & Öğren →</a>
+          </article>
+
+          <article class="article-card">
+            <span class="article-tag">Okul Yaşamı</span>
+            <h3>Okulda Akran Zorbalığını Fark Etmenin İşaretleri</h3>
+            <p>Çocuğunuz okuldan çekiniyor mu? Veli ve öğretmenlerin dikkat etmesi gereken temel davranış değişiklikleri.
+            </p>
+            <a class="link" href="../akran-zorbaligi/">Oku & Öğren →</a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="../assets/logo.png" alt="" width="32" height="32">
+          <span>Kahraman Dostum</span>
+        </div>
+        <p class="footer-about">Çocukların ve gençlerin zorbalığı fark etmesine, doğru tepkileri öğrenmesine yardımcı
+          olan dijital farkındalık platformu.</p>
+      </div>
+
+      <div>
+        <h4>Bilgi Merkezi</h4>
+        <ul>
+          <li><a href="../akran-zorbaligi/">Akran Zorbalığı</a></li>
+          <li><a href="../siber-zorbalik/">Siber Zorbalık</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Rehberler</h4>
+        <ul>
+          <li><a href="../rehberler/ebeveynler-icin-zorbalik-rehberi/">Ebeveyn Rehberi</a></li>
+          <li><a href="../rehberler/ogretmenler-icin-zorbalik-rehberi/">Öğretmen Rehberi</a></li>
+          <li><a href="../rehberler/zorbaliga-ugrayan-cocuk-ne-yapmali/">Çocuk Rehberi</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Kurumsal</h4>
+        <ul>
+          <li><a href="../kurumsal/hakkimizda/">Hakkımızda</a></li>
+          <li><a href="../gizlilik-politikasi.html">Gizlilik Politikası</a></li>
+          <li><a href="../hesap-sil.html">Hesap Silme</a></li>
+          <li><a href="../geri-bildirim.html">Geri Bildirim</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container footer-bottom">
+      <span>© 2026 Kahraman Dostum. Tüm hakları saklıdır.</span>
+      <div class="developer">
+        <span>Geliştirici: <strong>Aziz Digital</strong></span>
+        <img src="../assets/aziz-digital-logo.png" alt="Aziz Digital logosu" width="28" height="28">
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>

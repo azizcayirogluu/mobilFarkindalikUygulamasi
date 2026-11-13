@@ -2,11 +2,17 @@ import 'dart:math' show Random;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:zorbalik_uygulamasi/screens/giris_yapma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/gizlilik_politikasi_ekrani.dart';
+import 'package:zorbalik_uygulamasi/screens/parent_consent_pending_ekrani.dart';
+import 'package:zorbalik_uygulamasi/services/storage_service.dart';
+import 'package:zorbalik_uygulamasi/utils/app_logger.dart';
 import 'package:zorbalik_uygulamasi/utils/password_validator.dart';
+
+import '../app_theme.dart';
 
 class KayitEkrani extends StatefulWidget {
   const KayitEkrani({super.key});
@@ -18,6 +24,7 @@ class KayitEkrani extends StatefulWidget {
 class _KayitEkraniState extends State<KayitEkrani> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _parentEmailController = TextEditingController();
 
   String seciliGrup = '';
   bool _loading = false;
@@ -28,6 +35,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
   void dispose() {
     _usernameController.dispose();
     _pinController.dispose();
+    _parentEmailController.dispose();
     super.dispose();
   }
 
@@ -62,14 +70,24 @@ class _KayitEkraniState extends State<KayitEkrani> {
       return;
     }
 
+    if (seciliGrup == '6-12') {
+      final parentEmail = _parentEmailController.text.trim().toLowerCase();
+      if (parentEmail.isEmpty || !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(parentEmail)) {
+        _showMessage('Geçerli bir veli e-posta adresi giriniz ✉️', isError: true);
+        return;
+      }
+    }
+
     if (!_privacyAccepted) {
       _showMessage('Gizlilik Politikasını kabul etmelisin 📋', isError: true);
       return;
     }
+
     if (seciliGrup == '6-12') {
       await _showParentalGate();
       return;
     }
+
     await _register();
   }
 
@@ -117,7 +135,63 @@ class _KayitEkraniState extends State<KayitEkrani> {
         );
       },
     );
-    if (result == true) await _register();
+    if (result == true) {
+      await _initiate612Registration();
+    }
+  }
+
+  Future<void> _initiate612Registration() async {
+    if (_loading) return;
+
+    setState(() => _loading = true);
+
+    final rawUsername = _usernameController.text.trim();
+    final pin = _pinController.text.trim();
+    final parentEmail = _parentEmailController.text.trim().toLowerCase();
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('initiate612Registration');
+      final response = await callable.call({
+        'rawUsername': rawUsername,
+        'pin': pin,
+        'parentEmail': parentEmail,
+      });
+
+      final data = response.data as Map?;
+      final requestId = (data?['requestId'] ?? '').toString();
+
+      if (requestId.isNotEmpty) {
+        await StorageService().savePendingRequestId(requestId);
+        await StorageService().savePendingParentEmail(parentEmail);
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ParentConsentPendingEkrani(
+              requestId: requestId,
+              parentEmail: parentEmail,
+            ),
+          ),
+        );
+      }
+    } on FirebaseFunctionsException catch (e) {
+      AppLogger.error('initiate612Registration hatası', e);
+      if (mounted) {
+        _showMessage(e.message ?? 'Kayıt başlatılamadı.', isError: true);
+      }
+    } catch (e) {
+      AppLogger.error('initiate612Registration beklenmeyen hata', e);
+      if (mounted) {
+        _showMessage('Bir sorun oluştu. Lütfen bağlantınızı kontrol ediniz.', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   Future<void> _register() async {
@@ -127,13 +201,10 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
     final rawUsername = _usernameController.text.trim();
     final pin = _pinController.text.trim();
-    final emailUsername = rawUsername.toLowerCase().replaceAll(' ', '');
-    final email = '$emailUsername@zorbalik.app';
+    final email = _toCanonicalEmail(rawUsername);
 
     try {
-      // Firebase Authentication'da kullanıcı oluştur
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: pin,
       );
@@ -150,14 +221,10 @@ class _KayitEkraniState extends State<KayitEkrani> {
       final firestore = FirebaseFirestore.instance;
 
       final userRef = firestore.collection('users').doc(user.uid);
-      final progressRef =
-      firestore.collection('usersProgress').doc(user.uid);
+      final progressRef = firestore.collection('usersProgress').doc(user.uid);
 
       final batch = firestore.batch();
 
-      // Kullanıcı profil bilgileri
-      // merge: true sayesinde Cloud Function tarafından
-      // oluşturulmuş korumalı alanlar silinmez/değiştirilmez.
       batch.set(
         userRef,
         {
@@ -170,7 +237,6 @@ class _KayitEkraniState extends State<KayitEkrani> {
         SetOptions(merge: true),
       );
 
-      // Kullanıcı ilerleme bilgileri
       batch.set(
         progressRef,
         {
@@ -180,72 +246,40 @@ class _KayitEkraniState extends State<KayitEkrani> {
         SetOptions(merge: true),
       );
 
-      // İki Firestore işlemini birlikte gerçekleştir
       await batch.commit();
 
-      // Firebase Auth profil adını güncelle
       await user.updateDisplayName(rawUsername);
 
       if (!mounted) return;
 
-      // Root'taki AuthGate yaş grubuna göre gerekli veli onayı kontrolünü yapar.
       Navigator.of(context).popUntil((route) => route.isFirst);
-    } on FirebaseAuthException catch (e, stackTrace) {
-      debugPrint('KAYIT - FIREBASE AUTH HATASI');
-      debugPrint('Kod: ${e.code}');
-      debugPrint('Mesaj: ${e.message}');
-      debugPrint('StackTrace: $stackTrace');
-
+    } on FirebaseAuthException catch (e) {
+      debugPrint('KAYIT - FIREBASE AUTH HATASI: ${e.code}');
       if (!mounted) return;
 
       String message;
-
       switch (e.code) {
         case 'email-already-in-use':
           message = 'Bu kahraman adı zaten kullanılıyor.';
           break;
-
         case 'weak-password':
-          message = 'PIN oluşturulamadı. Lütfen tekrar dene.';
+          message = 'PIN/Şifre oluşturulamadı. Lütfen tekrar dene.';
           break;
-
         case 'network-request-failed':
           message = 'İnternet bağlantını kontrol edip tekrar dene.';
           break;
-
         case 'too-many-requests':
           message = 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar dene.';
           break;
-
         default:
           message = 'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.';
       }
 
       _showMessage(message, isError: true);
-    } on FirebaseException catch (e, stackTrace) {
-      debugPrint('KAYIT - FIREBASE HATASI');
-      debugPrint('Servis: ${e.plugin}');
-      debugPrint('Kod: ${e.code}');
-      debugPrint('Mesaj: ${e.message}');
-      debugPrint('StackTrace: $stackTrace');
-
+    } catch (e) {
+      debugPrint('KAYIT - BEKLENMEYEN HATA: $e');
       if (!mounted) return;
-
-      _showMessage(
-        'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.',
-        isError: true,
-      );
-    } catch (e, stackTrace) {
-      debugPrint('KAYIT - BEKLENMEYEN HATA');
-      debugPrint('Hata: $e');
-      debugPrint('StackTrace: $stackTrace');
-
-      if (!mounted) return;
-
-      _showMessage(
-        'Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.',
-        isError: true,
-      );
+      _showMessage('Kayıt sırasında bir sorun oluştu. Lütfen tekrar dene.', isError: true);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -327,13 +361,31 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 
+  String _toCanonicalEmail(String rawUsername) {
+    String text = rawUsername.trim().toLowerCase();
+    text = text
+        .replaceAll('i̇', 'i')
+        .replaceAll('ı', 'i')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'\s+'), '');
+    return '$text@zorbalik.app';
+  }
+
   Widget _buildHeroSection() {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.1), shape: BoxShape.circle),
-          child: const Icon(Icons.rocket_launch_rounded, size: 40, color: Color(0xFF6366F1)),
+          decoration: BoxDecoration(color: const Color(0xFF6366F1).withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Image.asset(
+              "assets/image/app_icon_two.png",
+              height: 120,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.rocket_launch, size: 80, color: AppColors.basariYesili)
+          ),
         ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
         const SizedBox(height: 16),
         const Text("Maceraya Hazır Mısın?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
@@ -345,6 +397,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
 
   Widget _buildFormCard() {
     final isTeens = seciliGrup == '13-18';
+    final is612 = seciliGrup == '6-12';
     final credLabel = isTeens ? "Gizli Şifren (En az 6 karakter)" : "6 Haneli PIN";
 
     return Container(
@@ -352,7 +405,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))],
         border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
       ),
       child: Column(
@@ -362,6 +415,31 @@ class _KayitEkraniState extends State<KayitEkrani> {
           _buildAgeSelector(),
           const SizedBox(height: 20),
           _buildInput(credLabel, Icons.lock_rounded, _pinController, isPin: true, isNumeric: !isTeens, maxLen: isTeens ? 30 : 6),
+          if (is612) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFC7D2FE)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.shield_rounded, color: Color(0xFF4F46E5), size: 22),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Bir sonraki adım için velinin izni gerekiyor. Veli e-posta adresini gir. Onay bağlantısını veline göndereceğiz.",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF3730A3), fontWeight: FontWeight.w600, height: 1.45),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildInput("Veli E-Posta Adresi", Icons.mail_rounded, _parentEmailController, isPin: false, isNumeric: false),
+          ],
           const SizedBox(height: 24),
           _buildPrivacyToggle(),
           const SizedBox(height: 30),
@@ -375,7 +453,7 @@ class _KayitEkraniState extends State<KayitEkrani> {
     return TextField(
       controller: controller,
       obscureText: isPin && !_showPin,
-      keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+      keyboardType: isNumeric ? TextInputType.number : (icon == Icons.mail_rounded ? TextInputType.emailAddress : TextInputType.text),
       maxLength: maxLen,
       decoration: InputDecoration(
         labelText: label,
@@ -478,7 +556,12 @@ class _KayitEkraniState extends State<KayitEkrani> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
         ),
-        child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text("KAYIT OL VE BAŞLA 🚀", style: TextStyle(fontWeight: FontWeight.w900)),
+        child: _loading
+            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+            : Text(
+                seciliGrup == '6-12' ? "VELİ ONAYINA GÖNDER ✉️" : "KAYIT OL VE BAŞLA 🚀",
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
       ),
     );
   }

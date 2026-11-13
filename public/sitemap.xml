@@ -1,16 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
+    <!-- Ana Sayfa -->
     <url>
         <loc>https://kahraman-dostum.web.app/</loc>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
 
+    <!-- Bilgi Merkezi Ana Sayfası -->
     <url>
-        <loc>https://kahraman-dostum.web.app/biz-kimiz.html</loc>
+        <loc>https://kahraman-dostum.web.app/bilgi-merkezi/</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- Akran Zorbalığı Pillar Page -->
+    <url>
+        <loc>https://kahraman-dostum.web.app/akran-zorbaligi/</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- Siber Zorbalık Pillar Page -->
+    <url>
+        <loc>https://kahraman-dostum.web.app/siber-zorbalik/</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- Rehberler -->
+    <url>
+        <loc>https://kahraman-dostum.web.app/rehberler/ebeveynler-icin-zorbalik-rehberi/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://kahraman-dostum.web.app/rehberler/ogretmenler-icin-zorbalik-rehberi/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://kahraman-dostum.web.app/rehberler/gencler-icin-zorbalik-rehberi/</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Kurumsal & E-E-A-T -->
+    <url>
+        <loc>https://kahraman-dostum.web.app/kurumsal/hakkimizda/</loc>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://kahraman-dostum.web.app/gizlilik-politikasi.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://kahraman-dostum.web.app/hesap-sil.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://kahraman-dostum.web.app/geri-bildirim.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
     </url>
 
 </urlset>

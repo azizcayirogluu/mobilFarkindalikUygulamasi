@@ -1,9 +1,21 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/giris_yapma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/screens/kayit_olma_ekrani.dart';
+
+class _C {
+  static const ink = Color(0xFF1B2A4A);
+  static const soft = Color(0xFF6B7A99);
+  static const skyTop = Color(0xFFDDF0FF);
+  static const skyMid = Color(0xFFF2F9FF);
+  static const sun = Color(0xFFFFC445);
+  static const mint = Color(0xFF2FD6A0);
+  static const coral = Color(0xFFFF7A8A);
+}
 
 class KarsilamaEkrani extends StatefulWidget {
   const KarsilamaEkrani({super.key});
@@ -14,463 +26,506 @@ class KarsilamaEkrani extends StatefulWidget {
 
 class _KarsilamaEkraniState extends State<KarsilamaEkrani>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _animationController;
+  late final AnimationController _orbit;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
+    _orbit = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
+      duration: const Duration(seconds: 16),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _orbit.dispose();
     super.dispose();
   }
 
   void _goToRegister() {
     HapticFeedback.mediumImpact();
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const KayitEkrani()));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const KayitEkrani()));
   }
 
   void _goToLogin() {
     HapticFeedback.lightImpact();
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const GirisEkrani()));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const GirisEkrani()));
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final bool isShort = size.height < 700;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final isShort = size.height < 700;
+    final heroSize = math.min(size.width * 0.82, isShort ? 270.0 : 330.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          _buildBackground(size),
-          SafeArea(
-            bottom: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_C.skyTop, _C.skyMid, Colors.white],
+            stops: [0, 0.45, 1],
+          ),
+        ),
+        child: Stack(
+          children: [
+            ..._buildSparkles(size),
+            SafeArea(
+              bottom: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, c) => SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
                             child: ConstrainedBox(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              constraints:
+                              BoxConstraints(minHeight: c.maxHeight),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 28),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const SizedBox(height: 20),
-                                    _buildTopBrand(),
-                                    SizedBox(height: isShort ? 24 : 40),
-                                    _buildHeroSection(size, isShort),
-                                    SizedBox(height: isShort ? 24 : 40),
-                                    _buildWelcomeText(isShort),
-                                    const SizedBox(height: 24),
-                                    _buildFeatureCards(isShort),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 12),
+                                    _brandPill(),
+                                    SizedBox(height: isShort ? 8 : 20),
+                                    _hero(heroSize),
+                                    SizedBox(height: isShort ? 8 : 20),
+                                    _title(),
+                                    const SizedBox(height: 22),
+                                    _steps(),
+                                    const SizedBox(height: 16),
                                   ],
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
-                    _buildBottomActions(size.width, bottomInset),
-                  ],
+                      _actions(bottomInset),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBackground(Size size) {
-    return Stack(
-      children: [
-        Positioned(
-          top: -size.width * 0.25,
-          right: -size.width * 0.2,
-          child: _GlowCircle(
-            size: size.width * 0.85,
-            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-          ),
-        ),
-        Positioned(
-          bottom: size.height * 0.15,
-          left: -size.width * 0.3,
-          child: _GlowCircle(
-            size: size.width * 0.75,
-            color: const Color(0xFF38BDF8).withValues(alpha: 0.1),
-          ),
-        ),
-      ],
-    );
+  // ---------- Arka plan ----------
+
+  List<Widget> _buildSparkles(Size size) {
+    Widget spark(double l, double t, double s, Color c, int ms) {
+      return Positioned(
+        left: l,
+        top: t,
+        child: Icon(Icons.auto_awesome_rounded, size: s, color: c)
+            .animate(onPlay: (a) => a.repeat(reverse: true))
+            .fade(begin: 0.25, end: 0.9, duration: ms.ms)
+            .scale(
+            begin: const Offset(0.8, 0.8),
+            end: const Offset(1.15, 1.15),
+            duration: ms.ms),
+      );
+    }
+
+    return [
+      spark(size.width * 0.08, size.height * 0.1, 18, _C.sun, 1800),
+      spark(size.width * 0.86, size.height * 0.16, 14, _C.coral, 2300),
+      spark(size.width * 0.14, size.height * 0.38, 12, _C.mint, 2000),
+      spark(size.width * 0.88, size.height * 0.42, 20, _C.sun, 2600),
+    ];
   }
 
-  Widget _buildTopBrand() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.18),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFEEF2FF), width: 2),
+  // ---------- Üst marka ----------
+
+  Widget _brandPill() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 6, 16, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.anaMavi.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
-          child: ClipOval(
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipOval(
             child: Image.asset(
               'assets/image/app_icon.png',
+              width: 34,
+              height: 34,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.shield_rounded,
-                color: Color(0xFF6366F1),
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Flexible(
-          child: Text(
-            'Kahraman Dostum',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2);
-  }
-
-  Widget _buildHeroSection(Size size, bool isShort) {
-    final double imageSize = isShort ? 140 : 180;
-
-    return Stack(
-      alignment: Alignment.center,
-      clipBehavior: Clip.none,
-      children: [
-        // Dış Işıltı Halkası
-        Container(
-          width: imageSize + 60,
-          height: imageSize + 60,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                const Color(0xFF6366F1).withValues(alpha: 0.15),
-                const Color(0xFF818CF8).withValues(alpha: 0.03),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        )
-            .animate(onPlay: (c) => c.repeat(reverse: true))
-            .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 2.seconds),
-
-        // Logo Dairesi
-        Container(
-          width: imageSize,
-          height: imageSize,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
-                blurRadius: 36,
-                offset: const Offset(0, 12),
-              ),
-            ],
-            border: Border.all(color: Colors.white, width: 8),
-          ),
-          child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Image.asset(
-                'assets/image/app_icon.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.face_rounded,
-                  size: 70,
-                  color: Color(0xFF6366F1),
+              errorBuilder: (_, _, _) => Container(
+                width: 34,
+                height: 34,
+                color: AppColors.anaMavi.withValues(alpha: 0.12),
+                child: Icon(
+                  Icons.shield_rounded,
+                  size: 20,
+                  color: AppColors.anaMavi,
                 ),
               ),
             ),
           ),
-        )
-            .animate(onPlay: (c) => c.repeat(reverse: true))
-            .moveY(begin: -8, end: 8, duration: 2.seconds),
+          const SizedBox(width: 10),
+          const Text(
+            'Kahraman Dostum',
+            style: TextStyle(
+              color: _C.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 450.ms).slideY(begin: -0.3, curve: Curves.easeOut);
+  }
 
-        // Üst Sağ Rozet
-        Positioned(
-          top: -6,
-          right: -6,
-          child: const _HeroBadge(
-            icon: Icons.star_rounded,
-            color: Color(0xFFF59E0B),
-            label: "Süper Güç",
+  // ---------- Kahraman + yörüngedeki rozetler ----------
+
+  Widget _hero(double s) {
+    final mascot = s * 0.5;
+    final radius = s / 2 - 26;
+
+    final items = <_OrbitItem>[
+      _OrbitItem(Icons.shield_rounded, AppColors.anaMavi),
+      _OrbitItem(Icons.star_rounded, _C.sun),
+      _OrbitItem(Icons.favorite_rounded, _C.coral),
+      _OrbitItem(Icons.emoji_events_rounded, _C.mint),
+    ];
+
+    return SizedBox(
+      width: s,
+      height: s,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Yörünge halkası
+          Container(
+            width: radius * 2,
+            height: radius * 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.anaMavi.withValues(alpha: 0.14),
+                width: 2,
+              ),
+            ),
+          ),
+          // Yumuşak ışık
+          Container(
+            width: mascot * 1.55,
+            height: mascot * 1.55,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white,
+                  Colors.white.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+          // Kahraman
+          Container(
+            width: mascot,
+            height: mascot,
+            padding: EdgeInsets.all(mascot * 0.08),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.anaMavi.withValues(alpha: 0.28),
+                  blurRadius: 40,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/image/app_icon.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Icon(
+                  Icons.face_rounded,
+                  size: mascot * 0.55,
+                  color: AppColors.anaMavi,
+                ),
+              ),
+            ),
           )
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .moveY(begin: 4, end: -4, duration: 1.5.seconds),
-        ),
-
-        // Alt Sol Rozet
-        Positioned(
-          bottom: 0,
-          left: -10,
-          child: const _HeroBadge(
-            icon: Icons.verified_user_rounded,
-            color: Color(0xFF10B981),
-            label: "Güvenli Rehber",
-          )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .moveY(begin: -4, end: 4, duration: 2.seconds),
-        ),
-      ],
+              .moveY(begin: -6, end: 6, duration: 2.2.seconds, curve: Curves.easeInOut),
+          // Yörüngede dönen rozetler
+          AnimatedBuilder(
+            animation: _orbit,
+            builder: (context, _) {
+              final t = _orbit.value * 2 * math.pi;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (int i = 0; i < items.length; i++)
+                    Positioned(
+                      left: s / 2 +
+                          radius * math.cos(t + i * 2 * math.pi / items.length) -
+                          22,
+                      top: s / 2 +
+                          radius * math.sin(t + i * 2 * math.pi / items.length) -
+                          22,
+                      child: _OrbitBadge(item: items[i]),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 150.ms, duration: 500.ms).scale(
+      begin: const Offset(0.85, 0.85),
+      curve: Curves.easeOutBack,
+      duration: 600.ms,
     );
   }
 
-  Widget _buildWelcomeText(bool isShort) {
+  // ---------- Başlık ----------
+
+  Widget _title() {
     return Column(
       children: [
         const Text(
-          'Hazır mısın Kahraman? 🚀',
+          'Süper gücünü keşfetmeye hazır mısın?',
           textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 28,
+            color: _C.ink,
+            fontSize: 30,
+            height: 1.15,
             fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
+            letterSpacing: -0.6,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         const Text(
-          'Daha bilinçli, cesur ve güçlü olacağın\nsihirli macera seni bekliyor!',
+          'Zorbalığa karşı güçlü olmayı\noyun oynayarak öğren.',
           textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 15,
-            height: 1.5,
+            color: _C.soft,
+            fontSize: 16,
+            height: 1.45,
             fontWeight: FontWeight.w600,
           ),
         ),
       ],
-    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1);
+    ).animate().fadeIn(delay: 350.ms, duration: 500.ms);
   }
 
-  Widget _buildFeatureCards(bool isShort) {
-    return Row(
-      children: [
-        _buildFeatureItem(Icons.lightbulb_rounded, 'Öğren', const Color(0xFF6366F1)),
-        const SizedBox(width: 12),
-        _buildFeatureItem(Icons.shield_rounded, 'Güçlen', const Color(0xFF10B981)),
-        const SizedBox(width: 12),
-        _buildFeatureItem(Icons.emoji_events_rounded, 'Kazan', const Color(0xFFF59E0B)),
-      ],
-    ).animate().fadeIn(delay: 350.ms).scale(begin: const Offset(0.92, 0.92));
-  }
+  // ---------- Öğren → Güçlen → Kazan ----------
 
-  Widget _buildFeatureItem(IconData icon, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.18), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.08),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+  Widget _steps() {
+    Widget step(IconData icon, String label, Color color) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.25),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _C.ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      );
+    }
+
+    Widget link() => Expanded(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 22),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            4,
+                (_) => Container(
+              width: 4,
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: AppColors.anaMavi.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
+
+    return Row(
+      children: [
+        step(Icons.lightbulb_rounded, 'Öğren', AppColors.anaMavi),
+        link(),
+        step(Icons.shield_rounded, 'Güçlen', _C.mint),
+        link(),
+        step(Icons.emoji_events_rounded, 'Kazan', _C.sun),
+      ],
+    ).animate().fadeIn(delay: 500.ms, duration: 500.ms);
   }
 
-  Widget _buildBottomActions(double width, double bottomInset) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, bottomInset > 0 ? bottomInset + 12 : 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 24,
-            offset: Offset(0, -8),
-          ),
-        ],
-      ),
+  // ---------- Alt butonlar ----------
+
+  Widget _actions(double bottomInset) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(28, 8, 28, bottomInset > 0 ? bottomInset + 8 : 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             width: double.infinity,
-            height: 60,
-            child: ElevatedButton(
-              onPressed: _goToRegister,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.anaMavi,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                elevation: 6,
-                shadowColor: AppColors.anaMavi.withValues(alpha: 0.35),
+            height: 62,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(31),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.anaMavi,
+                    Color.lerp(AppColors.anaMavi, const Color(0xFF7C5CFF), 0.55)!,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.anaMavi.withValues(alpha: 0.4),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              child: const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Maceraya Başla! 🚀',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(31),
+                  onTap: _goToRegister,
+                  child: const Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Maceraya Başla',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.rocket_launch_rounded,
+                            color: Colors.white, size: 22),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
+          )
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.025, 1.025),
+            duration: 1.6.seconds,
+            curve: Curves.easeInOut,
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: OutlinedButton(
-              onPressed: _goToLogin,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.anaMavi,
-                side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-              ),
-              child: const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Zaten Kayıtlıyım',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _goToLogin,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              foregroundColor: _C.soft,
+            ),
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  color: _C.soft,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
+                children: [
+                  const TextSpan(text: 'Hesabın var mı? '),
+                  TextSpan(
+                    text: 'Giriş yap',
+                    style: TextStyle(
+                      color: AppColors.anaMavi,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
-    ).animate().slideY(begin: 0.2);
+    ).animate().fadeIn(delay: 650.ms, duration: 500.ms).slideY(begin: 0.15);
   }
 }
 
-class _HeroBadge extends StatelessWidget {
+class _OrbitItem {
   final IconData icon;
   final Color color;
-  final String label;
-
-  const _HeroBadge({
-    required this.icon,
-    required this.color,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.22),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: const Color(0xFF0F172A),
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  const _OrbitItem(this.icon, this.color);
 }
 
-class _GlowCircle extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _GlowCircle({required this.size, required this.color});
+class _OrbitBadge extends StatelessWidget {
+  final _OrbitItem item;
+  const _OrbitBadge({required this.item});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: item.color.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Icon(item.icon, color: item.color, size: 24),
     );
   }
 }

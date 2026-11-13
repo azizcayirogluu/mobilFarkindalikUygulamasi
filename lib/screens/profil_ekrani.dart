@@ -13,6 +13,7 @@ import 'hakkinda_ekrani.dart';
 import 'gizlilik_politikasi_ekrani.dart';
 import 'siber_imdat_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
+import 'package:zorbalik_uygulamasi/services/notification_service.dart';
 import 'package:zorbalik_uygulamasi/services/user_presence_service.dart';
 import 'package:zorbalik_uygulamasi/widgets/profile_avatar.dart';
 import 'package:zorbalik_uygulamasi/utils/password_validator.dart';
@@ -66,6 +67,13 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   }
 
   Future<void> _verileriYukle() async {
+    final localNotify = StorageService().getNotificationsEnabled();
+    if (mounted) {
+      setState(() {
+        _bildirimlerAcik = localNotify;
+      });
+    }
+
     if (_user == null) return;
     try {
       final doc = await FirebaseFirestore.instance
@@ -76,9 +84,14 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         final avatar = normalizeProfileAvatar(
           doc.data()?['avatarUrl'] ?? "assets/image/boy.png",
         );
+        final dbNotify = doc.data()?['bildirimlerAcik'] as bool?;
         setState(() {
           _currentAvatar = avatar;
           _currentYasGrubu = doc.data()?['yasGrubu'] ?? "6-12";
+          if (dbNotify != null) {
+            _bildirimlerAcik = dbNotify;
+            StorageService().setNotificationsEnabled(dbNotify);
+          }
         });
       }
     } catch (e) {
@@ -97,6 +110,31 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
+
+  Future<void> _bildirimDurumunuDegistir(bool value) async {
+    setState(() {
+      _bildirimlerAcik = value;
+    });
+
+    try {
+      await StorageService().setNotificationsEnabled(value);
+      await NotificationService().setNotificationsEnabled(value);
+
+      if (_user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user!.uid)
+            .set({'bildirimlerAcik': value}, SetOptions(merge: true));
+      }
+
+      _showSnack(
+        value ? "Bildirimler açıldı 🔔" : "Bildirimler kapatıldı 🔕",
+      );
+    } catch (e) {
+      debugPrint("Bildirim ayarı değiştirilirken hata: $e");
+      _showSnack("Bildirim ayarı güncellenemedi", isError: true);
+    }
   }
 
   Future<void> _avatarSecmeDiyalogu() async {
@@ -155,7 +193,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                     setState(() {
                       _currentAvatar = tempAvatar;
                     });
-                    Navigator.pop(context);
+                    if (context.mounted) Navigator.pop(context);
                     _showSnack("Profil fotoğrafın güncellendi! ✨");
                   }
                 } catch (e) {
@@ -273,7 +311,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                         _user = FirebaseAuth.instance.currentUser;
                         _currentYasGrubu = tempYas;
                       });
-                      Navigator.pop(context);
+                      if (context.mounted) Navigator.pop(context);
                       _showSnack("Ayarların başarıyla güncellendi! ✨");
                     }
                   } catch (e) {
@@ -688,7 +726,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.orange, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white, width: 3),
-                              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.4), blurRadius: 8)],
+                              boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 8)],
                             ),
                             child: FittedBox(
                                 fit: BoxFit.scaleDown,
@@ -788,7 +826,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
   Widget _buildBlob({double? top, double? bottom, double? left, double? right, required Color color, required double size}) {
     return Positioned(
       top: top, bottom: bottom, left: left, right: right,
-      child: Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.4))),
+      child: Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.4))),
     );
   }
 
@@ -796,7 +834,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
     final safeValue = value.clamp(0.0, 1.0);
     return Container(
       height: 12, width: double.infinity, clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.6), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(20)),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final progressWidth = constraints.maxWidth * safeValue;
@@ -834,7 +872,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(25),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))],
         ),
         child: Column(
           children: [
@@ -875,12 +913,33 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
         child: SwitchListTile.adaptive(
           value: _bildirimlerAcik,
-          onChanged: (v) => setState(() => _bildirimlerAcik = v),
-          title: const Text("Bildirimler", maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-          secondary: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle), child: const Icon(Icons.notifications_active, color: Colors.blue, size: 20)),
+          onChanged: _bildirimDurumunuDegistir,
+          title: const Text(
+            "Bildirimler",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+          ),
+          secondary: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _bildirimlerAcik ? Colors.blue.shade50 : Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _bildirimlerAcik ? Icons.notifications_active : Icons.notifications_off,
+              color: _bildirimlerAcik ? Colors.blue : Colors.grey,
+              size: 20,
+            ),
+          ),
           activeTrackColor: Colors.blue,
         ),
       ),
@@ -924,7 +983,7 @@ class _ProfilEkraniState extends State<ProfilEkrani> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: oge.color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(oge.icon, color: oge.color, size: 22)),
+            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: oge.color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(oge.icon, color: oge.color, size: 22)),
             const SizedBox(height: 8),
             Flexible(
               child: FittedBox(

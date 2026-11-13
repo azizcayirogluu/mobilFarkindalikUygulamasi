@@ -146,7 +146,7 @@ class _StoryManagerState extends State<StoryManager> {
 
   Widget _miniCircleBtn(IconData i, Color c, VoidCallback o) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)]),
+      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 5)]),
       child: IconButton(onPressed: o, icon: Icon(i, color: c, size: 18), constraints: const BoxConstraints(), padding: const EdgeInsets.all(8)),
     );
   }
@@ -206,6 +206,7 @@ class _StoryManagerState extends State<StoryManager> {
               } else {
                 await _firestore.collection('stories').doc(docId).update(data);
               }
+              if (!c.mounted) return;
               Navigator.pop(c);
             },
             child: const Text("Kütüphaneye Kaydet"),

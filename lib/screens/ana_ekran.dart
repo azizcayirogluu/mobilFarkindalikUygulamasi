@@ -22,8 +22,8 @@ class _Ui {
   static const pointBg = Color(0xFFFFF4DC);
   static const pointIcon = AppColors.oyunSarisi;
 
-  static const radiusCard = 24.0; // Öneri kartları
-  static const radiusHero = 28.0; // Macera seviyesi kartı
+  static const radiusCard = 24.0;
+  static const radiusHero = 28.0;
   static const radiusPill = 999.0;
 
   static const pagePadding = 20.0;
@@ -57,10 +57,14 @@ class AnaSayfa extends StatefulWidget {
 
 class _AnaSayfaState extends State<AnaSayfa> {
   List<Map<String, dynamic>> _kesifHavuzu = [];
+  Map<String, dynamic>? _bugununGorevi;
+  List<Map<String, dynamic>> _bugunKesfetList = [];
+
   bool _isLoading = true;
   bool _hasError = false;
   int _toplamGorevSayisi = 0;
 
+  final ScrollController _scrollController = ScrollController();
   final User? _currentUser = FirebaseAuth.instance.currentUser;
   final ContentService _contentService = ContentService();
   Stream<DocumentSnapshot>? _userStream;
@@ -84,7 +88,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 
   void _initConnectivityListener() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) {
       if (!mounted) return;
       final bool isNowOnline = results.any((r) => r != ConnectivityResult.none);
 
@@ -98,6 +103,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -129,6 +135,36 @@ class _AnaSayfaState extends State<AnaSayfa> {
     }
   }
 
+  bool _validateContentItem(Map item) {
+    final id = (item['id'] ?? '').toString().trim();
+    final tip = (item['tip'] ?? '').toString().trim();
+    final baslik = (item['baslik'] ?? '').toString().trim();
+    return id.isNotEmpty && tip.isNotEmpty && baslik.isNotEmpty;
+  }
+
+  bool _isTaskCompleted(Map task, DocumentSnapshot? progressSnap) {
+    if (progressSnap == null || !progressSnap.exists) return false;
+    final data = progressSnap.data() as Map<String, dynamic>? ?? {};
+    final String taskId = (task['id'] ?? '').toString().trim();
+    final String tip = (task['tip'] ?? '').toString().trim();
+
+    if (tip == 'SENARYO') {
+      final List bitti = data['tamamlanan_bolumler'] as List? ?? [];
+      return bitti.any((item) {
+        final s = item.toString();
+        final senaryoId = s.contains('_') ? s.split('_')[0] : s;
+        return senaryoId == taskId;
+      });
+    } else if (tip == 'HİKAYE') {
+      final List okundu = data['okunan_hikayeler'] as List? ?? [];
+      return okundu.contains(taskId);
+    } else if (tip == 'SİBER DEDEKTİF') {
+      final List dedektif = data['bilinen_dedektif_sorulari'] as List? ?? [];
+      return dedektif.isNotEmpty;
+    }
+    return false;
+  }
+
   String _ilerlemeMesaji(double ilerleme) {
     final yuzde = (ilerleme * 100).toInt();
     if (yuzde == 0) return "Maceraya atılmaya hazır mısın?";
@@ -147,6 +183,15 @@ class _AnaSayfaState extends State<AnaSayfa> {
     return (item['altBaslik'] ?? '').toString();
   }
 
+  String _getMetaPillText(Map item) {
+    final tip = (item['tip'] ?? '').toString();
+    if (tip == 'SENARYO') return 'SENARYO · ~2 dk · +10 puan';
+    if (tip == 'HİKAYE') return 'HİKAYE · ~3 dk · +15 puan';
+    if (tip == 'VİDEO') return 'VİDEO · ~2 dk · +10 puan';
+    if (tip == 'SİBER DEDEKTİF') return 'SİBER DEDEKTİF · ~2 dk · +10 puan';
+    return '$tip · ~2 dk · +10 puan';
+  }
+
   _IlerlemeOzeti _ozetle(DocumentSnapshot? snap) {
     if (snap == null || !snap.exists) return const _IlerlemeOzeti(0, 0);
 
@@ -156,7 +201,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
     final List okundu = data['okunan_hikayeler'] as List? ?? [];
     final List dedektif = data['bilinen_dedektif_sorulari'] as List? ?? [];
 
-    // Senaryo ID'lerini güvenli şekilde ayır ve SET yap
     final Set<String> tamamlananSenaryoIdleri = {};
     for (final item in bitti) {
       final s = item.toString();
@@ -171,36 +215,65 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   Future<void> _initData() async {
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
+
+    if (_kesifHavuzu.isEmpty) {
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+      });
+    }
 
     try {
-      final data = await _contentService.fetchDiscoveryData();
+      final data = await _contentService.fetchDiscoveryData().timeout(
+            const Duration(seconds: 8),
+          );
 
       if (mounted) {
+        final List<Map<String, dynamic>> rawHavuz =
+            List<Map<String, dynamic>>.from(data['kesifHavuzu']);
+
+        final processedPool = rawHavuz.map((item) {
+          item['renk'] = _hexToColor(item['renkStr']);
+          item['ikon'] = _getIcon(item['ikonStr']);
+          return item;
+        }).where((item) => _validateContentItem(item)).toList();
+
+        if (processedPool.isNotEmpty) {
+          final now = DateTime.now();
+          final int todaySeed = now.year * 10000 + now.month * 100 + now.day;
+          final int selectedIdx = todaySeed % processedPool.length;
+
+          _bugununGorevi = processedPool[selectedIdx];
+          _bugunKesfetList = processedPool
+              .where((element) => element['id'] != _bugununGorevi!['id'])
+              .take(5)
+              .toList();
+        } else {
+          _bugununGorevi = null;
+          _bugunKesfetList = [];
+        }
+
         setState(() {
           _toplamGorevSayisi = data['toplamGorevSayisi'];
-          final List<Map<String, dynamic>> rawHavuz =
-          List<Map<String, dynamic>>.from(data['kesifHavuzu']);
-          _kesifHavuzu = rawHavuz.map((item) {
-            item['renk'] = _hexToColor(item['renkStr']);
-            item['ikon'] = _getIcon(item['ikonStr']);
-            return item;
-          }).toList();
+          _kesifHavuzu = processedPool;
           _isLoading = false;
+          _hasError = false;
         });
       }
     } catch (e) {
       debugPrint("Veri yükleme hatası (AnaSayfa): $e");
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-      });
+
       if (_kesifHavuzu.isNotEmpty) {
-        _showMessage("İçerikler güncellenemedi. Tekrar denemek için ekranı aşağı çek.");
+        setState(() {
+          _isLoading = false;
+          _hasError = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
       }
     }
   }
@@ -228,16 +301,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
     final width = MediaQuery.sizeOf(context).width;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    // Geniş ekranda içerik ortalanır; telefonda sabit 20 px kenar boşluğu.
     final hPad = width > _Ui.maxContentWidth + 2 * _Ui.pagePadding
         ? (width - _Ui.maxContentWidth) / 2
         : _Ui.pagePadding;
 
-    // Alt sistem çubuğu (3 tuş / gesture) için gerçek inset kullanılır.
-    final bottomSpace =
-        MediaQuery.paddingOf(context).bottom +
-            widget.altKaplamaBoslugu +
-            _Ui.pagePadding;
+    final bottomSpace = MediaQuery.paddingOf(context).bottom +
+        widget.altKaplamaBoslugu +
+        _Ui.pagePadding;
 
     final showSkeleton = _isLoading && _kesifHavuzu.isEmpty;
 
@@ -249,52 +319,78 @@ class _AnaSayfaState extends State<AnaSayfa> {
           onRefresh: _initData,
           color: AppColors.anaMavi,
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
               _sliverBox(hPad, _buildHeader(), top: 16, bottom: 20),
               _sliverBox(hPad, _buildProgressCard()),
-              _sliverBox(hPad, _buildSectionTitle(), top: 28, bottom: 16),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
               if (showSkeleton)
                 _sliverBox(hPad, _buildSkeletonList(reduceMotion))
+              else if (_hasError && _kesifHavuzu.isEmpty)
+                _sliverBox(
+                  hPad,
+                  _buildStateMessage(
+                    icon: Icons.cloud_off_rounded,
+                    title: "Bugünün görevi şu an yüklenemedi",
+                    message: "İnternet bağlantını kontrol edip tekrar dene.",
+                    buttonLabel: "Tekrar dene",
+                  ),
+                  top: 24,
+                )
               else if (_kesifHavuzu.isEmpty)
                 _sliverBox(
                   hPad,
-                  _hasError
-                      ? _buildStateMessage(
-                    icon: Icons.cloud_off_rounded,
-                    title: "İçerikler yüklenemedi",
-                    message: "Bağlantını kontrol edip tekrar dene.",
-                    buttonLabel: "Tekrar dene",
-                  )
-                      : _buildStateMessage(
+                  _buildStateMessage(
                     icon: Icons.explore_outlined,
-                    title: "Henüz öneri yok",
-                    message:
-                    "Yeni içerikler eklendiğinde burada görünecek.",
+                    title: "Henüz yeni görev yok",
+                    message: "Yeni içerikler eklendiğinde burada görünecek.",
                     buttonLabel: "Yenile",
                   ),
                   top: 24,
                 )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: hPad),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, i) {
-                      final card = Padding(
-                        padding: const EdgeInsets.only(bottom: _Ui.itemGap),
-                        child: _buildContentCard(_kesifHavuzu[i]),
-                      );
-                      // Sadece ilk görünen kartlar hafifçe belirir.
-                      if (reduceMotion || i >= 8) return card;
-                      return card
-                          .animate(delay: (i * 40).ms)
-                          .fadeIn(duration: 250.ms)
-                          .slideY(begin: 0.06, end: 0, curve: Curves.easeOut);
-                    }, childCount: _kesifHavuzu.length),
-                  ),
+              else ...[
+                // 1. BÜYÜK ANA KART — "BUGÜNÜN KAHRAMAN GÖREVİ"
+                StreamBuilder<DocumentSnapshot>(
+                  stream: _progressStream,
+                  builder: (context, progSnap) {
+                    return _sliverBox(
+                      hPad,
+                      _buildBugununGoreviHeroCard(progSnap.data),
+                    );
+                  },
                 ),
+
+                // 2. ALTINDA "BUGÜN KEŞFET" BÖLÜMÜ
+                if (_bugunKesfetList.isNotEmpty) ...[
+                  _sliverBox(
+                    hPad,
+                    _buildSubSectionTitle("Bugün Keşfet 🚀",
+                        "Sana özel ek içerikler ve eğlenceli görevler"),
+                    top: 28,
+                    bottom: 14,
+                  ),
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, i) {
+                        final item = _bugunKesfetList[i];
+                        final card = Padding(
+                          padding: const EdgeInsets.only(bottom: _Ui.itemGap),
+                          child: _buildContentCard(item),
+                        );
+                        if (reduceMotion || i >= 6) return card;
+                        return card
+                            .animate(delay: (i * 40).ms)
+                            .fadeIn(duration: 250.ms)
+                            .slideY(begin: 0.06, end: 0, curve: Curves.easeOut);
+                      }, childCount: _bugunKesfetList.length),
+                    ),
+                  ),
+                ],
+              ],
               SliverToBoxAdapter(child: SizedBox(height: bottomSpace)),
             ],
           ),
@@ -304,11 +400,11 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 
   Widget _sliverBox(
-      double hPad,
-      Widget child, {
-        double top = 0,
-        double bottom = 0,
-      }) {
+    double hPad,
+    Widget child, {
+    double top = 0,
+    double bottom = 0,
+  }) {
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(hPad, top, hPad, bottom),
       sliver: SliverToBoxAdapter(child: child),
@@ -448,7 +544,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
           child: Stack(
             children: [
-              // Arka plan dekoratif şekilleri
               Positioned(right: -36, top: -36, child: _blob(112, AppColors.softPink)),
               Positioned(
                 left: -44,
@@ -462,7 +557,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. SATIR: İkon, Başlık ve Puan Rozeti
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -519,10 +613,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                         _buildPointBadge(ozet.puan),
                       ],
                     ),
-
                     const SizedBox(height: 24),
-
-                    // 2. SATIR: Motivasyon Mesajı ve % Yüzde (Progress Bar'ın hemen üstü)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -555,7 +646,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                             Text(
                               "$yuzde",
                               style: const TextStyle(
-                                color: _Ui.textPrimary, // Veya AppColors.oyunSarisi yapabilirsin
+                                color: _Ui.textPrimary,
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -564,10 +655,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
-
-                    // 3. SATIR: Progress Bar
                     _buildProgressBar(ilerleme, yuzde, reduceMotion),
                   ],
                 ),
@@ -642,21 +730,235 @@ class _AnaSayfaState extends State<AnaSayfa> {
     );
   }
 
-  Widget _buildSectionTitle() {
-    return Semantics(
-      header: true,
-      child: const Text(
-        "Günün Önerileri 🚀",
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          color: _Ui.textPrimary,
+  // ──────────────────────── 1. BÜYÜK KART — BUGÜNÜN KAHRAMAN GÖREVİ ────────────────────────
+
+  Widget _buildBugununGoreviHeroCard(DocumentSnapshot? progressSnap) {
+    if (_bugununGorevi == null) return const SizedBox.shrink();
+
+    final item = _bugununGorevi!;
+    final bool completed = _isTaskCompleted(item, progressSnap);
+    final String baslik = (item['baslik'] ?? '').toString();
+    final String altBaslik = _altMetin(item);
+
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_Ui.radiusHero),
+        border: Border.all(
+          color: completed
+              ? const Color(0xFF10B981).withAlpha(120)
+              : AppColors.anaMavi.withAlpha(90),
+          width: 2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: completed
+                ? const Color(0xFF10B981).withAlpha(20)
+                : AppColors.anaMavi.withAlpha(25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -30,
+            top: -30,
+            child: _blob(
+              120,
+              completed
+                  ? const Color(0xFF10B981).withAlpha(30)
+                  : AppColors.anaMavi.withAlpha(30),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Badge Tag
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: completed
+                            ? const Color(0xFF10B981).withAlpha(25)
+                            : AppColors.anaMavi.withAlpha(25),
+                        borderRadius: BorderRadius.circular(_Ui.radiusPill),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            completed
+                                ? Icons.check_circle_rounded
+                                : Icons.star_rounded,
+                            color: completed
+                                ? const Color(0xFF10B981)
+                                : AppColors.anaMavi,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            completed
+                                ? "BUGÜNÜN GÖREVİ TAMAMLANDI! ✓"
+                                : "BUGÜNÜN KAHRAMAN GÖREVİ ⭐",
+                            style: TextStyle(
+                              color: completed
+                                  ? const Color(0xFF047857)
+                                  : AppColors.anaMavi,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Content Title & Description
+                Text(
+                  completed
+                      ? "Harika İş Çıkardın Kahraman! 🎉"
+                      : baslik,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: _Ui.textPrimary,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  completed
+                      ? "Bugünkü kahraman görevini başarıyla tamamladın. Kendinle gurur duyabilirsin!"
+                      : altBaslik,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _Ui.textBody,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Meta Pill & Action Button Row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.zemin,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _getMetaPillText(item),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _Ui.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Action Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      if (completed) {
+                        _scrollController.animateTo(
+                          320,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutCubic,
+                        );
+                      } else {
+                        _route(item);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: completed
+                          ? const Color(0xFF10B981)
+                          : AppColors.anaMavi,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    icon: Icon(
+                      completed
+                          ? Icons.explore_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 22,
+                    ),
+                    label: Text(
+                      completed
+                          ? "BAŞKA BİR ŞEY KEŞFET ↓"
+                          : "GÖREVE BAŞLA →",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.04);
+  }
+
+  Widget _buildSubSectionTitle(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: _Ui.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: _Ui.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
-  /// Okunabilirlik için kart renginin koyu tonu (kategori etiketi).
+  // ──────────────────────── 3. BUGÜN KEŞFET KARTLARI ────────────────────────
+
   Color _koyuTon(Color c) {
     final hsl = HSLColor.fromColor(c);
     return hsl
@@ -665,7 +967,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 
   Widget _buildContentCard(Map item) {
-    final Color color = item['renk'];
+    final Color color = item['renk'] ?? AppColors.anaMavi;
     final Color koyu = _koyuTon(color);
     final String baslik = (item['baslik'] ?? '').toString();
     final radius = BorderRadius.circular(_Ui.radiusCard);
@@ -681,7 +983,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
         ],
       ),
-      // Material + InkWell: dokunma efekti kartın üstünde görünür.
       child: Material(
         color: _Ui.surface,
         clipBehavior: Clip.antiAlias,
@@ -697,15 +998,15 @@ class _AnaSayfaState extends State<AnaSayfa> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 54,
+                  height: 54,
                   decoration: BoxDecoration(
                     color: color.withAlpha(30),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Icon(item['ikon'], color: color, size: 28),
+                  child: Icon(item['ikon'], color: color, size: 26),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,32 +1018,31 @@ class _AnaSayfaState extends State<AnaSayfa> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: koyu,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
                           letterSpacing: 1.0,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         baslik,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
-                          fontSize: 17,
+                          fontSize: 15,
                           color: _Ui.textPrimary,
-                          height: 1.25,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         _altMetin(item),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           color: _Ui.textBody,
-                          height: 1.35,
+                          height: 1.25,
                         ),
                       ),
                     ],
@@ -752,7 +1052,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 Icon(
                   Icons.chevron_right_rounded,
                   color: koyu.withAlpha(160),
-                  size: 26,
+                  size: 24,
                 ),
               ],
             ),
@@ -766,21 +1066,21 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   Widget _buildSkeletonList(bool reduceMotion) {
     Widget bar(double widthFactor, double height) => FractionallySizedBox(
-      widthFactor: widthFactor,
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: _Ui.border,
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+          widthFactor: widthFactor,
+          alignment: Alignment.centerLeft,
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: _Ui.border,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        );
 
     final list = Column(
       children: List.generate(
         3,
-            (_) => Container(
+        (_) => Container(
           margin: const EdgeInsets.only(bottom: _Ui.itemGap),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -791,11 +1091,11 @@ class _AnaSayfaState extends State<AnaSayfa> {
           child: Row(
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   color: _Ui.border,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
                 ),
               ),
               const SizedBox(width: 16),
@@ -824,8 +1124,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
         child: reduceMotion
             ? list
             : list
-            .animate(onPlay: (c) => c.repeat(reverse: true))
-            .fade(begin: 0.5, end: 1.0, duration: 900.ms),
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .fade(begin: 0.5, end: 1.0, duration: 900.ms),
       ),
     );
   }
@@ -856,8 +1156,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
                 color: _Ui.textPrimary,
               ),
             ),
@@ -866,7 +1166,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: _Ui.textSecondary,
                 height: 1.4,
               ),
@@ -878,6 +1178,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 backgroundColor: AppColors.anaMavi,
                 minimumSize: const Size(0, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               icon: const Icon(Icons.refresh_rounded, size: 20),
               label: Text(buttonLabel, textAlign: TextAlign.center),
@@ -892,7 +1195,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
   Future<void> _route(Map item) async {
     final data = item['data'];
-    if (item['tip'] == "SENARYO") {
+    final String tip = (item['tip'] ?? '').toString();
+
+    if (tip == "SENARYO") {
       final docId = (item['id'] ?? '').toString().trim();
       if (docId.isEmpty) {
         _showMessage("Bu öneri artık geçersiz. Liste yenileniyor...");
@@ -900,26 +1205,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
         return;
       }
 
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('scenarios')
-            .doc(docId)
-            .get();
-        if (!doc.exists) {
-          if (!mounted) return;
-          _showMessage(
-            "Bu senaryo artık mevcut değil. Diğer önerilere bakıyoruz...",
-          );
-          await _initData();
-          return;
-        }
-      } catch (_) {
-        if (!mounted) return;
-        _showMessage("Senaryo bilgisi yüklenirken bir sorun oluştu.");
-        return;
-      }
-
-      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -927,7 +1212,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         ),
       );
       return;
-    } else if (item['tip'] == "HİKAYE") {
+    } else if (tip == "HİKAYE") {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -940,7 +1225,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
         ),
       );
-    } else if (item['tip'] == "VİDEO") {
+    } else if (tip == "VİDEO") {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -951,7 +1236,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
           ),
         ),
       );
-    } else if (item['tip'] == "SİBER DEDEKTİF") {
+    } else if (tip == "SİBER DEDEKTİF") {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const SiberDedektifOyunu()),

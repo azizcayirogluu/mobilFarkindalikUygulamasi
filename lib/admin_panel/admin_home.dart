@@ -8,6 +8,7 @@ import 'package:zorbalik_uygulamasi/admin_panel/video_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/user_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/detective_manager.dart';
 import 'package:zorbalik_uygulamasi/admin_panel/badge_manager.dart';
+import 'package:zorbalik_uygulamasi/admin_panel/analytics/analytics_page.dart';
 import 'package:zorbalik_uygulamasi/services/user_presence_service.dart';
 
 class AdminHome extends StatefulWidget {
@@ -28,6 +29,7 @@ class _AdminHomeState extends State<AdminHome> {
     const UserManager(),
     const DetectiveManager(),
     const BadgeManager(),
+    const AnalyticsPage(),
   ];
 
   @override
@@ -57,6 +59,13 @@ class _AdminHomeState extends State<AdminHome> {
                         0,
                         Icons.dashboard_customize_rounded,
                         "Sistem Özeti",
+                      ),
+                      const SizedBox(height: 20),
+                      _menuHeader("ANALİTİK & RAPORLAMA"),
+                      _sidebarItem(
+                        7,
+                        Icons.analytics_rounded,
+                        "Raporlama ve Analiz",
                       ),
                       const SizedBox(height: 20),
                       _menuHeader("İÇERİK OPERASYONLARI"),
@@ -177,7 +186,7 @@ class _AdminHomeState extends State<AdminHome> {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withOpacity(0.05)
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: isSelected ? Border.all(color: Colors.white10) : null,
@@ -237,7 +246,7 @@ class _AdminHomeState extends State<AdminHome> {
             icon: const Icon(Icons.power_settings_new_rounded, size: 16),
             label: const Text("GÜVENLİ ÇIKIŞ"),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.redAccent.withOpacity(0.7),
+              foregroundColor: Colors.redAccent.withValues(alpha: 0.7),
             ),
           ),
         ],

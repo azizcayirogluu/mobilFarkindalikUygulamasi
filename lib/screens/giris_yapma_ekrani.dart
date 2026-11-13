@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:zorbalik_uygulamasi/app_theme.dart';
 import 'package:zorbalik_uygulamasi/screens/kayit_olma_ekrani.dart';
 import 'package:zorbalik_uygulamasi/services/storage_service.dart';
 
@@ -55,15 +54,28 @@ class _GirisEkraniState extends State<GirisEkrani> {
     if (kDebugMode) debugPrint('[GIRIS] $message');
   }
 
+  String _toCanonicalEmail(String rawUsername) {
+    String text = rawUsername.trim().toLowerCase();
+    text = text
+        .replaceAll('i̇', 'i')
+        .replaceAll('ı', 'i')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'\s+'), '');
+    return '$text@zorbalik.app';
+  }
+
   Future<void> _girisYap() async {
-    // Çift dokunma / eşzamanlı ikinci istek koruması.
     if (_isLoading) return;
 
     FocusScope.of(context).unfocus();
-    final kullaniciAdi = _usernameController.text.trim().toLowerCase().replaceAll(' ', '');
+    final rawUsername = _usernameController.text.trim();
     final pin = _pinController.text.trim();
 
-    if (kullaniciAdi.isEmpty || pin.isEmpty) {
+    if (rawUsername.isEmpty || pin.isEmpty) {
       _mesajGoster("Kullanıcı adını ve şifreni/PIN kodunu yazmayı unutma! 😊", isError: true);
       return;
     }
@@ -78,7 +90,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
     try {
       await _checkRateLimit();
-      final String deterministicEmail = '$kullaniciAdi@zorbalik.app';
+      final String deterministicEmail = _toCanonicalEmail(rawUsername);
 
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: deterministicEmail, password: pin)
@@ -98,10 +110,10 @@ class _GirisEkraniState extends State<GirisEkrani> {
       // ve oturum kapatılmaz. (Firestore update sunucu onayını beklediği için
       // zaman aşımı konuldu.)
       try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'sonGorulme': FieldValue.serverTimestamp(),
           'isOnline': true,
-        }).timeout(const Duration(seconds: 8));
+        }, SetOptions(merge: true)).timeout(const Duration(seconds: 8));
         _log('FIRESTORE UPDATE SUCCESS');
       } catch (e) {
         _log('FIRESTORE UPDATE FAILED (giriş devam ediyor): ${e.runtimeType}');
@@ -114,7 +126,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
       }
 
       if (!mounted) return;
-      _mesajGoster("Tekrar hoş geldin $kullaniciAdi! 🚀");
+      _mesajGoster("Tekrar hoş geldin $rawUsername! 🚀");
       // Ekran kararı AuthGate'indir (authStateChanges -> UserDataGate -> ...).
       // GirisEkrani, AuthGate'in üstüne push edilmiş bir route olduğu için
       // AuthGate onu kendisi kapatamaz; burada yalnızca bu ekranı stack'ten çıkarıyoruz.
@@ -165,246 +177,184 @@ class _GirisEkraniState extends State<GirisEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final keyboardOpen = media.viewInsets.bottom > 0;
-
-    // Alt sistem navigasyon barı (gesture vs 3-buton) için dinamik boşluk
-    final bottomPadding = media.padding.bottom;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final availableHeight = constraints.maxHeight;
-          final isShort = availableHeight < 600;
-
-          return Stack(
-            children: [
-              // 1. DİNAMİK RENKLİ ARKA PLAN
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFE0F7FA), Color(0xFFF3E5F5), Colors.white],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-
-              // 2. HAREKETLİ DEKORATİF OBJELER
-              if (!keyboardOpen && !isShort) ...[
-                Positioned(
-                  top: -40,
-                  right: -40,
-                  child: _decorCircle(200, AppColors.anaMavi.withOpacity(.1))
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .moveY(begin: -15, end: 15, duration: 4.seconds),
-                ),
-                Positioned(
-                  bottom: -60,
-                  left: -50,
-                  child: _decorCircle(220, AppColors.eglencePembesi.withOpacity(.08))
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .moveX(begin: -10, end: 10, duration: 5.seconds),
-                ),
-              ],
-
-              // 3. İÇERİK
-              // SafeArea bottom: false yapıldı ki ekranın altına tam oturan renkli bir his olsun,
-              // ancak scrollable content'in altına inset eklendi ki içerik altında kalmasın.
-              SafeArea(
-                bottom: false,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600), // Tablet/iPad uyumluluğu
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 15),
-                          _buildHeader(),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              // Sistemin alt çubuğuyla çakışmayı önleyen dinamik alt padding
-                              padding: EdgeInsets.only(bottom: bottomPadding + 20),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (!keyboardOpen && !isShort) ...[
-                                    const SizedBox(height: 10),
-                                    _buildHeroSection(),
-                                    const SizedBox(height: 25),
-                                  ],
-                                  _buildFormCard(keyboardOpen || isShort),
-                                  const SizedBox(height: 20),
-                                  _buildRegisterLink(keyboardOpen || isShort),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned(top: -100, right: -100, child: _decorCircle(300, const Color(0xFFEEF2FF))),
+            Positioned(bottom: -120, left: -120, child: _decorCircle(280, const Color(0xFFE0F2FE).withValues(alpha: 0.7))),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          children: [
+                            if (!keyboardOpen) ...[
+                              const SizedBox(height: 20),
+                              _buildHeroSection(),
+                              const SizedBox(height: 30),
+                            ],
+                            _buildFormCard(),
+                            const SizedBox(height: 20),
+                            _buildRegisterLink(),
+                            const SizedBox(height: 30),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        IconButton(
-          onPressed: () => Navigator.pop(context),
-          style: IconButton.styleFrom(backgroundColor: Colors.white, shadowColor: Colors.black12, elevation: 2),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.yaziRengi, size: 18),
-        ),
-        const Expanded(
-          child: Text(
-            "Giriş Yap",
-            textAlign: TextAlign.center,
-            maxLines: 1, // Büyük fontlarda header taşmasını engeller
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.yaziRengi, fontWeight: FontWeight.w900, fontSize: 16),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF475569)),
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
-        ),
-        const SizedBox(width: 48), // İkon simetrisi için
-      ],
+          const Expanded(
+            child: Text(
+              "Kahraman Girişi",
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+            ),
+          ),
+          const SizedBox(width: 48),
+        ],
+      ),
     );
   }
 
   Widget _buildHeroSection() {
     return Column(
       children: [
-        Image.asset(
-            "assets/image/team.png",
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: const Color(0xFF6366F1).withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Image.asset(
+            "assets/image/app_icon_two.png",
             height: 120,
-            errorBuilder: (_, __, ___) => const Icon(Icons.group_rounded, size: 80, color: AppColors.anaMavi)
-        ),
-        const SizedBox(height: 15),
+            errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.shield_rounded, size: 80, color: Color(0xFF6366F1)),
+          ),
+        ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+        const SizedBox(height: 16),
         const Text(
-          "Tekrardan Merhaba! 👋",
+          "Tekrar Hoş Geldin!",
           textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.yaziRengi, letterSpacing: -1),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         const Text(
-          "Kaldığın yerden iyilik dolu bir dünya kurmaya hazır mısın?",
+          "Kaldığın yerden kahramanlık yolculuğuna devam et!",
           textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
         ),
       ],
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
+    );
   }
 
-  Widget _buildFormCard(bool compact) {
+  Widget _buildFormCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: compact ? 16 : 32),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(45),
-        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(.1), blurRadius: 40, offset: const Offset(0, 15))],
-        border: Border.all(color: Colors.white, width: 2),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildInputField("Kullanıcı Adın", Icons.face_rounded, _usernameController, compact),
-          SizedBox(height: compact ? 12 : 20),
-          _buildInputField("Şifren veya PIN Kodun", Icons.lock_rounded, _pinController, compact, isPin: true),
-          SizedBox(height: compact ? 20 : 32),
-          _buildLoginButton(compact),
+          _buildInput("Kullanıcı Adın", Icons.face_rounded, _usernameController, isPin: false),
+          const SizedBox(height: 20),
+          _buildInput("Şifren veya PIN Kodun", Icons.lock_rounded, _pinController, isPin: true),
+          const SizedBox(height: 30),
+          _buildLoginButton(),
         ],
       ),
-    ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.95, 0.95));
-  }
-
-  Widget _buildInputField(String label, IconData icon, TextEditingController controller, bool compact, {bool isPin = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!compact) Padding(
-          padding: const EdgeInsets.only(left: 10, bottom: 8),
-          child: Text(
-              label.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.anaMavi, fontSize: 10, letterSpacing: 1.1)
-          ),
-        ),
-        TextField(
-          controller: controller,
-          obscureText: isPin && !_showPin,
-          keyboardType: TextInputType.text,
-          maxLength: null,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: compact ? 14 : 16),
-          decoration: InputDecoration(
-            counterText: "",
-            hintText: "$label...",
-            prefixIcon: Icon(icon, color: AppColors.anaMavi, size: 20),
-            suffixIcon: isPin ? IconButton(onPressed: () => setState(() => _showPin = !_showPin), icon: Icon(_showPin ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: Colors.grey.shade400)) : null,
-            filled: true,
-            fillColor: AppColors.anaMavi.withOpacity(0.04),
-            contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: AppColors.anaMavi, width: 2)),
-          ),
-        ),
-      ],
     );
   }
 
-  Widget _buildLoginButton(bool compact) {
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 55),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: AppColors.anaGradient,
-        boxShadow: [BoxShadow(color: AppColors.anaMavi.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6))],
+  Widget _buildInput(String label, IconData icon, TextEditingController controller, {required bool isPin}) {
+    return TextField(
+      controller: controller,
+      obscureText: isPin && !_showPin,
+      keyboardType: TextInputType.text,
+      textInputAction: isPin ? TextInputAction.done : TextInputAction.next,
+      onSubmitted: isPin ? (_) => _girisYap() : null,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: isPin
+            ? IconButton(
+          icon: Icon(_showPin ? Icons.visibility_off : Icons.visibility, size: 18),
+          onPressed: () => setState(() => _showPin = !_showPin),
+        )
+            : null,
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+        ),
       ),
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _girisYap,
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, elevation: 0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: _isLoading
-              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-              : const FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              "MACERAYA BAŞLA! 🚀",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1),
-            ),
-          ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6366F1),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text("GİRİŞ YAP 🚀", style: TextStyle(fontWeight: FontWeight.w900)),
         ),
       ),
     );
   }
 
-  Widget _buildRegisterLink(bool compact) {
+  Widget _buildRegisterLink() {
     return TextButton(
       onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const KayitEkrani())),
-      child: Text.rich(
-        TextSpan(
-          style: TextStyle(color: Colors.blueGrey, fontSize: compact ? 12 : 14, fontWeight: FontWeight.w700),
-          children: const [
-            TextSpan(text: 'Henüz kahraman değil misin? '),
-            TextSpan(text: 'Kayıt Ol ✨', style: TextStyle(color: AppColors.anaMavi, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        textAlign: TextAlign.center, // Büyük fontlarda birden çok satıra düşerse ortalı dursun
+      child: const Text(
+        "Henüz kahraman değil misin? Kayıt Ol",
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold),
       ),
     );
   }

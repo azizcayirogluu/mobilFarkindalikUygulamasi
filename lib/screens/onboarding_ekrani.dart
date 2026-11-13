@@ -76,8 +76,8 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (_, __, ___) => const AuthGate(),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(opacity: animation, child: child),
+        pageBuilder: (context, animation, secondaryAnimation) => const AuthGate(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
       ),
     );
   }
@@ -145,13 +145,13 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
         children: [
           Positioned(
             top: -100, right: -60,
-            child: _circle(240, page.accent.withOpacity(0.04))
+            child: _circle(240, page.accent.withValues(alpha: 0.04))
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .moveY(begin: -20, end: 20, duration: 4.seconds),
           ),
           Positioned(
             bottom: -80, left: -60,
-            child: _circle(260, page.accent.withOpacity(0.03))
+            child: _circle(260, page.accent.withValues(alpha: 0.03))
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .moveX(begin: -15, end: 15, duration: 5.seconds),
           ),
@@ -253,25 +253,25 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
     );
   }
 
-  Widget _buildBadge(OnboardingData data) {
+  Widget _buildBadge(OnboardingData page) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: data.accent.withOpacity(0.08),
+        color: page.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: data.accent.withOpacity(0.15), width: 1.5),
+        border: Border.all(color: page.accent.withValues(alpha: 0.15), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(data.icon, size: 16, color: data.accent),
+          Icon(page.icon, size: 16, color: page.accent),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              data.badge,
+              page.badge,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: data.accent,
+                color: page.accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2,
@@ -284,8 +284,6 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
   }
 
   Widget _buildHeroImage(OnboardingData data, BoxConstraints constraints) {
-    // Sabit 240 genişlik/yükseklik kaldırıldı.
-    // Hem çok dar ekranlarda hem de yatay (landscape) modda taşmayı engellemek için oranlandı.
     final double maxSize = 240.0;
     final double minSize = 120.0;
     final double responsiveSize = math.min(constraints.maxWidth * 0.6, constraints.maxHeight * 0.35);
@@ -299,7 +297,7 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: data.accent.withOpacity(0.08),
+            color: data.accent.withValues(alpha: 0.08),
             blurRadius: 30,
             offset: const Offset(0, 15),
           )
@@ -308,11 +306,11 @@ class _OnboardingEkraniState extends State<OnboardingEkrani>
       ),
       child: ClipOval(
         child: Padding(
-          padding: EdgeInsets.all(finalSize * 0.08), // Padding de resimle oranlı hale getirildi
+          padding: EdgeInsets.all(finalSize * 0.08),
           child: Image.asset(
             data.image,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(data.icon, size: finalSize * 0.35, color: data.accent),
+            errorBuilder: (context, error, stackTrace) => Icon(data.icon, size: finalSize * 0.35, color: data.accent),
           ),
         ),
       ),

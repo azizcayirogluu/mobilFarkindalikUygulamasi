@@ -76,11 +76,21 @@ class AiAnalysisService {
 
       return {"durum": durum, "neden": neden};
     } on FirebaseFunctionsException catch (e, stack) {
-      AppLogger.error("YZ Analiz Hatası (Functions)", e, stack);
-      return {"durum": "HATA", "neden": "Sunucu şu an çok meşgul, lütfen biraz sonra tekrar dene."};
+      AppLogger.error("YZ Analiz Hatası (Functions - Fallback to Offline Engine)", e, stack);
+      final mistakes = await getMistakes(uid);
+      final offlineResult = await _offlineEngine.analyzeMistakes(mistakes);
+      return {
+        "durum": offlineResult["durum"] ?? "GÜVENLİ",
+        "neden": "Kural Tabanlı Analiz: ${offlineResult["neden"] ?? 'Sorun tespit edilmedi.'}"
+      };
     } catch (e, stack) {
-      AppLogger.error("YZ Analiz Bağlantı Hatası", e, stack);
-      return {"durum": "HATA", "neden": "Bağlantı çok yavaş veya koptu. Lütfen internetini kontrol et."};
+      AppLogger.error("YZ Analiz Bağlantı Hatası (Fallback to Offline Engine)", e, stack);
+      final mistakes = await getMistakes(uid);
+      final offlineResult = await _offlineEngine.analyzeMistakes(mistakes);
+      return {
+        "durum": offlineResult["durum"] ?? "GÜVENLİ",
+        "neden": "Kural Tabanlı Analiz: ${offlineResult["neden"] ?? 'Sorun tespit edilmedi.'}"
+      };
     }
   }
 }

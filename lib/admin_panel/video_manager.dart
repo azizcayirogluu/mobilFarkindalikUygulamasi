@@ -166,6 +166,7 @@ class _VideoManagerState extends State<VideoManager> {
               } else {
                 await _firestore.collection('videos').doc(docId).update(data);
               }
+              if (!c.mounted) return;
               Navigator.pop(c);
             },
             child: const Text("Sisteme Kaydet"),

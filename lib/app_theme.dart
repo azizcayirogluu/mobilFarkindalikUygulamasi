@@ -55,7 +55,7 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         elevation: 5,
-        shadowColor: AppColors.anaMavi.withOpacity(0.3),
+        shadowColor: AppColors.anaMavi.withValues(alpha: 0.3),
       ),
     ),
   );

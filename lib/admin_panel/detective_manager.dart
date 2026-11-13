@@ -260,7 +260,7 @@ class _DetectiveManagerState extends State<DetectiveManager> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<T>(
-          value: value,
+          initialValue: value,
           items: items
               .map(
                 (e) => DropdownMenuItem(
@@ -280,7 +280,9 @@ class _DetectiveManagerState extends State<DetectiveManager> {
             ),
           )
               .toList(),
-          onChanged: (v) => onChanged(v!),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
           decoration: InputDecoration(
             filled: true,
             fillColor: _Constants.bgColor,
@@ -363,7 +365,7 @@ class _DetectiveManagerState extends State<DetectiveManager> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inbox_rounded, size: 64, color: Colors.blueGrey.withOpacity(0.3)),
+                Icon(Icons.inbox_rounded, size: 64, color: Colors.blueGrey.withValues(alpha: 0.3)),
                 const SizedBox(height: 16),
                 Text(
                   'Henüz soru eklenmemiş',
@@ -399,7 +401,7 @@ class _DetectiveManagerState extends State<DetectiveManager> {
         border: Border.all(color: _Constants.borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -408,7 +410,7 @@ class _DetectiveManagerState extends State<DetectiveManager> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         leading: CircleAvatar(
-          backgroundColor: durum.color.withOpacity(0.1),
+          backgroundColor: durum.color.withValues(alpha: 0.1),
           child: Icon(durum.icon, color: durum.color),
         ),
         title: Text(

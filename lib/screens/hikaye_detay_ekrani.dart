@@ -186,7 +186,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                           imageUrl: widget.gorselYolu,
                           memCacheWidth: 600,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(color: widget.temaRengi.withOpacity(0.1), child: const Center(child: CircularProgressIndicator())),
+                          placeholder: (context, url) => Container(color: widget.temaRengi.withValues(alpha: 0.1), child: const Center(child: CircularProgressIndicator())),
                           errorWidget: (context, url, error) => Container(color: widget.temaRengi, child: const Icon(Icons.error, color: Colors.white)),
                         )
                             : Image.asset(
@@ -197,7 +197,6 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                             child: const Icon(Icons.book, size: 80, color: Colors.white),
                           ),
                         ),
-                        // Görselin alt kısmına yumuşak bir geçiş
                         Positioned(
                           bottom: -1,
                           left: 0,
@@ -224,7 +223,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: widget.temaRengi.withOpacity(0.1),
+                          color: widget.temaRengi.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -253,7 +252,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                           borderRadius: BorderRadius.circular(25),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
+                              color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -271,7 +270,6 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
                       ),
                       const SizedBox(height: 30),
                       if (widget.feedbackMessage.isNotEmpty) _buildHeroNote(),
-                      // Bottom barın yüksekliği kadar boşluk bırak ki metin altında kalmasın
                       SizedBox(height: 100 + bottomPadding),
                     ],
                   ),
@@ -281,15 +279,13 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
           ),
         ),
       ),
-      // bottomNavigationBar, Scaffold'un bottomSheet'inden daha güvenlidir
-      // ve sistem navigasyon barlarıyla SafeArea entegrasyonu otomatik daha iyidir.
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(24, 16, 24, bottomPadding > 0 ? bottomPadding + 8 : 24),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -320,7 +316,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: widget.temaRengi.withOpacity(0.2), width: 2),
+        border: Border.all(color: widget.temaRengi.withValues(alpha: 0.2), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +326,7 @@ class _HikayeDetayEkraniState extends State<HikayeDetayEkrani> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: widget.temaRengi.withOpacity(0.1),
+                  color: widget.temaRengi.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.lightbulb_rounded, color: widget.temaRengi, size: 20),

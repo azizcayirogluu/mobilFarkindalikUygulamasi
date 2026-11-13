@@ -122,6 +122,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /pendingRegistrations/{id} {
+      // Rule 12: Pre-Auth 6-12 registrations are strictly managed by Cloud Functions Admin SDK
+      allow read, write: if false;
+    }
+
     // Default Deny
     match /{document=**} {
       allow read, write: if false;

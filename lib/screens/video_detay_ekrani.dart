@@ -15,7 +15,7 @@ List<Map<String, dynamic>> normalizeVideoList(List<dynamic> source) {
   for (final item in source) {
     if (item is! Map) continue;
 
-    final map = Map<String, dynamic>.from(item as Map);
+    final map = Map<String, dynamic>.from(item);
     final dynamic rawYoutubeId = map['youtubeId'] ?? map['data']?['youtubeId'];
     final String youtubeId = rawYoutubeId?.toString().trim() ?? '';
 
@@ -212,14 +212,13 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
           Container(
             width: double.infinity,
             constraints: BoxConstraints(
-              // Büyük ekranlarda (Örn. iPad portre modu) videonun çok uzayıp listeyi ezmemesi için max 300 limiti eklendi.
               maxHeight: math.min(300.0, MediaQuery.sizeOf(context).height * 0.35),
             ),
             decoration: BoxDecoration(
               color: Colors.black,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0F172A).withOpacity(0.1),
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -248,7 +247,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: widget.temaRengi.withOpacity(0.1),
+                        color: widget.temaRengi.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: FittedBox( // Büyük cihaz fontunda rozetin taşmasını engeller
@@ -359,7 +358,7 @@ class _VideoDetayEkraniState extends State<VideoDetayEkrani> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.02),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),

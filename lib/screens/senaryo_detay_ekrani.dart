@@ -66,9 +66,10 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Future<void> _verileriYukle() async {
-    if (_currentUser == null) return;
+    final user = _currentUser;
+    if (user == null) return;
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       String kullaniciYasGrubu = userDoc.exists ? (userDoc.data()?['yasGrubu'] ?? "6-12") : "6-12";
 
       final doc = await FirebaseFirestore.instance.collection('scenarios').doc(widget.docId).get();
@@ -78,62 +79,68 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
 
         if (bolumler.isNotEmpty && widget.bolumIndex < bolumler.length) {
           final tumSorularRaw = List.from(bolumler[widget.bolumIndex]['sorular'] ?? []);
-          final filtrelenmisSorular = tumSorularRaw.where((s) => (s['yasGrubu'] ?? "6-12") == kullaniciYasGrubu).toList();
+          
+          List filtrelenmisSorular = tumSorularRaw.where((s) {
+            final String? sAge = s['yasGrubu']?.toString();
+            return sAge == null || sAge.isEmpty || sAge == kullaniciYasGrubu;
+          }).toList();
+
+          if (filtrelenmisSorular.isEmpty) {
+            filtrelenmisSorular = tumSorularRaw;
+          }
 
           final hazirSorular = [];
 
-          // Üst üste aynı şıkkın gelme durumunu takip edeceğimiz değişkenler
           int? oncekiDogruIndeks;
           int ayniCevapSayaci = 0;
 
           for (var s in filtrelenmisSorular) {
             Map<String, dynamic> soruMap = Map<String, dynamic>.from(s);
+            soruMap['soru'] = soruMap['soru'] ?? soruMap['soruMetni'] ?? 'Soru açıklaması';
+
             if (soruMap['secenekler'] != null) {
               List secList = List.from(soruMap['secenekler']);
-
               secList.shuffle(math.Random());
 
-              int dogruIndex = secList.indexWhere((secenek) => secenek['dogru'] == true);
+              int dogruIndex = secList.indexWhere((secenek) => secenek['dogru'] == true || secenek['isCorrect'] == true);
 
-              // Eğer doğru cevap bir öncekiyle aynı pozisyona düştüyse
               if (oncekiDogruIndeks != null && dogruIndex == oncekiDogruIndeks) {
-                ayniCevapSayaci++; // Sayacı artır
-
-                // Eğer 2 defa üst üste aynı şık geldiyse ve 3. de aynı olacaksa müdahale et
+                ayniCevapSayaci++;
                 if (ayniCevapSayaci >= 2 && secList.length > 1) {
                   int yeniIndex = (dogruIndex + 1) % secList.length;
-
                   var temp = secList[dogruIndex];
                   secList[dogruIndex] = secList[yeniIndex];
                   secList[yeniIndex] = temp;
-
                   dogruIndex = yeniIndex;
-                  ayniCevapSayaci = 0; // Farklı bir şıkka geçirdiğimiz için sayacı sıfırla
+                  ayniCevapSayaci = 0;
                 }
               } else {
-                // Farklı bir şık geldiyse sayacı sıfırla
                 ayniCevapSayaci = 0;
               }
 
               oncekiDogruIndeks = dogruIndex;
               soruMap['secenekler'] = secList;
+            } else {
+              soruMap['secenekler'] = [];
             }
             hazirSorular.add(soruMap);
           }
 
-          setState(() {
-            _sorular = hazirSorular;
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _sorular = hazirSorular;
+              _isLoading = false;
+            });
 
-          if (_sorular.isNotEmpty && _sesAcik) {
-            _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+            if (_sorular.isNotEmpty && _sesAcik) {
+              _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+            }
           }
         } else {
-          setState(() => _isLoading = false);
+          if (mounted) setState(() => _isLoading = false);
         }
       } else {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
       debugPrint("Veri yükleme hatası: $e");
@@ -162,9 +169,10 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
         if (mounted) _sonraki();
       });
     } else {
-      if (_currentUser != null) {
-        _analyticsService.hataKaydet(_currentUser!.uid);
-        _aiAnalysisService.logMistake(_currentUser!.uid, "Hata: ${secenek['metin']}");
+      final user = _currentUser;
+      if (user != null) {
+        _analyticsService.hataKaydet(user.uid);
+        _aiAnalysisService.logMistake(user.uid, "Hata: ${secenek['metin']}");
       }
       _showFeedback(secenek['feedback'] ?? "Hadi bir daha deneyelim! Gücüne inanıyoruz.");
     }
@@ -259,8 +267,11 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
           onPressed: () {
             setState(() {
               _sesAcik = !_sesAcik;
-              if (_sesAcik) _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
-              else _ttsService.stop();
+              if (_sesAcik) {
+                _soruyuVeSecenekleriSeslendir(_sorular[_currentIndex]);
+              } else {
+                _ttsService.stop();
+              }
             });
           },
         ),
@@ -303,8 +314,6 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
   }
 
   Widget _buildHeroImage(String url, Size size) {
-    // Sabit 220 yüksekliği, ekranın %25'i veya minimum 150, maksimum 250 olacak şekilde değiştirildi.
-    // Yatay modda veya çok küçük telefonlarda görselin ekranın çoğunu kaplamasını engeller.
     final double dynamicHeight = math.max(150.0, math.min(size.height * 0.25, 250.0));
 
     return Container(
@@ -313,7 +322,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white, width: 6),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
@@ -368,7 +377,7 @@ class _SenaryoDetayEkraniState extends State<SenaryoDetayEkrani> with TickerProv
             color: bgColor,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: borderColor, width: 2),
-            boxShadow: isSelected ? [] : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
+            boxShadow: isSelected ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4))],
           ),
           child: Row(
             children: [

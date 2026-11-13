@@ -7,3 +7,10 @@ Future<String> saveAndShareFile(String fileName, String content) async {
   await file.writeAsString(content);
   return file.path;
 }
+
+Future<String> saveAndShareBytes(String fileName, List<int> bytes, String mimeType) async {
+  final dir = await getApplicationDocumentsDirectory();
+  final file = File('${dir.path}/$fileName');
+  await file.writeAsBytes(bytes);
+  return file.path;
+}

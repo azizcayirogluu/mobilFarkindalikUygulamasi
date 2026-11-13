@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '610579116609',
     projectId: 'tubitak-akran-zorbaligi',
     storageBucket: 'tubitak-akran-zorbaligi.firebasestorage.app',
-    iosBundleId: 'com.example.zorbalikUygulamasi',
+    iosBundleId: 'com.siberkahramanapp.zorbalik',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -72,7 +72,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '610579116609',
     projectId: 'tubitak-akran-zorbaligi',
     storageBucket: 'tubitak-akran-zorbaligi.firebasestorage.app',
-    iosBundleId: 'com.example.zorbalikUygulamasi',
+    iosBundleId: 'com.siberkahramanapp.zorbalik',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

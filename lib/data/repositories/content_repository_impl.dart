@@ -46,15 +46,15 @@ class ContentRepositoryImpl implements ContentRepository {
       final results = await Future.wait([
         _firestore
             .collection('scenarios')
-            .limit(4)
+            .limit(6)
             .get(GetOptions(source: source)),
         _firestore
             .collection('stories')
-            .limit(4)
+            .limit(6)
             .get(GetOptions(source: source)),
         _firestore
             .collection('videos')
-            .limit(5)
+            .limit(6)
             .get(GetOptions(source: source)),
         _safeCount('scenarios'),
         _safeCount('stories'),
@@ -69,23 +69,24 @@ class ContentRepositoryImpl implements ContentRepository {
       final storyCount = results[4] as int;
       final detectiveCount = results[5] as int;
 
-      List<Map<String, dynamic>> pool = [];
-      if (sSnap.docs.isNotEmpty) {
-        var d = sSnap.docs.first;
-        pool.add({
+      List<Map<String, dynamic>> senaryolar = [];
+      List<Map<String, dynamic>> hikayeler = [];
+      List<Map<String, dynamic>> videolar = [];
+
+      for (var d in sSnap.docs) {
+        senaryolar.add({
           "id": d.id,
           "tip": "SENARYO",
           "baslik": d.data()['baslik'] ?? "Senaryo",
           "altBaslik": d.data()['altBaslik'] ?? "Kararlarınla Olayları Yönet!",
-          "renkStr": d.data()['renk'],
-          "ikonStr": d.data()['ikon'],
+          "renkStr": d.data()['renk'] ?? "0xFF6366F1",
+          "ikonStr": d.data()['ikon'] ?? "psychology",
           "data": d.data(),
         });
       }
 
-      if (hSnap.docs.isNotEmpty) {
-        var d = hSnap.docs.first;
-        pool.add({
+      for (var d in hSnap.docs) {
+        hikayeler.add({
           "id": d.id,
           "tip": "HİKAYE",
           "baslik": d.data()['baslik'] ?? "Hikaye",
@@ -96,9 +97,8 @@ class ContentRepositoryImpl implements ContentRepository {
         });
       }
 
-      if (vSnap.docs.isNotEmpty) {
-        var d = vSnap.docs.first;
-        pool.add({
+      for (var d in vSnap.docs) {
+        videolar.add({
           "id": d.id,
           "tip": "VİDEO",
           "baslik": d.data()['baslik'] ?? "Video",
@@ -109,7 +109,7 @@ class ContentRepositoryImpl implements ContentRepository {
         });
       }
 
-      pool.add({
+      final dedektifItem = {
         "id": "siber_dedektif_game",
         "tip": "SİBER DEDEKTİF",
         "baslik": "Kahraman Dedektif 🔍",
@@ -117,15 +117,34 @@ class ContentRepositoryImpl implements ContentRepository {
         "renkStr": "0xFF10B981",
         "ikonStr": "search",
         "data": {},
-      });
+      };
 
-      pool.shuffle();
-      final cleanedPool = sanitizeDiscoveryPool(pool);
+      senaryolar.shuffle();
+      hikayeler.shuffle();
+      videolar.shuffle();
+
+      // Farklı içerik tiplerini sıralı ve dengeli şekilde harmanla (Interleave)
+      List<Map<String, dynamic>> interleaved = [];
+      int maxLen = [
+        senaryolar.length,
+        hikayeler.length,
+        videolar.length,
+        1,
+      ].reduce((a, b) => a > b ? a : b);
+
+      for (int i = 0; i < maxLen; i++) {
+        if (i < senaryolar.length) interleaved.add(senaryolar[i]);
+        if (i < hikayeler.length) interleaved.add(hikayeler[i]);
+        if (i < videolar.length) interleaved.add(videolar[i]);
+        if (i == 0) interleaved.add(dedektifItem);
+      }
+
+      final cleanedPool = sanitizeDiscoveryPool(interleaved);
 
       final totalTasks = scenarioCount + storyCount + detectiveCount;
       final result = {
         'toplamGorevSayisi': totalTasks,
-        'kesifHavuzu': cleanedPool.take(4).toList(),
+        'kesifHavuzu': cleanedPool.take(12).toList(),
       };
 
       if (totalTasks > 0) {

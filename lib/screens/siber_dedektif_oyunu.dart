@@ -38,9 +38,10 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
   }
 
   Future<void> _verileriYukle() async {
-    if (_currentUser == null) return;
+    final user = _currentUser;
+    if (user == null) return;
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(_currentUser!.uid).get();
+      final userDoc = await FirebaseFirestore.instance.collection('usersProgress').doc(user.uid).get();
       if (userDoc.exists) {
         _bilinenSoruIds = List<String>.from(userDoc.data()?['bilinen_dedektif_sorulari'] ?? []);
       }
@@ -122,8 +123,9 @@ class _SiberDedektifOyunuState extends State<SiberDedektifOyunu> {
       _kazanilanPuan += 20;
       _bilinenSoruIds.add(mevcutSoru["id"]);
     } else {
-      if (_currentUser != null) {
-        _aiAnalysisService.logMistake(_currentUser!.uid, "Dedektif Oyunu Hatası: ${mevcutSoru["metin"]}");
+      final user = _currentUser;
+      if (user != null) {
+        _aiAnalysisService.logMistake(user.uid, "Dedektif Oyunu Hatası: ${mevcutSoru["metin"]}");
       }
     }
 

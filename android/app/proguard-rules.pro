@@ -1,26 +1,19 @@
-# Flutter ve Firebase için ProGuard kuralları
-
-# Flutter
+# Flutter ve eklentiler
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
-# Firebase
--keep class com.google.firebase.** { *; }
+# Firebase ve Google Play Services (Kendi otomatik consumer kurallarını kullanır)
 -dontwarn com.google.firebase.**
--keep class com.google.android.gms.measurement.** { *; }
--keep class com.google.android.gms.internal.** { *; }
+-dontwarn com.google.android.gms.**
 
-# Google Play Core (R8 hatalarını engellemek için)
--keep class com.google.android.play.core.** { *; }
+# Google Play Core & Google AI
 -dontwarn com.google.android.play.core.**
-
-# Google Generative AI
 -dontwarn com.google.ai.**
 
-# Just Audio
--keep class com.google.android.exoplayer2.** { *; }
+# Just Audio / ExoPlayer
 -dontwarn com.google.android.exoplayer2.**
+-dontwarn androidx.media3.**
 
-# Genel Android kuralları
--keepattributes *Annotation*
+# Crashlytics ve Serileştirme için gerekli nitelikler
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 -keepattributes SourceFile,LineNumberTable

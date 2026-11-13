@@ -48,12 +48,13 @@ class AnalyticsService {
           await FirebaseFirestore.instance
               .collection('usersProgress')
               .doc(uid)
-              .update({
+              .set({
                 listeAdi: FieldValue.arrayUnion([gorevId]),
                 'sonGuncelleme': FieldValue.serverTimestamp(),
-              });
-          if (kDebugMode)
+              }, SetOptions(merge: true));
+          if (kDebugMode) {
             debugPrint("İlerleme kaydedildi (Puan verilmedi): $gorevId");
+          }
         }
       }
     } on FirebaseFunctionsException catch (e, stack) {
@@ -100,14 +101,13 @@ class AnalyticsService {
 
   Future<void> sureEkle(String uid, int dakika) async {
     try {
-      // Audit CRIT-02 Fix: Use dot notation to avoid overwriting nested 'karar_yapisi'
       await FirebaseFirestore.instance
           .collection('usersProgress')
           .doc(uid)
-          .update({
+          .set({
             'istatistikler.toplam_sure_dk': FieldValue.increment(dakika),
             'sonGuncelleme': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
     } catch (e) {
       debugPrint("Süre Ekleme Hatası: $e");
     }
@@ -115,14 +115,13 @@ class AnalyticsService {
 
   Future<void> hataKaydet(String uid) async {
     try {
-      // Audit CRIT-02 Fix: Use dot notation to avoid overwriting nested 'karar_yapisi'
       await FirebaseFirestore.instance
           .collection('usersProgress')
           .doc(uid)
-          .update({
+          .set({
             'istatistikler.hatali_cevaplar': FieldValue.increment(1),
             'sonGuncelleme': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
     } catch (e) {
       debugPrint("Hata Kaydetme Hatası: $e");
     }
